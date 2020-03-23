@@ -8,7 +8,7 @@
 {literal}
     <script type="text/javascript">
     CRM.$(function($) {
-        amount = $('form#ContributionView').find('td.label:contains("Non-receiptable Amount")');
+        var amount = $('form#ContributionView').find('td.label:contains("Non-receiptable Amount")');
         amount.text("Advantage Amount");
         $('#advantage-description tr').insertAfter(amount.parent('tr'));
     });
