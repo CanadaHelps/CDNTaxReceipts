@@ -4,8 +4,13 @@
   <base>CRM/Cdntaxreceipts</base>
   <class>CdnAdvantage</class>
   <name>cdntaxreceipts_advantage</name>
+<<<<<<< HEAD
   <comment>Holds description for advantage for each contribution</comment>
   <add>5.23</add>
+=======
+  <comment>FIXME</comment>
+  <add>4.4</add>
+>>>>>>> 91e70dc... add entity files
   <log>true</log>
 
   <field>
@@ -13,7 +18,11 @@
     <type>int unsigned</type>
     <required>true</required>
     <comment>Unique CdnAdvantage ID</comment>
+<<<<<<< HEAD
     <add>5.23</add>
+=======
+    <add>4.4</add>
+>>>>>>> 91e70dc... add entity files
   </field>
   <primaryKey>
     <name>id</name>
@@ -21,6 +30,7 @@
   </primaryKey>
 
   <field>
+<<<<<<< HEAD
     <name>contribution_id</name>
     <type>int unsigned</type>
     <comment>FK to Contribution</comment>
@@ -34,5 +44,19 @@
     <comment>Description of Advantage</comment>
     <add>5.23</add>
   </field>
+=======
+    <name>contact_id</name>
+    <type>int unsigned</type>
+    <comment>FK to Contact</comment>
+    <add>4.4</add>
+  </field>
+  <foreignKey>
+    <name>contact_id</name>
+    <table>civicrm_contact</table>
+    <key>id</key>
+    <add>4.4</add>
+    <onDelete>CASCADE</onDelete>
+  </foreignKey>
+>>>>>>> 91e70dc... add entity files
 
 </table>

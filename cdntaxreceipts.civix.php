@@ -276,6 +276,9 @@ function _cdntaxreceipts_civix_civicrm_managed(&$entities) {
         $e['params']['version'] = '3';
       }
       $entities[] = $e;
+      if (empty($e['params']['version'])) {
+        $e['params']['version'] = '3';
+      }
     }
   }
 }
@@ -472,5 +475,11 @@ function _cdntaxreceipts_civix_civicrm_alterSettingsFolders(&$metaDataFolders = 
  * @link https://docs.civicrm.org/dev/en/latest/hooks/hook_civicrm_entityTypes
  */
 function _cdntaxreceipts_civix_civicrm_entityTypes(&$entityTypes) {
-  $entityTypes = array_merge($entityTypes, []);
+  $entityTypes = array_merge($entityTypes, [
+    'CRM_Cdntaxreceipts_DAO_CdnAdvantage' => [
+      'name' => 'CdnAdvantage',
+      'class' => 'CRM_Cdntaxreceipts_DAO_CdnAdvantage',
+      'table' => 'cdntaxreceipts_advantage',
+    ],
+  ]);
 }
