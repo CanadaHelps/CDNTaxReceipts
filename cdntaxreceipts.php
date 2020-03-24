@@ -131,6 +131,16 @@ function cdntaxreceipts_civicrm_post($op, $objectName, $objectId, &$objectRef) {
   }
 }
 
+function cdntaxreceipts_civicrm_post($op, $objectName, $objectId, &$objectRef) {
+
+  // Handle saving of description of advantage
+  if ($objectName == "Contribution" && ($op == 'create' || $op == 'edit')) {
+    if (CRM_Utils_Array::value('advantage_description', $_POST)) {
+      cdntaxreceipts_advantage($objectId, $_POST['advantage_description']);
+    }
+  }
+}
+
 /**
  * Implementation of hook_civicrm_postProcess().
  *
