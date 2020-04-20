@@ -49,7 +49,6 @@ require_once('FPDI/src/autoload.php');
  * This method is common to both single and annual receipts.
  */
 function cdntaxreceipts_processTaxReceipt($receipt, &$collectedPdf = NULL, $mode, $method = NULL) {
-
   // Get contact details
   list($displayname, $email) = CRM_Contact_BAO_Contact::getContactDetails($receipt['contact_id']);
 
@@ -636,7 +635,14 @@ function cdntaxreceipts_configure_inkind_fields() {
 
   // check if the custom fields exist.  if not, create them.
   foreach ( array( 'Description of property', 'Appraised by', 'Address of Appraiser', 'Original cost' ) as $field ) {
-    if (!_cdntaxreceipts_custom_field_exists($custom_group_id, $field)) {
+    $params = array(
+      'custom_group_id' => $custom_group_id,
+      'label' => $field,
+      'version' => 3,
+    );
+    $result = civicrm_api( 'custom_field', 'get', $params);
+
+    if ( $result['count'] == 0 ) {
       $field_params = array(
         'custom_group_id' => $custom_group_id,
         'label' => $field,
