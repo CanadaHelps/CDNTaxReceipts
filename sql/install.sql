@@ -51,7 +51,7 @@ CREATE TABLE cdntaxreceipts_log_contributions (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Contributions for each tax reciept issuing.';
 
 CREATE TABLE `cdntaxreceipts_advantage` (
-  `id` int(11) UNSIGNED NOT NULL,
+  `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
   `contribution_id` int(10) UNSIGNED NOT NULL,
   `advantage_description` varchar(255) DEFAULT NULL,
   PRIMARY KEY (id),
