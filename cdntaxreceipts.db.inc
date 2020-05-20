@@ -352,3 +352,15 @@ function cdntaxreceipts_log_next_id() {
   $last_id = CRM_Core_DAO::singleValueQuery($sql);
   return $last_id + 1;
 }
+
+function cdntaxreceipts_advantage($id, $desc = NULL, &$defaults = [], $view = FALSE) {
+  $advantage = new CRM_Cdntaxreceipts_DAO_CdnAdvantage;
+  $advantage->contribution_id = $id;
+  $advantage->find(TRUE);
+  if ($view) {
+    $defaults['advantage_description'] = $advantage->advantage_description ?: NULL;
+    return;
+  }
+  $advantage->advantage_description = $desc;
+  $advantage->save();
+}

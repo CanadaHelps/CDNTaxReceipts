@@ -26,6 +26,17 @@ function cdntaxreceipts_civicrm_buildForm( $formName, &$form ) {
       )
     );
     $subName = 'view_tax_receipt';
+
+    // Advantage fields
+    $form->assign('isView', TRUE);
+    cdntaxreceipts_advantage($contributionId, NULL, $defaults, TRUE);
+    if (!empty($defaults['advantage_description'])) {
+      $form->assign('advantage_description', $defaults['advantage_description']);
+    }
+    CRM_Core_Region::instance('page-body')->add(array(
+      'template' => 'CRM/Cdntaxreceipts/Form/AddAdvantage.tpl',
+    ));
+
     if ( isset($contributionId) && cdntaxreceipts_eligibleForReceipt($contributionId) ) {
       list($issued_on, $receipt_id) = cdntaxreceipts_issued_on($contributionId);
       $is_original_receipt = empty($issued_on);
@@ -41,6 +52,76 @@ function cdntaxreceipts_civicrm_buildForm( $formName, &$form ) {
         'isDefault' => FALSE
       );
       $form->addButtons($buttons);
+    }
+  }
+  if (is_a($form, 'CRM_Contribute_Form_Contribution') && in_array($form->_action, [CRM_Core_Action::ADD, CRM_Core_Action::UPDATE])) {
+    $form->add('text', 'non_deductible_amount', ts('Advantage Amount'), NULL);
+    $form->add('text', 'advantage_description', ts('Advantage Description'), NULL);
+    if ($form->_action & CRM_Core_Action::UPDATE) {
+      cdntaxreceipts_advantage($form->_id, NULL, $defaults, TRUE);
+      $form->setDefaults($defaults);
+    }
+
+    CRM_Core_Region::instance('page-body')->add(array(
+      'template' => 'CRM/Cdntaxreceipts/Form/AddAdvantage.tpl',
+    ));
+  }
+}
+
+/**
+ * Implements hook_civicrm_validateForm().
+ *
+ * @param string $formName
+ * @param array $fields
+ * @param array $files
+ * @param CRM_Core_Form $form
+ * @param array $errors
+ */
+function cdntaxreceipts_civicrm_validateForm($formName, &$fields, &$files, &$form, &$errors) {
+
+  // Require description for advantage amount if advantage amount is filled in.
+  if (is_a($form, 'CRM_Contribute_Form_Contribution')
+    && (CRM_Utils_Array::value('non_deductible_amount', $fields) > 0) && !CRM_Utils_Array::value('advantage_description', $fields)) {
+    $errors['advantage_description'] = ts('Please enter a description for advantage amount');
+  }
+  if (is_a($form, 'CRM_Contribute_Form_Contribution')) {
+    // Limit number of characters to 50 for description of advantage.
+    if (CRM_Utils_Array::value('advantage_description', $fields)) {
+      if (strlen(CRM_Utils_Array::value('advantage_description', $fields)) > 50) {
+        $errors['advantage_description'] = ts('Advantage Description should not be more than 50 characters');
+      }
+    }
+    if (!empty($fields['financial_type_id']) && civicrm_api3('FinancialType', 'getvalue', [
+      'return' => "name",
+      'id' => $fields['financial_type_id'],
+    ]) == "In-kind") {
+      // Add restriction to field length for in kind custom fields.
+      $customFields = [
+        35 => "Appraised by",
+        50 => "Description of property",
+        40 => "Address of Appraiser",
+      ];
+      $groupTitle = 'In-kind donation fields';
+      foreach ($customFields as $length => $name) {
+        $id = CRM_Core_BAO_CustomField::getCustomFieldID($name, $groupTitle);
+        foreach ($fields as $key => $value) {
+          if (strpos($key, 'custom_' . $id) !== false && !empty($value)) {
+            if (strlen($value) > $length) {
+              $errors[$key] = ts('%1 should not be more than %2 characters', [1 => $name, 2 => $length]);
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+function cdntaxreceipts_civicrm_post($op, $objectName, $objectId, &$objectRef) {
+
+  // Handle saving of description of advantage
+  if ($objectName == "Contribution" && ($op == 'create' || $op == 'edit')) {
+    if (CRM_Utils_Array::value('advantage_description', $_POST)) {
+      cdntaxreceipts_advantage($objectId, $_POST['advantage_description']);
     }
   }
 }

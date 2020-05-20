@@ -3,6 +3,7 @@
 
 DROP TABLE IF EXISTS cdntaxreceipts_log_contributions;
 DROP TABLE IF EXISTS cdntaxreceipts_log;
+DROP TABLE IF EXISTS cdntaxreceipts_advantage;
 
 -- Delete message template and respective option group and option values
 DELETE  civicrm_option_value.*, civicrm_option_group.*, civicrm_msg_template.*

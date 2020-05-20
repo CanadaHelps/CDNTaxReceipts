@@ -1,5 +1,7 @@
 <?php
 
+use CRM_Cdntaxreceipts_ExtensionUtil as E;
+
 /**
  * Collection of upgrade steps
  */
@@ -68,7 +70,7 @@ AND COLUMN_NAME = 'receipt_status'");
     CRM_Core_DAO::executeQuery('ALTER TABLE cdntaxreceipts_log ADD email_opened datetime NULL');
     CRM_Core_DAO::executeQuery('CREATE INDEX contribution_id ON cdntaxreceipts_log_contributions (contribution_id)');
     return TRUE;
-  } 
+  }
 
   public function upgrade_1322() {
     $this->ctx->log->info('Applying update 1322: Message Templates');
@@ -89,6 +91,43 @@ AND COLUMN_NAME = 'receipt_status'");
     return TRUE;
   }
 
+  public function upgrade_1510() {
+    $this->ctx->log->info('Applying update 1510: Adding gift advantage description table and adding missing financial accounts to "In-Kind" fund ');
+    $sql = "CREATE TABLE IF NOT EXISTS cdntaxreceipts_advantage (
+      id int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
+      contribution_id int(10) UNSIGNED NOT NULL,
+      advantage_description varchar(255) DEFAULT NULL,
+      PRIMARY KEY (id),
+      INDEX contribution_id (contribution_id)
+    )";
+    CRM_Core_DAO::executeQuery($sql);
+
+    // add missing GL account to In-kind fund
+    require_once 'CRM/Financial/DAO/FinancialType.php';
+    $financialType = new CRM_Financial_DAO_FinancialType();
+    $financialType->name = 'In-kind';
+
+    if ($financialType->find(TRUE)) {
+      E::createDefaultFinancialAccounts($financialType);
+      // Set the GL Account code to match master
+      $revenueAccountTypeID = array_search('Revenue', CRM_Core_OptionGroup::values('financial_account_type', FALSE, FALSE, FALSE, NULL, 'name'));
+      if ($revenueAccountTypeID) {
+        CRM_Core_DAO::executeQuery("UPDATE civicrm_financial_account fa
+          INNER JOIN civicrm_entity_financial_account efa ON efa.financial_account_id = fa.id
+          SET fa.accounting_code = '4300'
+          efa.entity_table = 'civicrm_financial_type' AND fa.financial_account_type_id = %1 AND efa.entity_id = %2", [
+          1 => [$revenueAccountTypeID, 'Positive'],
+          2 => [$financialType->id, 'Positive'],
+        ]);
+      }
+    }
+    else {
+      // Create Inkind financial type and fields
+      cdntaxreceipts_configure_inkind_fields();
+    }
+
+    return TRUE;
+  }
 
   function _create_message_template($email_message, $email_subject) {
 

@@ -3,7 +3,163 @@
 // AUTO-GENERATED FILE -- Civix may overwrite any changes made to this file
 
 /**
- * (Delegated) Implementation of hook_civicrm_config
+ * The ExtensionUtil class provides small stubs for accessing resources of this
+ * extension.
+ */
+class CRM_Cdntaxreceipts_ExtensionUtil {
+  const SHORT_NAME = "cdntaxreceipts";
+  const LONG_NAME = "org.civicrm.cdntaxreceipts";
+  const CLASS_PREFIX = "CRM_Cdntaxreceipts";
+
+  /**
+   * Translate a string using the extension's domain.
+   *
+   * If the extension doesn't have a specific translation
+   * for the string, fallback to the default translations.
+   *
+   * @param string $text
+   *   Canonical message text (generally en_US).
+   * @param array $params
+   * @return string
+   *   Translated text.
+   * @see ts
+   */
+  public static function ts($text, $params = array()) {
+    if (!array_key_exists('domain', $params)) {
+      $params['domain'] = array(self::LONG_NAME, NULL);
+    }
+    return ts($text, $params);
+  }
+
+  /**
+   * Get the URL of a resource file (in this extension).
+   *
+   * @param string|NULL $file
+   *   Ex: NULL.
+   *   Ex: 'css/foo.css'.
+   * @return string
+   *   Ex: 'http://example.org/sites/default/ext/org.example.foo'.
+   *   Ex: 'http://example.org/sites/default/ext/org.example.foo/css/foo.css'.
+   */
+  public static function url($file = NULL) {
+    if ($file === NULL) {
+      return rtrim(CRM_Core_Resources::singleton()->getUrl(self::LONG_NAME), '/');
+    }
+    return CRM_Core_Resources::singleton()->getUrl(self::LONG_NAME, $file);
+  }
+
+  /**
+   * Get the path of a resource file (in this extension).
+   *
+   * @param string|NULL $file
+   *   Ex: NULL.
+   *   Ex: 'css/foo.css'.
+   * @return string
+   *   Ex: '/var/www/example.org/sites/default/ext/org.example.foo'.
+   *   Ex: '/var/www/example.org/sites/default/ext/org.example.foo/css/foo.css'.
+   */
+  public static function path($file = NULL) {
+    // return CRM_Core_Resources::singleton()->getPath(self::LONG_NAME, $file);
+    return __DIR__ . ($file === NULL ? '' : (DIRECTORY_SEPARATOR . $file));
+  }
+
+  /**
+   * Get the name of a class within this extension.
+   *
+   * @param string $suffix
+   *   Ex: 'Page_HelloWorld' or 'Page\\HelloWorld'.
+   * @return string
+   *   Ex: 'CRM_Foo_Page_HelloWorld'.
+   */
+  public static function findClass($suffix) {
+    return self::CLASS_PREFIX . '_' . str_replace('\\', '_', $suffix);
+  }
+
+  /**
+   * Copied core function CRM_Financial_BAO_FinancialTypeAccount::createDefaultFinancialAccounts() to get rid of Cost of Sale GL account mapping with Fund
+  */
+  public static function createDefaultFinancialAccounts($financialType) {
+    $titles = [];
+    $financialAccountTypeID = CRM_Core_OptionGroup::values('financial_account_type', FALSE, FALSE, FALSE, NULL, 'name');
+    $accountRelationship    = CRM_Core_OptionGroup::values('account_relationship', FALSE, FALSE, FALSE, NULL, 'name');
+
+    $relationships = [
+      array_search('Accounts Receivable Account is', $accountRelationship) => array_search('Asset', $financialAccountTypeID),
+      array_search('Expense Account is', $accountRelationship) => array_search('Expenses', $financialAccountTypeID),
+      array_search('Income Account is', $accountRelationship) => array_search('Revenue', $financialAccountTypeID),
+    ];
+
+    $dao = CRM_Core_DAO::executeQuery('SELECT id, financial_account_type_id FROM civicrm_financial_account WHERE name LIKE %1',
+      [1 => [$financialType->name, 'String']]
+    );
+    $dao->fetch();
+    $existingFinancialAccount = [];
+    if (!$dao->N) {
+      $params = [
+        'name' => $financialType->name,
+        'contact_id' => CRM_Core_DAO::getFieldValue('CRM_Core_DAO_Domain', CRM_Core_Config::domainID(), 'contact_id'),
+        'financial_account_type_id' => array_search('Revenue', $financialAccountTypeID),
+        'description' => $financialType->description,
+        'account_type_code' => 'INC',
+        'accounting_code' => '4300',
+        'is_active' => 1,
+      ];
+      $financialAccount = CRM_Financial_BAO_FinancialAccount::add($params);
+    }
+    else {
+      $existingFinancialAccount[$dao->financial_account_type_id] = $dao->id;
+    }
+    $params = [
+      'entity_table' => 'civicrm_financial_type',
+      'entity_id' => $financialType->id,
+    ];
+    foreach ($relationships as $key => $value) {
+      if (!array_key_exists($value, $existingFinancialAccount)) {
+        if ($accountRelationship[$key] == 'Accounts Receivable Account is') {
+          $params['financial_account_id'] = CRM_Core_DAO::getFieldValue('CRM_Financial_DAO_FinancialAccount', 'Accounts Receivable', 'id', 'name');
+          if (!empty($params['financial_account_id'])) {
+            $titles[] = 'Accounts Receivable';
+          }
+          else {
+            $query = "SELECT financial_account_id, name FROM civicrm_entity_financial_account
+            LEFT JOIN civicrm_financial_account ON civicrm_financial_account.id = civicrm_entity_financial_account.financial_account_id
+            WHERE account_relationship = {$key} AND entity_table = 'civicrm_financial_type' LIMIT 1";
+            $dao = CRM_Core_DAO::executeQuery($query);
+            $dao->fetch();
+            $params['financial_account_id'] = $dao->financial_account_id;
+            $titles[] = $dao->name;
+          }
+        }
+        elseif ($accountRelationship[$key] == 'Income Account is' && empty($existingFinancialAccount)) {
+          $params['financial_account_id'] = $financialAccount->id;
+        }
+        else {
+          $query = "SELECT id, name FROM civicrm_financial_account WHERE is_default = 1 AND financial_account_type_id = {$value}";
+          $dao = CRM_Core_DAO::executeQuery($query);
+          $dao->fetch();
+          $params['financial_account_id'] = $dao->id;
+          $titles[] = $dao->name;
+        }
+      }
+      else {
+        $params['financial_account_id'] = $existingFinancialAccount[$value];
+        $titles[] = $financialType->name;
+      }
+      $params['account_relationship'] = $key;
+      CRM_Financial_BAO_FinancialTypeAccount::add($params);
+    }
+    if (!empty($existingFinancialAccount)) {
+      $titles = [];
+    }
+    return $titles;
+  }
+
+}
+
+use CRM_Cdntaxreceipts_ExtensionUtil as E;
+
+/**
+ * (Delegated) Implements hook_civicrm_config().
  *
  * @link http://wiki.civicrm.org/confluence/display/CRMDOC/hook_civicrm_config
  */
@@ -19,14 +175,14 @@ function _cdntaxreceipts_civix_civicrm_config(&$config = NULL) {
   $extRoot = dirname(__FILE__) . DIRECTORY_SEPARATOR;
   $extDir = $extRoot . 'templates';
 
-  if ( is_array( $template->template_dir ) ) {
-      array_unshift( $template->template_dir, $extDir );
+  if (is_array($template->template_dir)) {
+    array_unshift($template->template_dir, $extDir);
   }
   else {
-      $template->template_dir = array( $extDir, $template->template_dir );
+    $template->template_dir = array($extDir, $template->template_dir);
   }
 
-  $include_path = $extRoot . PATH_SEPARATOR . get_include_path( );
+  $include_path = $extRoot . PATH_SEPARATOR . get_include_path();
   set_include_path($include_path);
 }
 
@@ -34,6 +190,7 @@ function _cdntaxreceipts_civix_civicrm_config(&$config = NULL) {
  * (Delegated) Implements hook_civicrm_xmlMenu().
  *
  * @param $files array(string)
+ *
  * @link http://wiki.civicrm.org/confluence/display/CRMDOC/hook_civicrm_xmlMenu
  */
 function _cdntaxreceipts_civix_civicrm_xmlMenu(&$files) {
@@ -43,7 +200,7 @@ function _cdntaxreceipts_civix_civicrm_xmlMenu(&$files) {
 }
 
 /**
- * Implementation of hook_civicrm_install
+ * Implements hook_civicrm_install().
  *
  * @link http://wiki.civicrm.org/confluence/display/CRMDOC/hook_civicrm_install
  */
@@ -55,7 +212,21 @@ function _cdntaxreceipts_civix_civicrm_install() {
 }
 
 /**
- * Implementation of hook_civicrm_uninstall
+ * Implements hook_civicrm_postInstall().
+ *
+ * @link http://wiki.civicrm.org/confluence/display/CRMDOC/hook_civicrm_postInstall
+ */
+function _cdntaxreceipts_civix_civicrm_postInstall() {
+  _cdntaxreceipts_civix_civicrm_config();
+  if ($upgrader = _cdntaxreceipts_civix_upgrader()) {
+    if (is_callable(array($upgrader, 'onPostInstall'))) {
+      $upgrader->onPostInstall();
+    }
+  }
+}
+
+/**
+ * Implements hook_civicrm_uninstall().
  *
  * @link http://wiki.civicrm.org/confluence/display/CRMDOC/hook_civicrm_uninstall
  */
@@ -67,7 +238,7 @@ function _cdntaxreceipts_civix_civicrm_uninstall() {
 }
 
 /**
- * (Delegated) Implementation of hook_civicrm_enable
+ * (Delegated) Implements hook_civicrm_enable().
  *
  * @link http://wiki.civicrm.org/confluence/display/CRMDOC/hook_civicrm_enable
  */
@@ -81,7 +252,7 @@ function _cdntaxreceipts_civix_civicrm_enable() {
 }
 
 /**
- * (Delegated) Implementation of hook_civicrm_disable
+ * (Delegated) Implements hook_civicrm_disable().
  *
  * @link http://wiki.civicrm.org/confluence/display/CRMDOC/hook_civicrm_disable
  * @return mixed
@@ -116,7 +287,7 @@ function _cdntaxreceipts_civix_civicrm_upgrade($op, CRM_Queue_Queue $queue = NUL
  * @return CRM_Cdntaxreceipts_Upgrader
  */
 function _cdntaxreceipts_civix_upgrader() {
-  if (!file_exists(__DIR__.'/CRM/Cdntaxreceipts/Upgrader.php')) {
+  if (!file_exists(__DIR__ . '/CRM/Cdntaxreceipts/Upgrader.php')) {
     return NULL;
   }
   else {
@@ -152,7 +323,8 @@ function _cdntaxreceipts_civix_find_files($dir, $pattern) {
       while (FALSE !== ($entry = readdir($dh))) {
         $path = $subdir . DIRECTORY_SEPARATOR . $entry;
         if ($entry{0} == '.') {
-        } elseif (is_dir($path)) {
+        }
+        elseif (is_dir($path)) {
           $todos[] = $path;
         }
       }
@@ -174,15 +346,18 @@ function _cdntaxreceipts_civix_civicrm_managed(&$entities) {
     $es = include $file;
     foreach ($es as $e) {
       if (empty($e['module'])) {
-        $e['module'] = 'org.civicrm.cdntaxreceipts';
+        $e['module'] = E::LONG_NAME;
       }
       $entities[] = $e;
+      if (empty($e['params']['version'])) {
+        $e['params']['version'] = '3';
+      }
     }
   }
 }
 
 /**
- * (Delegated) Implementation of hook_civicrm_caseTypes
+ * (Delegated) Implements hook_civicrm_caseTypes().
  *
  * Find any and return any files matching "xml/case/*.xml"
  *
@@ -203,7 +378,7 @@ function _cdntaxreceipts_civix_civicrm_caseTypes(&$caseTypes) {
       // throw new CRM_Core_Exception($errorMessage);
     }
     $caseTypes[$name] = array(
-      'module' => 'org.civicrm.cdntaxreceipts',
+      'module' => E::LONG_NAME,
       'name' => $name,
       'file' => $file,
     );
@@ -211,14 +386,14 @@ function _cdntaxreceipts_civix_civicrm_caseTypes(&$caseTypes) {
 }
 
 /**
-* (Delegated) Implements hook_civicrm_angularModules().
-*
-* Find any and return any files matching "ang/*.ang.php"
-*
-* Note: This hook only runs in CiviCRM 4.5+.
-*
-* @link http://wiki.civicrm.org/confluence/display/CRMDOC/hook_civicrm_angularModules
-*/
+ * (Delegated) Implements hook_civicrm_angularModules().
+ *
+ * Find any and return any files matching "ang/*.ang.php"
+ *
+ * Note: This hook only runs in CiviCRM 4.5+.
+ *
+ * @link http://wiki.civicrm.org/confluence/display/CRMDOC/hook_civicrm_angularModules
+ */
 function _cdntaxreceipts_civix_civicrm_angularModules(&$angularModules) {
   if (!is_dir(__DIR__ . '/ang')) {
     return;
@@ -229,7 +404,7 @@ function _cdntaxreceipts_civix_civicrm_angularModules(&$angularModules) {
     $name = preg_replace(':\.ang\.php$:', '', basename($file));
     $module = include $file;
     if (empty($module['ext'])) {
-      $module['ext'] = 'org.civicrm.cdntaxreceipts';
+      $module['ext'] = E::LONG_NAME;
     }
     $angularModules[$name] = $module;
   }
@@ -256,35 +431,32 @@ function _cdntaxreceipts_civix_glob($pattern) {
  * Inserts a navigation menu item at a given place in the hierarchy.
  *
  * @param array $menu - menu hierarchy
- * @param string $path - path where insertion should happen (ie. Administer/System Settings)
- * @param array $item - menu you need to insert (parent/child attributes will be filled for you)
- * @param int $parentId - used internally to recurse in the menu structure
+ * @param string $path - path to parent of this item, e.g. 'my_extension/submenu'
+ *    'Mailing', or 'Administer/System Settings'
+ * @param array $item - the item to insert (parent/child attributes will be
+ *    filled for you)
  */
-function _cdntaxreceipts_civix_insert_navigation_menu(&$menu, $path, $item, $parentId = NULL) {
-  static $navId;
-
+function _cdntaxreceipts_civix_insert_navigation_menu(&$menu, $path, $item) {
   // If we are done going down the path, insert menu
   if (empty($path)) {
-    if (!$navId) $navId = CRM_Core_DAO::singleValueQuery("SELECT max(id) FROM civicrm_navigation");
-    $navId ++;
-    $menu[$navId] = array (
-      'attributes' => array_merge($item, array(
+    $menu[] = array(
+      'attributes' => array_merge(array(
         'label'      => CRM_Utils_Array::value('name', $item),
         'active'     => 1,
-        'parentID'   => $parentId,
-        'navID'      => $navId,
-      ))
+      ), $item),
     );
-    return true;
+    return TRUE;
   }
   else {
     // Find an recurse into the next level down
-    $found = false;
+    $found = FALSE;
     $path = explode('/', $path);
     $first = array_shift($path);
     foreach ($menu as $key => &$entry) {
       if ($entry['attributes']['name'] == $first) {
-        if (!$entry['child']) $entry['child'] = array();
+        if (!isset($entry['child'])) {
+          $entry['child'] = array();
+        }
         $found = _cdntaxreceipts_civix_insert_navigation_menu($entry['child'], implode('/', $path), $item, $key);
       }
     }
@@ -293,17 +465,81 @@ function _cdntaxreceipts_civix_insert_navigation_menu(&$menu, $path, $item, $par
 }
 
 /**
- * (Delegated) Implementation of hook_civicrm_alterSettingsFolders
+ * (Delegated) Implements hook_civicrm_navigationMenu().
+ */
+function _cdntaxreceipts_civix_navigationMenu(&$nodes) {
+  if (!is_callable(array('CRM_Core_BAO_Navigation', 'fixNavigationMenu'))) {
+    _cdntaxreceipts_civix_fixNavigationMenu($nodes);
+  }
+}
+
+/**
+ * Given a navigation menu, generate navIDs for any items which are
+ * missing them.
+ */
+function _cdntaxreceipts_civix_fixNavigationMenu(&$nodes) {
+  $maxNavID = 1;
+  array_walk_recursive($nodes, function($item, $key) use (&$maxNavID) {
+    if ($key === 'navID') {
+      $maxNavID = max($maxNavID, $item);
+    }
+  });
+  _cdntaxreceipts_civix_fixNavigationMenuItems($nodes, $maxNavID, NULL);
+}
+
+function _cdntaxreceipts_civix_fixNavigationMenuItems(&$nodes, &$maxNavID, $parentID) {
+  $origKeys = array_keys($nodes);
+  foreach ($origKeys as $origKey) {
+    if (!isset($nodes[$origKey]['attributes']['parentID']) && $parentID !== NULL) {
+      $nodes[$origKey]['attributes']['parentID'] = $parentID;
+    }
+    // If no navID, then assign navID and fix key.
+    if (!isset($nodes[$origKey]['attributes']['navID'])) {
+      $newKey = ++$maxNavID;
+      $nodes[$origKey]['attributes']['navID'] = $newKey;
+      $nodes[$newKey] = $nodes[$origKey];
+      unset($nodes[$origKey]);
+      $origKey = $newKey;
+    }
+    if (isset($nodes[$origKey]['child']) && is_array($nodes[$origKey]['child'])) {
+      _cdntaxreceipts_civix_fixNavigationMenuItems($nodes[$origKey]['child'], $maxNavID, $nodes[$origKey]['attributes']['navID']);
+    }
+  }
+}
+
+/**
+ * (Delegated) Implements hook_civicrm_alterSettingsFolders().
  *
  * @link http://wiki.civicrm.org/confluence/display/CRMDOC/hook_civicrm_alterSettingsFolders
  */
 function _cdntaxreceipts_civix_civicrm_alterSettingsFolders(&$metaDataFolders = NULL) {
   static $configured = FALSE;
-  if ($configured) return;
+  if ($configured) {
+    return;
+  }
   $configured = TRUE;
 
   $settingsDir = __DIR__ . DIRECTORY_SEPARATOR . 'settings';
-  if(is_dir($settingsDir) && !in_array($settingsDir, $metaDataFolders)) {
+  if (is_dir($settingsDir) && !in_array($settingsDir, $metaDataFolders)) {
     $metaDataFolders[] = $settingsDir;
   }
+}
+
+/**
+ * (Delegated) Implements hook_civicrm_entityTypes().
+ *
+ * Find any *.entityType.php files, merge their content, and return.
+ *
+ * @link http://wiki.civicrm.org/confluence/display/CRMDOC/hook_civicrm_entityTypes
+ */
+
+function _cdntaxreceipts_civix_civicrm_entityTypes(&$entityTypes) {
+  $entityTypes = array_merge($entityTypes, array (
+    'CRM_Cdntaxreceipts_DAO_CdnAdvantage' =>
+    array (
+      'name' => 'CdnAdvantage',
+      'class' => 'CRM_Cdntaxreceipts_DAO_CdnAdvantage',
+      'table' => 'cdntaxreceipts_advantage',
+    ),
+  ));
 }
