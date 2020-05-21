@@ -92,7 +92,7 @@ AND COLUMN_NAME = 'receipt_status'");
   }
 
   public function upgrade_1510() {
-    $this->ctx->log->info('Applying update 1510: Adding gift advantage description table and adding missing financial accounts to "In-Kind" fund ');
+    $this->ctx->log->info('Applying update 1510: Adding gift advantage description table');
     $sql = "CREATE TABLE IF NOT EXISTS cdntaxreceipts_advantage (
       id int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
       contribution_id int(10) UNSIGNED NOT NULL,
@@ -101,6 +101,11 @@ AND COLUMN_NAME = 'receipt_status'");
       INDEX contribution_id (contribution_id)
     )";
     CRM_Core_DAO::executeQuery($sql);
+    return TRUE;
+  }
+
+  public function upgrae_1511() {
+    $this->ctx->log->info('Applying update 1511: adding missing financial accounts to "In-Kind" fund');
 
     // add missing GL account to In-kind fund
     require_once 'CRM/Financial/DAO/FinancialType.php';
