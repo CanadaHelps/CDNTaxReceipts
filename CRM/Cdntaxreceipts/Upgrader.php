@@ -104,7 +104,7 @@ AND COLUMN_NAME = 'receipt_status'");
     return TRUE;
   }
 
-  public function upgrae_1511() {
+  public function upgrade_1511() {
     $this->ctx->log->info('Applying update 1511: adding missing financial accounts to "In-Kind" fund');
 
     // add missing GL account to In-kind fund
