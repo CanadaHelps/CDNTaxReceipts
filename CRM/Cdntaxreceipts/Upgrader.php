@@ -138,6 +138,31 @@ AND COLUMN_NAME = 'receipt_status'");
     return TRUE;
   }
 
+  public function upgrade_1512() {
+    $this->ctx->log->info('Applying update 1512: renaming in-kind to In Kind');
+    // add missing GL account to In-kind fund
+    require_once 'CRM/Financial/DAO/FinancialType.php';
+    $financialType = new CRM_Financial_DAO_FinancialType();
+    $financialType->name = 'In-kind';
+    if ($financialType->find(TRUE)) {
+      $financialType->name = 'In Kind';
+      $financialType->save();
+    }
+    $customGroup = new CRM_Core_DAO_CustomGroup();
+    $customGroup->title = 'In-kind donation fields';
+    if ($customGroup->find(TRUE)) {
+      $customGroup->title = 'In Kind donation fields';
+      $customGroup->save();
+    }
+    $financialAccount = new CRM_Financial_DAO_FinancialAccount();
+    $financialAccount->name = 'In-kind Donation';
+    if ($financialAccount->find(TRUE)) {
+      $financialAccount->name = 'In Kind Donation';
+      $financialAccount->save();
+    }
+    return TRUE;
+  }
+
   function _create_message_template($email_message, $email_subject) {
 
     $html_message = '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
