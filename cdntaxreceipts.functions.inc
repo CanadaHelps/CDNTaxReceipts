@@ -596,7 +596,7 @@ function cdntaxreceipts_configure_inkind_fields() {
   // check if the In-kind contribution type exists.  if not, create it.
   require_once 'CRM/Financial/DAO/FinancialType.php';
   $dao = new CRM_Financial_DAO_FinancialType();
-  $dao->name = 'In kind';
+  $dao->name = 'In Kind';
 
   if ( ! $dao->find(true) ) {
     $dao->name = 'In Kind';
