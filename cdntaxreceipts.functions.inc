@@ -735,7 +735,7 @@ function cdntaxreceipts_issueTaxReceipt($contribution, &$collectedPdf = NULL, $m
 
   $inkind_values = array();
   // check if this is an 'In-kind" contribution.
-  if ( $contributiontype->name == 'In-kind' ) {
+  if ( $contributiontype->name == 'In-kind' || $contributiontype->name == "In Kind") {
     // in this case get the custom field values:
     require_once 'CRM/Core/BAO/CustomField.php';
     $groupTitle = 'In Kind donation fields';

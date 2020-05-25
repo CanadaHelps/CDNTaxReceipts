@@ -96,7 +96,7 @@ function cdntaxreceipts_civicrm_validateForm($formName, &$fields, &$files, &$for
         'return' => "name",
         'id' => $fields['financial_type_id'],
       ]);
-      if $ftName  == "In-kind" || $ftName == "In Kind") {
+      if ($ftName  == "In-kind" || $ftName == "In Kind") {
         // Add restriction to field length for in kind custom fields.
         $customFields = [
           35 => "Appraised by",
