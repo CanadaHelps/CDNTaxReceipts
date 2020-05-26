@@ -172,7 +172,7 @@ AND COLUMN_NAME = 'receipt_status'");
       FROM civicrm_financial_account
       WHERE id NOT IN (SELECT financial_account_id FROM civicrm_entity_financial_account WHERE entity_table = 'civicrm_financial_type' AND entity_id = %1)
       AND name like '%In Kind%'", [1 => [$financialType->id, 'Positive']]);
-    while ($query->fetch() {
+    while ($query->fetch()) {
       if (!empty($query->id)) {
         civicrm_api3('FinancialAccount', 'delete', ['id' => $query->id]);
       }
