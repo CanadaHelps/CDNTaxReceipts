@@ -104,7 +104,7 @@ AND COLUMN_NAME = 'receipt_status'");
     return TRUE;
   }
 
-  public function upgrae_1511() {
+  public function upgrade_1511() {
     $this->ctx->log->info('Applying update 1511: adding missing financial accounts to "In-Kind" fund');
 
     // add missing GL account to In-kind fund
@@ -135,6 +135,48 @@ AND COLUMN_NAME = 'receipt_status'");
       cdntaxreceipts_configure_inkind_fields();
     }
 
+    return TRUE;
+  }
+
+  public function upgrade_1512() {
+    $this->ctx->log->info('Applying update 1512: renaming in-kind to In Kind');
+    // add missing GL account to In-kind fund
+    require_once 'CRM/Financial/DAO/FinancialType.php';
+    $financialType = new CRM_Financial_DAO_FinancialType();
+    $financialType->name = 'In-kind';
+    if ($financialType->find(TRUE)) {
+      $financialType->name = 'In Kind';
+      $financialType->save();
+    }
+    $customGroup = new CRM_Core_DAO_CustomGroup();
+    $customGroup->title = 'In-kind donation fields';
+    if ($customGroup->find(TRUE)) {
+      $customGroup->title = 'In Kind donation fields';
+      $customGroup->save();
+    }
+    $financialAccount = new CRM_Financial_DAO_FinancialAccount();
+    $financialAccount->name = 'In-kind Donation';
+    if ($financialAccount->find(TRUE)) {
+      $financialAccount->name = 'In Kind Donation';
+      $financialAccount->save();
+    }
+    $financialAccount->name = 'In-kind';
+    if ($financialAccount->find(TRUE)) {
+      $financialAccount->name = 'In Kind';
+      $financialAccount->save();
+    }
+    $financialType = new CRM_Financial_DAO_FinancialType();
+    $financialType->name = 'In Kind';
+    $financialType->find(TRUE);
+    $query = CRM_Core_DAO::executeQuery("SELECT id
+      FROM civicrm_financial_account
+      WHERE id NOT IN (SELECT financial_account_id FROM civicrm_entity_financial_account WHERE entity_table = 'civicrm_financial_type' AND entity_id = %1)
+      AND name like '%In Kind%'", [1 => [$financialType->id, 'Positive']]);
+    while ($query->fetch()) {
+      if (!empty($query->id)) {
+        civicrm_api3('FinancialAccount', 'delete', ['id' => $query->id]);
+      }
+    }
     return TRUE;
   }
 

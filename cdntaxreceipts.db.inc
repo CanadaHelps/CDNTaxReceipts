@@ -95,7 +95,7 @@ function cdntaxreceipts_contributions_not_receipted($contactId, $year) {
             ON contrib.financial_type_id = contrib_type.id
     LEFT  JOIN cdntaxreceipts_log_contributions cdntax_c
             ON contrib.id = cdntax_c.contribution_id
-    WHERE cdntax_c.receipt_id IS NULL AND contrib_type.name <> 'In-kind'
+    WHERE cdntax_c.receipt_id IS NULL AND contrib_type.name <> 'In-kind' AND contrib_type.name <> 'In Kind'
       AND contrib.contact_id = $contactId AND YEAR(contrib.receive_date) = $year
     ORDER BY contrib.id";
 
@@ -298,7 +298,7 @@ function cdntaxreceipts_contributions_get_status($contributionIds = array()) {
             ON contrib.financial_type_id = contrib_type.id
     LEFT  JOIN cdntaxreceipts_log_contributions cdntax_c
             ON contrib.id = cdntax_c.contribution_id
-    WHERE contrib_type.name <> 'In-kind' AND contrib.id IN($ids)";
+    WHERE contrib_type.name <> 'In-kind' AND contrib.id IN($ids) AND contrib_type.name <> 'In Kind'";
 
     $dao = CRM_Core_DAO::executeQuery($sql);
 

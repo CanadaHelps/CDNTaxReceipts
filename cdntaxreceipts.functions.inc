@@ -501,7 +501,7 @@ function _cdntaxreceipts_writeReceipt(&$pdf, $pdf_variables) {
   // If this is an in-kind donation
   if ( !empty($inkind_values) ) {
     $valueAdvantage = ts('Value of advantage to');
-    $inkind_str = ts('Donation in-kind: %1', array(1 => $inkind_values[0], 'domain' => 'org.civicrm.cdntaxreceipts'));
+    $inkind_str = ts('Donation In Kind: %1', array(1 => $inkind_values[0], 'domain' => 'org.civicrm.cdntaxreceipts'));
 
     if (!empty($inkind_values[3])) {
       if ($inkind_values[3] < $amount) {
@@ -596,10 +596,10 @@ function cdntaxreceipts_configure_inkind_fields() {
   // check if the In-kind contribution type exists.  if not, create it.
   require_once 'CRM/Financial/DAO/FinancialType.php';
   $dao = new CRM_Financial_DAO_FinancialType();
-  $dao->name = 'In-kind';
+  $dao->name = 'In Kind';
 
   if ( ! $dao->find(true) ) {
-    $dao->name = 'In-kind';
+    $dao->name = 'In Kind';
     $dao->is_deductible = TRUE;
     $dao->is_active = TRUE;
     $dao->save();
@@ -611,7 +611,7 @@ function cdntaxreceipts_configure_inkind_fields() {
 
   // check if the custom group exists.  if not, create it.
   $params = array(
-    'title' => 'In-kind donation fields',
+    'title' => 'In Kind donation fields',
     'version' => 3,
   );
 
@@ -620,7 +620,7 @@ function cdntaxreceipts_configure_inkind_fields() {
 
   if ( $result['count'] == 0 ) {
     $group = array(
-      'title' => 'In-kind donation fields',
+      'title' => 'In Kind donation fields',
       'extends' => array( 'Contribution' ),
       'extends_entity_column_value' => [$contrib_type_id],
       'collapse_display' => 0,
@@ -735,10 +735,10 @@ function cdntaxreceipts_issueTaxReceipt($contribution, &$collectedPdf = NULL, $m
 
   $inkind_values = array();
   // check if this is an 'In-kind" contribution.
-  if ( $contributiontype->name == 'In-kind' ) {
+  if ( $contributiontype->name == 'In-kind' || $contributiontype->name == "In Kind") {
     // in this case get the custom field values:
     require_once 'CRM/Core/BAO/CustomField.php';
-    $groupTitle = 'In-kind donation fields';
+    $groupTitle = 'In Kind donation fields';
     $fieldLabel_description = 'Description of property';
     $customFieldID_description = CRM_Core_BAO_CustomField::getCustomFieldID( $fieldLabel_description, $groupTitle );
     $fieldLabel_appraisedby = 'Appraised by';

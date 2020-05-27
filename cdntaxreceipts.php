@@ -91,23 +91,26 @@ function cdntaxreceipts_civicrm_validateForm($formName, &$fields, &$files, &$for
         $errors['advantage_description'] = ts('Advantage Description should not be more than 50 characters');
       }
     }
-    if (!empty($fields['financial_type_id']) && civicrm_api3('FinancialType', 'getvalue', [
-      'return' => "name",
-      'id' => $fields['financial_type_id'],
-    ]) == "In-kind") {
-      // Add restriction to field length for in kind custom fields.
-      $customFields = [
-        35 => "Appraised by",
-        50 => "Description of property",
-        40 => "Address of Appraiser",
-      ];
-      $groupTitle = 'In-kind donation fields';
-      foreach ($customFields as $length => $name) {
-        $id = CRM_Core_BAO_CustomField::getCustomFieldID($name, $groupTitle);
-        foreach ($fields as $key => $value) {
-          if (strpos($key, 'custom_' . $id) !== false && !empty($value)) {
-            if (strlen($value) > $length) {
-              $errors[$key] = ts('%1 should not be more than %2 characters', [1 => $name, 2 => $length]);
+    if (!empty($fields['financial_type_id'])) {
+      $ftName = civicrm_api3('FinancialType', 'getvalue', [
+        'return' => "name",
+        'id' => $fields['financial_type_id'],
+      ]);
+      if ($ftName  == "In-kind" || $ftName == "In Kind") {
+        // Add restriction to field length for in kind custom fields.
+        $customFields = [
+          35 => "Appraised by",
+          50 => "Description of property",
+          40 => "Address of Appraiser",
+        ];
+        $groupTitle = 'In Kind donation fields';
+        foreach ($customFields as $length => $name) {
+          $id = CRM_Core_BAO_CustomField::getCustomFieldID($name, $groupTitle);
+          foreach ($fields as $key => $value) {
+            if (strpos($key, 'custom_' . $id) !== false && !empty($value)) {
+              if (strlen($value) > $length) {
+                $errors[$key] = ts('%1 should not be more than %2 characters', [1 => $name, 2 => $length]);
+              }
             }
           }
         }
