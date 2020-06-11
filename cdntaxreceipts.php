@@ -87,8 +87,8 @@ function cdntaxreceipts_civicrm_validateForm($formName, &$fields, &$files, &$for
   if (is_a($form, 'CRM_Contribute_Form_Contribution')) {
     // Limit number of characters to 50 for description of advantage.
     if (CRM_Utils_Array::value('advantage_description', $fields)) {
-      if (strlen(CRM_Utils_Array::value('advantage_description', $fields)) > 50) {
-        $errors['advantage_description'] = ts('Advantage Description should not be more than 50 characters');
+      if (strlen(CRM_Utils_Array::value('advantage_description', $fields)) > 80) {
+        $errors['advantage_description'] = ts('Advantage Description should not be more than 80 characters');
       }
     }
     if (!empty($fields['financial_type_id'])) {
@@ -97,11 +97,10 @@ function cdntaxreceipts_civicrm_validateForm($formName, &$fields, &$files, &$for
         'id' => $fields['financial_type_id'],
       ]);
       if ($ftName  == "In-kind" || $ftName == "In Kind") {
-        // Add restriction to field length for in kind custom fields.
         $customFields = [
-          35 => "Appraised by",
-          50 => "Description of property",
-          40 => "Address of Appraiser",
+          60 => "Appraised by",
+          80 => "Description of property",
+          60 => "Address of Appraiser",
         ];
         $groupTitle = 'In Kind donation fields';
         foreach ($customFields as $length => $name) {
