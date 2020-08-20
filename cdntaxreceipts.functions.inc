@@ -313,8 +313,9 @@ function _cdntaxreceipts_writePage(&$f, $pdf_variables, $receipt) {
   // this when testing their particular installs.
   //
 
+  $pdf_variables['thankyou_note'] = true; 
   $results = CRM_Utils_Hook::singleton()->invoke(3, $f, $pdf_variables, $receipt, CRM_Utils_Hook::$_nullObject, CRM_Utils_Hook::$_nullObject, CRM_Utils_Hook::$_nullObject, 'cdntaxreceipts_writeReceipt');
-
+  $pdf_variables['thankyou_note'] = false; 
   // if custom rewrite is implemented
   // don't execute _cdntaxreceipts_writeReceipt 
   // as it will overwrite the pdf
@@ -323,7 +324,7 @@ function _cdntaxreceipts_writePage(&$f, $pdf_variables, $receipt) {
       $pdf_variables['is_duplicate'] = TRUE;
       $pdf_variables['duplicate_offset'] = TRUE;
       CRM_Utils_Hook::singleton()->invoke(3, $f, $pdf_variables, $receipt, CRM_Utils_Hook::$_nullObject, CRM_Utils_Hook::$_nullObject, CRM_Utils_Hook::$_nullObject, 'cdntaxreceipts_writeReceipt');
-    }
+    } 
     return;
   }
 
