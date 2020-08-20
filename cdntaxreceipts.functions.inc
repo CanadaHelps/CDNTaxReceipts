@@ -320,12 +320,17 @@ function _cdntaxreceipts_writePage(&$f, $pdf_variables, $receipt) {
   // don't execute _cdntaxreceipts_writeReceipt 
   // as it will overwrite the pdf
   if(isset($pdf_variables) && $pdf_variables['is_custom_rewrite'] == TRUE) {
-    if(!$pdf_variables['is_duplicate']) {
+    if(!$pdf_variables['is_duplicate'] && $pdf_variables["mode"] !== CDNTAXRECEIPTS_MODE_PREVIEW) {
+      $pdf_variables['duplicate_offset'] = TRUE;
+      CRM_Utils_Hook::singleton()->invoke(3, $f, $pdf_variables, $receipt, CRM_Utils_Hook::$_nullObject, CRM_Utils_Hook::$_nullObject, CRM_Utils_Hook::$_nullObject, 'cdntaxreceipts_writeReceipt');
+    }
+    if($pdf_variables['is_duplicate']) {
       $pdf_variables['is_duplicate'] = TRUE;
       $pdf_variables['duplicate_offset'] = TRUE;
       CRM_Utils_Hook::singleton()->invoke(3, $f, $pdf_variables, $receipt, CRM_Utils_Hook::$_nullObject, CRM_Utils_Hook::$_nullObject, CRM_Utils_Hook::$_nullObject, 'cdntaxreceipts_writeReceipt');
-    } 
+    }   
     return;
+    
   }
 
 
@@ -336,7 +341,6 @@ function _cdntaxreceipts_writePage(&$f, $pdf_variables, $receipt) {
       }
     }
   }
-
   // if no custom function, go with default formatting...
   if ($pdf_variables['is_duplicate']) {
     // print duplicate copy
