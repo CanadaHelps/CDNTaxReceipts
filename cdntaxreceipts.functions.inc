@@ -828,7 +828,6 @@ function cdntaxreceipts_issueTaxReceipt($contribution, &$collectedPdf = NULL, $m
 }
 
 function cdntaxreceipts_eligibleForReceipt( $contributionId ) {
-
   // This function may be called multiple times throughout a request lifecycle, for the
   // same contribution. This can be resource intensive, since it must load the Contribution
   // object each time and will invoke any custom hooks, which may themselves hit the DB. This
@@ -850,7 +849,6 @@ function cdntaxreceipts_eligibleForReceipt( $contributionId ) {
 
   // 1. check that contribution amount is deductible
   $deductibleAmount = cdntaxreceipts_eligibleAmount($contributionId);;
-
   // 2. we used to check here the financial type -- to see if it is deductible.
   // Since the introduction of split transactions (4.5 is the cleanest starting point, though they existed prior),
   // we no longer check the financial type of the contribution, and check instead the tax eligibility of each
@@ -877,7 +875,9 @@ function cdntaxreceipts_eligibleForReceipt( $contributionId ) {
     }
   }
 
-  if ( $contributionStatus == '1' && $contribution->is_test == 0 && $deductibleAmount > 0 && $hookOk ) {
+  // CRM-738: Make receipt accessible for 'refunded' & 'cancelled' Contributions as well
+  // Removing the condition $contributionStatus == '1' from below
+  if ( $contribution->is_test == 0 && $deductibleAmount > 0 && $hookOk ) {
     $cache[$contributionId] = TRUE;
   }
   else {
