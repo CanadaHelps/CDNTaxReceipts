@@ -4,6 +4,8 @@ require_once 'cdntaxreceipts.civix.php';
 require_once 'cdntaxreceipts.functions.inc';
 require_once 'cdntaxreceipts.db.inc';
 
+use CRM_Cdntaxreceipts_ExtensionUtil as E;
+
 define('CDNTAXRECEIPTS_MODE_BACKOFFICE', 1);
 define('CDNTAXRECEIPTS_MODE_PREVIEW', 2);
 define('CDNTAXRECEIPTS_MODE_WORKFLOW', 3);
@@ -48,7 +50,7 @@ function cdntaxreceipts_civicrm_buildForm( $formName, &$form ) {
       $buttons[] = array(
         'type'      => 'submit',
         'subName'   => $subName,
-        'name'      => ts('Tax Receipt', array('domain' => 'org.civicrm.cdntaxreceipts')),
+        'name'      => E::ts('Tax Receipt'),
         'isDefault' => FALSE
       );
       $form->addButtons($buttons);
@@ -146,7 +148,7 @@ function cdntaxreceipts_civicrm_postProcess( $formName, &$form ) {
   foreach($types as $type) {
     $post = '_qf_ContributionView_submit_'.$type;
     if (isset($_POST[$post])) {
-      if ($_POST[$post] == ts('Tax Receipt', array('domain' => 'org.civicrm.cdntaxreceipts'))) {
+      if ($_POST[$post] == E::ts('Tax Receipt') || $_POST[$post] == 1) {
         $action = $post;
       }
     }
