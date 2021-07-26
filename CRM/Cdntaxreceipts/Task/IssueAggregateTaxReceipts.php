@@ -27,7 +27,6 @@ class CRM_Cdntaxreceipts_Task_IssueAggregateTaxReceipts extends CRM_Contribute_F
     }
 
     parent::preProcess();
-
     $this->_contributions_status = array();
     $this->_issue_type = array('original' , 'duplicate');
     $this->_receipts = array();
@@ -44,12 +43,10 @@ class CRM_Cdntaxreceipts_Task_IssueAggregateTaxReceipts extends CRM_Contribute_F
     );
 
     $this->_contributions_status = cdntaxreceipts_contributions_get_status($this->_contributionIds);
-
     // Get the number of years selected
     foreach ($this->_contributions_status as $contrib_status) {
       $this->_years[$contrib_status['receive_year']] = $contrib_status['receive_year'];
     }
-
     foreach ( $this->_years as $year ) {
       foreach ($this->_issue_type as $issue_type) {
         $receipts[$issue_type][$year] = array(

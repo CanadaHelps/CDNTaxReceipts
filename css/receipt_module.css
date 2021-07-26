@@ -1,0 +1,60 @@
+.crm-container h3:not(.widget-header) {
+  background: #1466a9 !important;
+  color: #fff !important;
+  padding: 10px 10px !important;
+}
+
+.crm-contribution-view-form-block p {
+  padding: 3px 10px !important;
+}
+
+.crm-container table.crm-info-panel td {
+  font-size: 16px !important;
+  padding: 10px !important;
+  background-color: #fff !important;
+  color: #4a4a4a !important;
+  border: none !important;
+}
+
+.crm-container table.crm-info-panel td.bold-text {
+  font-weight: bold !important;
+}
+
+.crm-container .crm-content-block {
+  margin-bottom: 20px !important;
+}
+
+#crm-main-content-wrapper table {
+  margin-bottom: none !important;
+  border: none !important;
+}
+
+.crm-contribution-thank-you-block table {
+  display: block !important;
+}
+
+.crm-container .crm-submit-buttons {
+  margin-bottom: 60px !important;
+  margin-left: 10px !important;
+}
+
+.crm-container .form-layout td.label {
+  text-align: left !important;
+}
+
+.crm-submit-buttons button i {
+  display: none !important;
+}
+
+.crm-container .crm-submit-buttons button.crm-button_qf_ViewTaxReceipt_submit {
+  background: #A9A9A9 !important;
+}
+
+.hidden-receipt-page {
+  display: none !important;
+}
+
+.crm-stripes table.crm-info-panel tr:nth-child(even) td {
+  background: #f2f2f2 !important;
+  background-color: #f2f2f2 !important;
+}
