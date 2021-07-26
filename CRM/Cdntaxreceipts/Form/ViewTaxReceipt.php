@@ -268,7 +268,12 @@ class CRM_Cdntaxreceipts_Form_ViewTaxReceipt extends CRM_Core_Form {
         if($this->getElement('thankyou_email')->getValue()) {
           if($this->getElement('html_message')->getValue()) {
             $this->_contributionIds = [$contributionId];
-            CRM_Contribute_Form_Task_PDFLetterCommon::postProcess($this);
+            $from_email_address = current(CRM_Core_BAO_Domain::getNameAndEmail(FALSE, TRUE));
+            if($from_email_address) {
+              $data = &$this->controller->container();
+              $data['values']['ViewTaxReceipt']['from_email_address'] = $from_email_address;
+              CRM_Contribute_Form_Task_PDFLetterCommon::postProcess($this);
+            }
           }
         }
         list($result, $method, $pdf) = cdntaxreceipts_issueTaxReceipt( $contribution );
