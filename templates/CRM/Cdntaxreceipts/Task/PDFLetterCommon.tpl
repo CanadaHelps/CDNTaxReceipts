@@ -95,7 +95,7 @@
   </div>
 </div>
 
-<div class="crm-accordion-wrapper crm-html_email-accordion ">
+<div class="crm-accordion-wrapper crm-html_email-accordion">
   <div class="crm-accordion-header">
       {$form.html_message.label}
   </div><!-- /.crm-accordion-header -->
@@ -176,6 +176,19 @@ CRM.$(function($) {
     $('#updateDetails').toggle(!!$(this).val());
   }
   $('[name=template]', $form).each(showSaveTemplate).change(showSaveTemplate);
+
+  //CRM-921: Hide HTML box on checkbox
+  $('.crm-html_email-accordion').hide();
+  $('#template').parents().eq(2).hide();
+  $('#thankyou_email').on('change', function() {
+    if($('#thankyou_email').prop('checked') == true) {
+      $('.crm-html_email-accordion').show();
+      $('#template').parents().eq(2).show();
+    } else {
+      $('.crm-html_email-accordion').hide();
+      $('#template').parents().eq(2).hide();
+    }
+  })
 });
 
 var currentWidth;

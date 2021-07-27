@@ -58,3 +58,7 @@
   background: #f2f2f2 !important;
   background-color: #f2f2f2 !important;
 }
+
+#crm-main-content-wrapper table .display-cell-padding {
+  padding-left: 300px !important;
+}

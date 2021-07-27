@@ -155,8 +155,8 @@ class CRM_Cdntaxreceipts_Form_ViewTaxReceipt extends CRM_Core_Form {
     $delivery_placeholder = null;
     $delivery_options = [];
 
-    $delivery_options[CDNTAX_DELIVERY_PRINT_ONLY] = 'Download';
-    $delivery_options[CDNTAX_DELIVERY_PRINT_EMAIL] = 'Email and Download';
+    $delivery_options[CDNTAX_DELIVERY_PRINT_ONLY] = 'Print';
+    $delivery_options[CDNTAX_DELIVERY_PRINT_EMAIL] = 'Email';
     $this->add('select',
       'delivery_method',
       ts('Method'),
@@ -193,7 +193,8 @@ class CRM_Cdntaxreceipts_Form_ViewTaxReceipt extends CRM_Core_Form {
       'margin_bottom' => 0.75,
       'email_options' => 'email',
       'from_email_address' => $from_email_address,
-      'group_by_separator' => 'comma'
+      'group_by_separator' => 'comma',
+      'thankyou_date' => 1
     ];
     $this->setDefaults($defaults);
     $this->addButtons($buttons);
