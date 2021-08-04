@@ -128,8 +128,9 @@ class CRM_Cdntaxreceipts_Form_ViewTaxReceipt extends CRM_Core_Form {
       if ($this->_reissue && !$this->_isCancelled) {
         $buttons[] = array(
           'type' => 'submit',
-          'name' => ts('Cancel Tax Receipt', array('domain' => 'org.civicrm.cdntaxreceipts')),
+          'name' => ts('Void Receipt', array('domain' => 'org.civicrm.cdntaxreceipts')),
           'isDefault' => FALSE,
+          'class' => 'void-receipt',
         );
       } else {
         $buttons[] = array(
@@ -199,6 +200,16 @@ class CRM_Cdntaxreceipts_Form_ViewTaxReceipt extends CRM_Core_Form {
     $this->setDefaults($defaults);
     $this->addButtons($buttons);
 
+
+    $templates = CRM_Core_BAO_MessageTemplate::getMessageTemplates(FALSE);
+    if($this->elementExists('template')) {
+      $this->removeElement('template');
+      $this->assign('templates', TRUE);
+      $this->add('select', "template", ts('Use Template'),
+        ['default' => 'Default Message'] + $templates + ['0' => ts('Other Custom')], FALSE,
+        ['onChange' => "selectValue( this.value, '');"]
+      );
+    }
   }
 
   /**

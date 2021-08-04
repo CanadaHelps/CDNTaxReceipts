@@ -15,27 +15,27 @@ cj(document).ready(
 <h3>Receipt Details</h3>
   <table class="crm-info-panel">
       <tr>
-          <td class="label">{ts}Receipt No.{/ts}</td>
+          <td class="label bold-weight">{ts}Receipt No.{/ts}</td>
           <td class="label">{$receipt.receipt_no}</td>
-          <td class="label display-cell-padding">{ts}Issued By{/ts}</td>
-          <td>{$receipt.uname}</td>
+          <td class="label display-cell-padding bold-weight">{ts}Issue Date{/ts}</td>
+          <td>{$receipt.issued_on|crmDate}</td>
       </tr>
       <tr>
-          <td class="label">{ts}Issue Date{/ts}</td>
-          <td>{$receipt.issued_on|crmDate}</td>
-          <td class="label display-cell-padding">{ts}Method{/ts}</td>
+          <td class="label bold-weight">{ts}Issued By{/ts}</td>
+          <td>{$receipt.uname}</td>
+          <td class="label display-cell-padding bold-weight">{ts}Method{/ts}</td>
           <td>{if $receipt.issue_method eq 'email'}{ts}Email{/ts}{elseif $receipt.issue_method eq 'print'}{ts}Print{/ts}{elseif $receipt.issue_method eq 'data'}{ts}Data{/ts}{/if}</td>
       </tr>
       <tr>
-          <td class="label">{ts}Amount{/ts}</td>
-          <td class="label">{$receipt.receipt_amount|crmMoney}</td>
-          <td class="label display-cell-padding">{ts}Receipt Status{/ts}</td>
+          <td class="label bold-weight">{ts}Type{/ts}</td>
+          <td>{ts}{$receipt.display_type}{/ts}</td>
+          <td class="label display-cell-padding bold-weight">{ts}Receipt Status{/ts}</td>
           <td>{if $receipt.receipt_status eq 'issued'}{ts}Issued{/ts}{elseif $receipt.receipt_status eq 'cancelled'}{ts}Cancelled{/ts}{/if}</td>
       </tr>
       <tr>
-          <td class="label">{ts}Type{/ts}</td>
-          <td>{ts}{$receipt.display_type}{/ts}</td>
-          <td class="label display-cell-padding">Email Opened</td>
+          <td class="label bold-weight">{ts}Amount{/ts}</td>
+          <td class="label"><a href="{crmURL p='civicrm/contact/view/contribution' q="action=view&reset=1&id=$contribution_id&cid=$contact_id&context=home"}">{$receipt.receipt_amount|crmMoney}</a></td>
+          <td class="label display-cell-padding bold-weight">Email Opened</td>
           <td>{$receipt.email_opened|crmDate}</td>
       </tr>
   </table>

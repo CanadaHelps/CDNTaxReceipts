@@ -62,3 +62,16 @@
 #crm-main-content-wrapper table .display-cell-padding {
   padding-left: 300px !important;
 }
+
+.bold-weight {
+  font-weight: bold !important;
+}
+
+.tab-left {
+  padding-left: 40px !important;
+}
+
+.crm-container .crm-submit-buttons button.void-receipt {
+  float: right !important;
+  background-color: #ce7777 !important;
+}

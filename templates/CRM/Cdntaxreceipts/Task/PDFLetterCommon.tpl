@@ -12,10 +12,9 @@
 <table class="form-layout-compressed">
     <tr>
       <td class="label-left">
-        {$form.template.label}
         {help id="template" title=$form.template.label file="CRM/Contact/Form/Task/PDFLetterCommon.hlp"}
       </td>
-      <td>
+      <td class="tab-left">
         {$form.template.html}
       </td>
     </tr>
