@@ -206,7 +206,7 @@ class CRM_Cdntaxreceipts_Form_ViewTaxReceipt extends CRM_Core_Form {
       $this->removeElement('template');
       $this->assign('templates', TRUE);
       $this->add('select', "template", ts('Use Template'),
-        ['default' => 'Default Message'] + $templates + ['0' => ts('Other Custom')], FALSE,
+        ['' => 'Default Message'] + $templates + ['0' => ts('Other Custom')], FALSE,
         ['onChange' => "selectValue( this.value, '');"]
       );
     }

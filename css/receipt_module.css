@@ -50,6 +50,10 @@
   background: #A9A9A9 !important;
 }
 
+.crm-container .crm-submit-buttons button.crm-button_qf_IssueSingleTaxReceipts_submit {
+  background: #A9A9A9 !important;
+}
+
 .hidden-receipt-page {
   display: none !important;
 }
@@ -74,4 +78,8 @@
 .crm-container .crm-submit-buttons button.void-receipt {
   float: right !important;
   background-color: #ce7777 !important;
+}
+
+.crm-container table.border-top-td td {
+  border-top: 1px solid #DFDFE1 !important;
 }
