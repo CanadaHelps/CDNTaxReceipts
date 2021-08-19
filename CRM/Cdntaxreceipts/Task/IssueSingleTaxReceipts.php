@@ -149,7 +149,6 @@ class CRM_Cdntaxreceipts_Task_IssueSingleTaxReceipts extends CRM_Contribute_Form
         ['onChange' => "selectValue( this.value, '');"]
       );
     }
-
   }
 
   function setDefaultValues() {
