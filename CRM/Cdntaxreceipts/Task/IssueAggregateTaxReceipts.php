@@ -122,6 +122,9 @@ class CRM_Cdntaxreceipts_Task_IssueAggregateTaxReceipts extends CRM_Contribute_F
    */
   function buildQuickForm() {
 
+    //CRM-920: Add Custom Stylesheet to pages as well
+    CRM_Core_Resources::singleton()->addStyleFile('org.civicrm.cdntaxreceipts', 'css/receipt_module.css');
+
     CRM_Utils_System::setTitle(ts('Issue Aggregate Tax Receipts', array('domain' => 'org.civicrm.cdntaxreceipts')));
 
     CRM_Core_Resources::singleton()->addStyleFile('org.civicrm.cdntaxreceipts', 'css/civicrm_cdntaxreceipts.css');
@@ -129,24 +132,59 @@ class CRM_Cdntaxreceipts_Task_IssueAggregateTaxReceipts extends CRM_Contribute_F
     $this->assign('receiptList', $this->_receipts);
     $this->assign('receiptYears', $this->_years);
 
+    // Add tax year as select box
+    foreach( $this->_years as $year ) {
+      $tax_year['issue_'.$year] = $year;
+    }
+    if($this->_years) {
+      $this->assign('defaultYear', array_values($this->_years)[0]);
+    }
+    $this->add('select', 'receipt_year',
+      ts('Tax Year'),
+      $tax_year,
+      FALSE,
+      array('class' => 'crm-select')
+    );
+
     $delivery_method = Civi::settings()->get('delivery_method') ?? CDNTAX_DELIVERY_PRINT_ONLY;
     $this->assign('deliveryMethod', $delivery_method);
 
-    // add radio buttons
-    // TODO: It might make sense to issue for multiple years here so switch to checkboxes
-    foreach ( $this->_years as $year ) {
-      $this->addElement('radio', 'receipt_year', NULL, $year, 'issue_' . $year);
-    }
     $this->addRule('receipt_year', ts('Selection required', array('domain' => 'org.civicrm.cdntaxreceipts')), 'required');
 
     if ($delivery_method != CDNTAX_DELIVERY_DATA_ONLY) {
       $this->add('checkbox', 'is_preview', ts('Run in preview mode?', array('domain' => 'org.civicrm.cdntaxreceipts')));
     }
 
+    //CRM-920: Add delivery Method to form
+    $delivery_method = CRM_Core_BAO_Setting::getItem(CDNTAX_SETTINGS, 'delivery_method');
+    $delivery_placeholder = null;
+    $delivery_options = [];
+
+    $delivery_options[CDNTAX_DELIVERY_PRINT_ONLY] = 'Print';
+    $delivery_options[CDNTAX_DELIVERY_PRINT_EMAIL] = 'Email';
+    $this->add('select',
+      'delivery_method',
+      ts('Method'),
+      $delivery_options,
+      FALSE,
+      ['class' => 'crm-select2']
+    );
+
+
+    // Add Thank-you Setting block
+    $this->add('checkbox', 'thankyou_date', ts('Mark Contribution as thanked', array('domain' => 'org.civicrm.cdntaxreceipts')));
+    $this->add('checkbox', 'thankyou_email', ts('Send a custom Thank You Email Message', array('domain' => 'org.civicrm.cdntaxreceipts')));
+
+
     $buttons = array(
       array(
         'type' => 'cancel',
         'name' => ts('Back', array('domain' => 'org.civicrm.cdntaxreceipts')),
+      ),
+      array(
+        'type' => 'submit',
+        'name' => ts('Preview', array('domain' => 'org.civicrm.cdntaxreceipts')),
+        'isDefault' => FALSE,
       ),
       array(
         'type' => 'next',
@@ -155,14 +193,48 @@ class CRM_Cdntaxreceipts_Task_IssueAggregateTaxReceipts extends CRM_Contribute_F
         'submitOnce' => TRUE,
       ),
     );
+    //CRM-920: Integrate WYSWIG Editor on the form
+    CRM_Contribute_Form_Task_PDFLetterCommon::buildQuickForm($this);
+    if($this->elementExists('from_email_address')) {
+      $this->removeElement('from_email_address');
+    }
+    $from_email_address = current(CRM_Core_BAO_Domain::getNameAndEmail(FALSE, TRUE));
+    $this->add('text', 'from_email_address', ts('From Email Address'), $from_email_address, TRUE);
+    $this->add('text', 'email_options', ts('Print and Email Options'), 'email', FALSE);
+    $this->add('text', 'group_by_separator', ts('Group By Seperator'), 'comma', FALSE);
+    $defaults = [
+      'margin_left' => 0.75,
+      'margin_right' => 0.75,
+      'margin_top' => 0.75,
+      'margin_bottom' => 0.75,
+      'email_options' => 'email',
+      'from_email_address' => $from_email_address,
+      'group_by_separator' => 'comma',
+      'thankyou_date' => 1,
+    ];
+    $this->setDefaults($defaults);
     $this->addButtons($buttons);
 
+    $templates = CRM_Core_BAO_MessageTemplate::getMessageTemplates(FALSE);
+    if($this->elementExists('template')) {
+      $this->removeElement('template');
+      $this->assign('templates', TRUE);
+      $this->add('select', "template", ts('Use Template'),
+        ['' => 'Default Message'] + $templates + ['0' => ts('Other Custom')], FALSE,
+        ['onChange' => "selectValue( this.value, '');"]
+      );
+    }
   }
 
   function setDefaultValues() {
     // TODO: Handle case where year -1 was not an option
-    return array('receipt_year' => 'issue_' . (date("Y") - 1),);
+    if($this->_years) {
+      return array('receipt_year' => 'issue_' . array_values($this->_years)[0]);
+    } else {
+      return array('receipt_year' => 'issue_' . (date("Y") - 1),);
+    }
   }
+
 
   /**
    * process the form after the input has been submitted and validated
@@ -190,6 +262,11 @@ class CRM_Cdntaxreceipts_Task_IssueAggregateTaxReceipts extends CRM_Contribute_F
       $previewMode = TRUE;
     }
 
+    $buttonName = $this->controller->getButtonName();
+    if($buttonName == '_qf_IssueAggregateTaxReceipts_submit') {
+      $previewMode = TRUE;
+    }
+
     // start a PDF to collect receipts that cannot be emailed
     $receiptsForPrintingPDF = cdntaxreceipts_openCollectedPDF();
 
@@ -214,6 +291,34 @@ class CRM_Cdntaxreceipts_Task_IssueAggregateTaxReceipts extends CRM_Contribute_F
       if ( empty($issuedOn) && count($contributions) > 0 ) {
         $ret = cdntaxreceipts_issueAggregateTaxReceipt($contact_id, $year, $contributions, $method,
           $receiptsForPrintingPDF, $previewMode);
+
+        if( $ret !== 0 ) {
+          //CRM-920: Thank-you Email Tool
+          if($this->getElement('thankyou_email')->getValue()) {
+            if($this->getElement('html_message')->getValue()) {
+              $this->_contributionIds = array_column($contributions, 'contribution_id');
+              $from_email_address = current(CRM_Core_BAO_Domain::getNameAndEmail(FALSE, TRUE));
+              if($from_email_address) {
+                $data = &$this->controller->container();
+                $data['values']['ViewTaxReceipt']['from_email_address'] = $from_email_address;
+                CRM_Contribute_Form_Task_PDFLetterCommon::postProcess($this);
+              }
+            }
+          }
+
+          //CRM-920: Mark Contribution as thanked if checked
+          if($this->getElement('thankyou_date')->getValue()) {
+            foreach($contributions as $contributionIds) {
+              $contribution = new CRM_Contribute_DAO_Contribution();
+              $contribution->id = $contributionIds['contribution_id'];
+              if ( ! $contribution->find( TRUE ) ) {
+                CRM_Core_Error::fatal( "CDNTaxReceipts: Could not find corresponding contribution id." );
+              }
+              $contribution->thankyou_date = date('Y-m-d H:i:s', CRM_Utils_Time::time());
+              $contribution->save();
+            }
+          }
+        }
 
         if ( $ret == 0 ) {
           $failCount++;

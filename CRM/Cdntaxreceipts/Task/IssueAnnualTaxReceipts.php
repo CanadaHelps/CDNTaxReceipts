@@ -204,7 +204,7 @@ class CRM_Cdntaxreceipts_Task_IssueAnnualTaxReceipts extends CRM_Contact_Form_Ta
     }
 
     $buttonName = $this->controller->getButtonName();
-    if($buttonName == '_qf_IssueSingleTaxReceipts_submit') {
+    if($buttonName == '_qf_IssueAnnualTaxReceipts_submit') {
       $previewMode = TRUE;
     }
 
