@@ -183,9 +183,21 @@ CRM.$(function($) {
     if($('#thankyou_email').prop('checked') == true) {
       $('.crm-html_email-accordion').show();
       $('#template').parents().eq(2).show();
+      if($('#template').find('option:selected').val() == 'default') {
+        $('.crm-html_email-accordion').hide();
+      } else {
+        $('.crm-html_email-accordion').show();
+      }
     } else {
       $('.crm-html_email-accordion').hide();
       $('#template').parents().eq(2).hide();
+    }
+  });
+  $('#template').on('change', function() {
+    if($(this).find('option:selected').val() == 'default') {
+      $('.crm-html_email-accordion').hide();
+    } else {
+      $('.crm-html_email-accordion').show();
     }
   })
 });

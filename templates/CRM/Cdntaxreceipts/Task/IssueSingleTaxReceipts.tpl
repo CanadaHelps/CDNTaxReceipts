@@ -31,16 +31,13 @@
     {include file="CRM/Cdntaxreceipts/Task/PDFLetterCommon.tpl"}
   </table>
 </div>
-<div class="hidden-receipt-page">
-  <p>{$form.receipt_option.original_only.html}<br />
-     {$form.receipt_option.include_duplicates.html}</p>
-  <p>{ts domain='org.civicrm.cdntaxreceipts'}Clicking 'Issue Tax Receipts' will issue the selected tax receipts.
-    <strong>This action cannot be undone.</strong> Tax receipts will be logged for auditing purposes,
-    and a copy of each receipt will be submitted to the tax receipt archive.{/ts}</p>
-</div>
-<div class="crm-block crm-content-block crm-contribution-view-form-block">
+<div class="crm-block crm-content-block crm-contribution-thank-you-block">
   <h3>{ts domain='org.civicrm.cdntaxreceipts'}Delivery Preference{/ts}</h3>
   <table class="crm-info-panel">
+    <tr>
+      <td class="content">{$form.receipt_option.html}</td>
+      <td class="label">{$form.receipt_option.label}</td>
+    </tr>
     <tr>
       <td class="label bold-text">{$form.delivery_method.label}</td>
       <td class="content">{$form.delivery_method.html}</td>

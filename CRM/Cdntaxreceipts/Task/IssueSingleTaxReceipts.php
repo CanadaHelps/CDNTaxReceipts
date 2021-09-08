@@ -72,9 +72,7 @@ class CRM_Cdntaxreceipts_Task_IssueSingleTaxReceipts extends CRM_Contribute_Form
     $this->assign('deliveryMethod', $delivery_method);
 
     // add radio buttons
-    $this->addElement('radio', 'receipt_option', NULL, ts('Issue tax receipts for the %1 unreceipted contributions only.', array(1=>$originalTotal, 'domain' => 'org.civicrm.cdntaxreceipts')), 'original_only');
-    $this->addElement('radio', 'receipt_option', NULL, ts('Issue tax receipts for all %1 contributions. Previously-receipted contributions will be marked \'duplicate\'.', array(1=>$receiptTotal, 'domain' => 'org.civicrm.cdntaxreceipts')), 'include_duplicates');
-    $this->addRule('receipt_option', ts('Selection required', array('domain' => 'org.civicrm.cdntaxreceipts')), 'required');
+    $this->add('checkbox', 'receipt_option', ts('Re-issue duplicates', array('domain' => 'org.civicrm.cdntaxreceipts')));
 
     if ($delivery_method != CDNTAX_DELIVERY_DATA_ONLY) {
       $this->add('checkbox', 'is_preview', ts('Run in preview mode?', array('domain' => 'org.civicrm.cdntaxreceipts')));
@@ -145,7 +143,7 @@ class CRM_Cdntaxreceipts_Task_IssueSingleTaxReceipts extends CRM_Contribute_Form
       $this->removeElement('template');
       $this->assign('templates', TRUE);
       $this->add('select', "template", ts('Use Template'),
-        ['' => 'Default Message'] + $templates + ['0' => ts('Other Custom')], FALSE,
+        ['default' => 'Default Message'] + $templates + ['0' => ts('Other Custom')], FALSE,
         ['onChange' => "selectValue( this.value, '');"]
       );
     }
@@ -172,9 +170,9 @@ class CRM_Cdntaxreceipts_Task_IssueSingleTaxReceipts extends CRM_Contribute_Form
 
     $params = $this->controller->exportValues($this->_name);
 
-    $originalOnly = FALSE;
-    if ($params['receipt_option'] == 'original_only') {
-      $originalOnly = TRUE;
+    $originalOnly = TRUE;
+    if ($params['receipt_option']) {
+      $originalOnly = FALSE;
     }
 
     $previewMode = FALSE;
@@ -223,7 +221,19 @@ class CRM_Cdntaxreceipts_Task_IssueSingleTaxReceipts extends CRM_Contribute_Form
 
         list($issued_on, $receipt_id) = cdntaxreceipts_issued_on($contribution->id);
         if ( empty($issued_on) || ! $originalOnly ) {
-
+          if(isset($params['template'])) {
+            if($params['template'] == 'default') {
+              $default_message = civicrm_api3('MessageTemplate', 'get', [
+                'sequential' => 1,
+                'workflow_name' => "cdntaxreceipts_receipt_single",
+                "msg_title" => "CDN Tax Receipts - Email Single Receipt"
+              ]);
+              if($default_message['values']) {
+                $this->getElement('subject')->setValue($default_message['values'][0]['msg_subject']);
+                $this->getElement('html_message')->setValue($default_message['values'][0]['msg_html']);
+              }
+            }
+          }
           list( $ret, $method ) = cdntaxreceipts_issueTaxReceipt( $contribution, $receiptsForPrinting, $previewMode );
 
           if( $ret !== 0 ) {

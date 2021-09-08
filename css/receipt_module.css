@@ -83,3 +83,7 @@
 .crm-container table.border-top-td td {
   border-top: 1px solid #DFDFE1 !important;
 }
+
+.crm-container table.crm-info-panel td.label {
+  width: 10px;
+}
