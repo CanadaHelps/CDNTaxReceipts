@@ -200,7 +200,6 @@ class CRM_Cdntaxreceipts_Task_IssueSingleTaxReceipts extends CRM_Contribute_Form
     $failCount = 0;
 
     foreach ($this->_contributionIds as $item => $contributionId) {
-
       if ( $emailCount + $printCount + $failCount >= self::MAX_RECEIPT_COUNT ) {
         // limit email, print receipts as the pdf generation and email-to-archive consume
         // server resources. don't limit data-type receipts.
@@ -225,8 +224,7 @@ class CRM_Cdntaxreceipts_Task_IssueSingleTaxReceipts extends CRM_Contribute_Form
             if($params['template'] == 'default') {
               $default_message = civicrm_api3('MessageTemplate', 'get', [
                 'sequential' => 1,
-                'workflow_name' => "cdntaxreceipts_receipt_single",
-                "msg_title" => "CDN Tax Receipts - Email Single Receipt"
+                'msg_title' => "Basic - Thank You Email",
               ]);
               if($default_message['values']) {
                 $this->getElement('subject')->setValue($default_message['values'][0]['msg_subject']);
@@ -234,22 +232,27 @@ class CRM_Cdntaxreceipts_Task_IssueSingleTaxReceipts extends CRM_Contribute_Form
               }
             }
           }
-          list( $ret, $method ) = cdntaxreceipts_issueTaxReceipt( $contribution, $receiptsForPrinting, $previewMode );
-
-          if( $ret !== 0 ) {
-            //CRM-918: Thank-you Email Tool
-            if($this->getElement('thankyou_email')->getValue()) {
-              if($this->getElement('html_message')->getValue()) {
-                $this->_contributionIds = [$contribution->id];
-                $from_email_address = current(CRM_Core_BAO_Domain::getNameAndEmail(FALSE, TRUE));
-                if($from_email_address) {
-                  $data = &$this->controller->container();
-                  $data['values']['ViewTaxReceipt']['from_email_address'] = $from_email_address;
-                  CRM_Contribute_Form_Task_PDFLetterCommon::postProcess($this);
+          //CRM-918: Thank-you Email Tool
+          if($this->getElement('thankyou_email')->getValue()) {
+            if($this->getElement('html_message')->getValue()) {
+              $this->_contributionIds = [$contribution->id];
+              $from_email_address = current(CRM_Core_BAO_Domain::getNameAndEmail(FALSE, TRUE));
+              if($from_email_address) {
+                $data = &$this->controller->container();
+                $data['values']['ViewTaxReceipt']['from_email_address'] = $from_email_address;
+                $thankyou_html = CRM_Cdntaxreceipts_Task_PDFLetterCommon::postProcess($this);
+                if($thankyou_html) {
+                  if(is_array($thankyou_html)) {
+                    $contribution->thankyou_html = array_values($thankyou_html)[0];
+                  } else {
+                    $contribution->thankyou_html = $thankyou_html;
+                  }
                 }
               }
             }
-
+          }
+          list( $ret, $method ) = cdntaxreceipts_issueTaxReceipt( $contribution, $receiptsForPrinting, $previewMode );
+          if( $ret !== 0 ) {
             //CRM-918: Mark Contribution as thanked if checked
             if($this->getElement('thankyou_date')->getValue()) {
               $contribution->thankyou_date = date('Y-m-d H:i:s', CRM_Utils_Time::time());

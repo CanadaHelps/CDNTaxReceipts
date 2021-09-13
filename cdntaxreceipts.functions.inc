@@ -280,6 +280,7 @@ function cdntaxreceipts_generateFormattedReceipt($receipt, &$collectedPdf = NULL
     "advantage_description" => $receipt['advantage_description'],
     "advantage_amount" => $receipt['advantage_amount'],
     "contribution_amount" => $receipt['contribution_amount'],
+    "thankyou_html" => $receipt['thankyou_html']
   );
 
   $output_files = array($pdf);
@@ -313,12 +314,25 @@ function _cdntaxreceipts_writePage(&$f, $pdf_variables, $receipt) {
   // this when testing their particular installs.
   //
 
+  // Append Thank you Message template with the Receipt itself
+  if($pdf_variables['thankyou_html']) {
+
+    // output the HTML content
+    $f->writeHTML($pdf_variables['thankyou_html'], true, false, true, false, '');
+
+    $f->AddPage();
+
+    // reset pointer to the last page
+    $f->lastPage();
+  }
+
   $pdf_variables['thankyou_note'] = true; 
   $results = CRM_Utils_Hook::singleton()->invoke(3, $f, $pdf_variables, $receipt, CRM_Utils_Hook::$_nullObject, CRM_Utils_Hook::$_nullObject, CRM_Utils_Hook::$_nullObject, 'cdntaxreceipts_writeReceipt');
   $pdf_variables['thankyou_note'] = false; 
   // if custom rewrite is implemented
   // don't execute _cdntaxreceipts_writeReceipt 
   // as it will overwrite the pdf
+
   if(isset($pdf_variables) && $pdf_variables['is_custom_rewrite'] == TRUE) {
     if(!$pdf_variables['is_duplicate'] && $pdf_variables["mode"] !== CDNTAXRECEIPTS_MODE_PREVIEW) {
       $pdf_variables['duplicate_offset'] = TRUE;
@@ -791,7 +805,6 @@ function cdntaxreceipts_issueTaxReceipt($contribution, &$collectedPdf = NULL, $m
 
   // Get description advantage field
   cdntaxreceipts_advantage($contribution->id, NULL, $advantage, TRUE);
-
   $receipt = array(
     'receipt_no' => $receipt_no,
     'issued_on' =>  (int) $_SERVER['REQUEST_TIME'],
@@ -807,6 +820,7 @@ function cdntaxreceipts_issueTaxReceipt($contribution, &$collectedPdf = NULL, $m
     'email_tracking_id' => md5(uniqid(rand(), TRUE)),
     'advantage_description' => CRM_Utils_Array::value('advantage_description', $advantage, NULL),
     'advantage_amount' => $contribution->non_deductible_amount,
+    'thankyou_html' => $contribution->thankyou_html,
   );
 
   if ( $contribution->source != '' ) {
