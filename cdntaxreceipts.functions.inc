@@ -87,12 +87,12 @@ function cdntaxreceipts_processTaxReceipt($receipt, &$collectedPdf = NULL, $mode
   else {
     // generate the PDF file
     list($pdf_file, $user_friendly) = cdntaxreceipts_generateFormattedReceipt($receipt, $collectedPdf, $mode);
-
     if ($mode == CDNTAXRECEIPTS_MODE_PREVIEW) {
       // no email, just PDF
       $sent = TRUE;
     }
     else {
+
       // generate an email to the tax archive and possibly to the donor
       $org_name = Civi::settings()->get('org_name');
       $email_from = Civi::settings()->get('email_from');
@@ -142,7 +142,12 @@ function cdntaxreceipts_processTaxReceipt($receipt, &$collectedPdf = NULL, $mode
 
       // send a copy (without open tracking) to the tax archive
       $sendTemplateParams['toEmail'] = $email_archive;
-      list($sent, $subject, $message, $html) = CRM_Core_BAO_MessageTemplate::sendTemplate($sendTemplateParams);
+      $sendTemplateParams['thankyou_email'] = FALSE;
+      if($receipt['thankyou_html']) {
+        $sendTemplateParams['thankyou_email'] = TRUE;
+        $sendTemplateParams['html'] = $receipt['thankyou_html'];
+      }
+      list($sent, $subject, $message, $html) = sendTemplate($sendTemplateParams);
 
       // send a copy (with open tracking) to the donor
       if ($sent && $receipt['issue_method'] == 'email' && $mode != CDNTAXRECEIPTS_MODE_WORKFLOW) {
@@ -313,18 +318,6 @@ function _cdntaxreceipts_writePage(&$f, $pdf_variables, $receipt) {
   // times. It's one peril of using the hook system here. Implementers will need to catch
   // this when testing their particular installs.
   //
-
-  // Append Thank you Message template with the Receipt itself
-  if($pdf_variables['thankyou_html']) {
-
-    // output the HTML content
-    $f->writeHTML($pdf_variables['thankyou_html'], true, false, true, false, '');
-
-    $f->AddPage();
-
-    // reset pointer to the last page
-    $f->lastPage();
-  }
 
   $pdf_variables['thankyou_note'] = true; 
   $results = CRM_Utils_Hook::singleton()->invoke(3, $f, $pdf_variables, $receipt, CRM_Utils_Hook::$_nullObject, CRM_Utils_Hook::$_nullObject, CRM_Utils_Hook::$_nullObject, 'cdntaxreceipts_writeReceipt');
@@ -710,7 +703,6 @@ function cdntaxreceipts_configure_inkind_fields() {
  * Detects if the receipt is a duplicate and reacts appropriately.
  */
 function cdntaxreceipts_issueTaxReceipt($contribution, &$collectedPdf = NULL, $mode = CDNTAXRECEIPTS_MODE_BACKOFFICE) {
-
   // This function basically needs to set up a $receipt[] array and pass it to
   // processTaxReceipt() which does the hard work
   $receipt = array();
@@ -1396,4 +1388,169 @@ function _cdntaxreceipts_setReceiptanguage($language) {
   $i18n = CRM_Core_I18n::singleton();
   $i18n->setLocale($language);
 
+}
+
+/**
+ * Override core SendTemplateMethod
+ * Easier to attach custom email with the PDF
+ * @language string $language preferred_language (i.e. en_US or fr_CA)
+ */
+function sendTemplate($params) {
+  $defaults = [
+    // option value name of the template
+    'valueName' => NULL,
+    // ID of the template
+    'messageTemplateID' => NULL,
+    // contact id if contact tokens are to be replaced
+    'contactId' => NULL,
+    // additional template params (other than the ones already set in the template singleton)
+    'tplParams' => [],
+    // the From: header
+    'from' => NULL,
+    // the recipient’s name
+    'toName' => NULL,
+    // the recipient’s email - mail is sent only if set
+    'toEmail' => NULL,
+    // the Cc: header
+    'cc' => NULL,
+    // the Bcc: header
+    'bcc' => NULL,
+    // the Reply-To: header
+    'replyTo' => NULL,
+    // email attachments
+    'attachments' => NULL,
+    // whether this is a test email (and hence should include the test banner)
+    'isTest' => FALSE,
+    // filename of optional PDF version to add as attachment (do not include path)
+    'PDFFilename' => NULL,
+    // Disable Smarty?
+    'disableSmarty' => FALSE,
+  ];
+  $params = array_merge($defaults, $params);
+
+  // Core#644 - handle Email ID passed as "From".
+  if (isset($params['from'])) {
+    $params['from'] = CRM_Utils_Mail::formatFromAddress($params['from']);
+  }
+
+  CRM_Utils_Hook::alterMailParams($params, 'messageTemplate');
+  if (!is_int($params['messageTemplateID']) && !is_null($params['messageTemplateID'])) {
+    CRM_Core_Error::deprecatedWarning('message template id should be an integer');
+    $params['messageTemplateID'] = (int) $params['messageTemplateID'];
+  }
+  $mailContent = loadTemplate((string) $params['valueName'], $params['isTest'], $params['messageTemplateID'] ?? NULL, $params['groupName'] ?? '');
+
+  // Overwrite subject from form field
+  if (!empty($params['subject'])) {
+    $mailContent['subject'] = $params['subject'];
+  }
+
+  $mailContent = CRM_Core_BAO_MessageTemplate::renderMessageTemplate($mailContent, (bool) $params['disableSmarty'], $params['contactId'] ?? NULL, $params['tplParams']);
+
+  // send the template, honouring the target user’s preferences (if any)
+  $sent = FALSE;
+
+  // create the params array
+  $params['subject'] = $mailContent['subject'];
+  $params['text'] = $mailContent['text'];
+  if(!$params['thankyou_email']) {
+    $params['html'] = $mailContent['html'];
+  }
+
+  if ($params['toEmail']) {
+    $contactParams = [['email', 'LIKE', $params['toEmail'], 0, 1]];
+    [$contact] = CRM_Contact_BAO_Query::apiQuery($contactParams);
+
+    $prefs = array_pop($contact);
+
+    if (isset($prefs['preferred_mail_format']) and $prefs['preferred_mail_format'] === 'HTML') {
+      $params['text'] = NULL;
+    }
+
+    if (isset($prefs['preferred_mail_format']) and $prefs['preferred_mail_format'] === 'Text') {
+      $params['html'] = NULL;
+    }
+
+    $config = CRM_Core_Config::singleton();
+    if (isset($params['isEmailPdf']) && $params['isEmailPdf'] == 1) {
+      $pdfHtml = CRM_Contribute_BAO_ContributionPage::addInvoicePdfToEmail($params['contributionId'], $params['contactId']);
+      if (empty($params['attachments'])) {
+        $params['attachments'] = [];
+      }
+      $params['attachments'][] = CRM_Utils_Mail::appendPDF('Invoice.pdf', $pdfHtml, $mailContent['format']);
+    }
+    $pdf_filename = '';
+    if ($config->doNotAttachPDFReceipt &&
+      $params['PDFFilename'] &&
+      $params['html']
+    ) {
+      if (empty($params['attachments'])) {
+        $params['attachments'] = [];
+      }
+      $params['attachments'][] = CRM_Utils_Mail::appendPDF($params['PDFFilename'], $params['html'], $mailContent['format']);
+      if (isset($params['tplParams']['email_comment'])) {
+        $params['html'] = $params['tplParams']['email_comment'];
+        $params['text'] = strip_tags($params['tplParams']['email_comment']);
+      }
+    }
+
+    $sent = CRM_Utils_Mail::send($params);
+
+    if ($pdf_filename) {
+      unlink($pdf_filename);
+    }
+  }
+
+  return [$sent, $mailContent['subject'], $mailContent['text'], $mailContent['html']];
+}
+
+function loadTemplate(string $workflowName, bool $isTest, int $messageTemplateID = NULL, $groupName = NULL): array {
+    
+  $messageTemplate = civicrm_api3('MessageTemplate', 'get', [
+    'sequential' => 1,
+    'workflow_name' => $workflowName,
+  ])['values'];
+  if (empty($messageTemplate)) {
+    if ($messageTemplateID) {
+      throw new CRM_Core_Exception(ts('No such message template: id=%1.', [1 => $messageTemplateID]));
+    }
+    throw new CRM_Core_Exception(ts('No message template with workflow name %2.', [2 => $workflowName]));
+  } else {
+    $messageTemplate = $messageTemplate[0];
+  }
+
+  $mailContent = [
+    'subject' => $messageTemplate['msg_subject'],
+    'text' => $messageTemplate['msg_text'],
+    'html' => $messageTemplate['msg_html'],
+    'format' => $messageTemplate['pdf_format_id'],
+    // Workflow name is the field in the message templates table that denotes the
+    // workflow the template is used for. This is intended to eventually
+    // replace the non-standard option value/group implementation - see
+    // https://github.com/civicrm/civicrm-core/pull/17227 and the longer
+    // discussion on https://github.com/civicrm/civicrm-core/pull/17180
+    'workflow_name' => $workflowName,
+    // Note messageTemplateID is the id but when present we also know it was specifically requested.
+    'messageTemplateID' => $messageTemplateID,
+    // Group name & valueName are deprecated parameters. At some point it will not be passed out.
+    // https://github.com/civicrm/civicrm-core/pull/17180
+    'groupName' => $groupName,
+    'valueName' => $workflowName,
+  ];
+
+  CRM_Utils_Hook::alterMailContent($mailContent);
+
+  // add the test banner (if requested)
+  if ($isTest) {
+    $testText = MessageTemplate::get(FALSE)
+      ->setSelect(['msg_subject', 'msg_text', 'msg_html'])
+      ->addWhere('workflow_name', '=', 'test_preview')
+      ->addWhere('is_default', '=', TRUE)
+      ->execute()->first();
+
+    $mailContent['subject'] = $testText['msg_subject'] . $mailContent['subject'];
+    $mailContent['text'] = $testText['msg_text'] . $mailContent['text'];
+    $mailContent['html'] = preg_replace('/<body(.*)$/im', "<body\\1\n{$testText['msg_html']}", $mailContent['html']);
+  }
+  return $mailContent;
 }

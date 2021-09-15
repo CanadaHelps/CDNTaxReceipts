@@ -90,14 +90,6 @@ class CRM_Cdntaxreceipts_Task_PDFLetterCommon extends CRM_Contact_Form_Task_PDFL
       if (empty($groupBy) || empty($contact['is_sent'][$groupBy][$groupByID])) {
         $html[$contributionId] = self::generateHtml($contact, $contribution, $groupBy, $contributions, $realSeparator, $tableSeparators, $messageToken, $html_message, $separator, $grouped, $groupByID);
         $contactHtml[$contact['contact_id']][] = $html[$contributionId];
-        if (!empty($formValues['email_options'])) {
-          if (self::emailLetter($contact, $html[$contributionId], $isPDF, $formValues, $emailParams)) {
-            $emailed++;
-            if (!stristr($formValues['email_options'], 'both')) {
-              $emailedHtml[$contributionId] = TRUE;
-            }
-          }
-        }
         $contact['is_sent'][$groupBy][$groupByID] = TRUE;
       }
     }
@@ -106,7 +98,6 @@ class CRM_Cdntaxreceipts_Task_PDFLetterCommon extends CRM_Contact_Form_Task_PDFL
     if (!empty($formValues['is_unit_test'])) {
       return $html;
     }
-
     if (!empty($html)) {
       return $html;
     }

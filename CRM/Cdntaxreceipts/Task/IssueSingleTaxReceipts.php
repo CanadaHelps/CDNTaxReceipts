@@ -220,32 +220,26 @@ class CRM_Cdntaxreceipts_Task_IssueSingleTaxReceipts extends CRM_Contribute_Form
 
         list($issued_on, $receipt_id) = cdntaxreceipts_issued_on($contribution->id);
         if ( empty($issued_on) || ! $originalOnly ) {
-          if(isset($params['template'])) {
-            if($params['template'] == 'default') {
-              $default_message = civicrm_api3('MessageTemplate', 'get', [
-                'sequential' => 1,
-                'msg_title' => "Basic - Thank You Email",
-              ]);
-              if($default_message['values']) {
-                $this->getElement('subject')->setValue($default_message['values'][0]['msg_subject']);
-                $this->getElement('html_message')->setValue($default_message['values'][0]['msg_html']);
-              }
-            }
-          }
           //CRM-918: Thank-you Email Tool
           if($this->getElement('thankyou_email')->getValue()) {
             if($this->getElement('html_message')->getValue()) {
-              $this->_contributionIds = [$contribution->id];
-              $from_email_address = current(CRM_Core_BAO_Domain::getNameAndEmail(FALSE, TRUE));
-              if($from_email_address) {
-                $data = &$this->controller->container();
-                $data['values']['ViewTaxReceipt']['from_email_address'] = $from_email_address;
-                $thankyou_html = CRM_Cdntaxreceipts_Task_PDFLetterCommon::postProcess($this);
-                if($thankyou_html) {
-                  if(is_array($thankyou_html)) {
-                    $contribution->thankyou_html = array_values($thankyou_html)[0];
-                  } else {
-                    $contribution->thankyou_html = $thankyou_html;
+              if(isset($params['template'])) {
+                if($params['template'] !== 'default') {
+                  $this->_contributionIds = [$contribution->id];
+                  $from_email_address = current(CRM_Core_BAO_Domain::getNameAndEmail(FALSE, TRUE));
+                  if($from_email_address) {
+                    $data = &$this->controller->container();
+                    $data['values']['ViewTaxReceipt']['from_email_address'] = $from_email_address;
+                    $data['values']['ViewTaxReceipt']['subject'] = $this->getElement('subject')->getValue();
+                    $data['values']['ViewTaxReceipt']['html_message'] = $this->getElement('html_message')->getValue();
+                    $thankyou_html = CRM_Cdntaxreceipts_Task_PDFLetterCommon::postProcess($this, $params);
+                    if($thankyou_html) {
+                      if(is_array($thankyou_html)) {
+                        $contribution->thankyou_html = array_values($thankyou_html)[0];
+                      } else {
+                        $contribution->thankyou_html = $thankyou_html;
+                      }
+                    }
                   }
                 }
               }
