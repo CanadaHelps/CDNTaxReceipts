@@ -220,7 +220,7 @@ class CRM_Cdntaxreceipts_Task_IssueAggregateTaxReceipts extends CRM_Contribute_F
       $this->removeElement('template');
       $this->assign('templates', TRUE);
       $this->add('select', "template", ts('Use Template'),
-        ['' => 'Default Message'] + $templates + ['0' => ts('Other Custom')], FALSE,
+        ['default' => 'Default Message'] + $templates + ['0' => ts('Other Custom')], FALSE,
         ['onChange' => "selectValue( this.value, '');"]
       );
     }
@@ -289,23 +289,35 @@ class CRM_Cdntaxreceipts_Task_IssueAggregateTaxReceipts extends CRM_Contribute_F
       $method = $contribution_status['issue_method'];
 
       if ( empty($issuedOn) && count($contributions) > 0 ) {
-        $ret = cdntaxreceipts_issueAggregateTaxReceipt($contact_id, $year, $contributions, $method,
-          $receiptsForPrintingPDF, $previewMode);
-
-        if( $ret !== 0 ) {
-          //CRM-920: Thank-you Email Tool
-          if($this->getElement('thankyou_email')->getValue()) {
-            if($this->getElement('html_message')->getValue()) {
-              $this->_contributionIds = array_column($contributions, 'contribution_id');
-              $from_email_address = current(CRM_Core_BAO_Domain::getNameAndEmail(FALSE, TRUE));
-              if($from_email_address) {
-                $data = &$this->controller->container();
-                $data['values']['ViewTaxReceipt']['from_email_address'] = $from_email_address;
-                CRM_Contribute_Form_Task_PDFLetterCommon::postProcess($this);
+        //CRM-920: Thank-you Email Tool
+        if($this->getElement('thankyou_email')->getValue()) {
+          if($this->getElement('html_message')->getValue()) {
+            if(isset($params['template'])) {
+              if($params['template'] !== 'default') {
+                $this->_contributionIds = array_column($contributions, 'contribution_id');
+                $from_email_address = current(CRM_Core_BAO_Domain::getNameAndEmail(FALSE, TRUE));
+                if($from_email_address) {
+                  $data = &$this->controller->container();
+                  $data['values']['ViewTaxReceipt']['from_email_address'] = $from_email_address;
+                  $data['values']['ViewTaxReceipt']['subject'] = $this->getElement('subject')->getValue();
+                  $data['values']['ViewTaxReceipt']['html_message'] = $this->getElement('html_message')->getValue();
+                  $thankyou_html = CRM_Cdntaxreceipts_Task_PDFLetterCommon::postProcess($this, $params);
+                  if($thankyou_html) {
+                    if(is_array($thankyou_html)) {
+                      $thankyou_html = array_values($thankyou_html)[0];
+                    } else {
+                      $thankyou_html = $thankyou_html;
+                    }
+                  }
+                }
               }
             }
           }
+        }
+        $ret = cdntaxreceipts_issueAggregateTaxReceipt($contact_id, $year, $contributions, $method,
+          $receiptsForPrintingPDF, $previewMode, $thankyou_html);
 
+        if( $ret !== 0 ) {
           //CRM-920: Mark Contribution as thanked if checked
           if($this->getElement('thankyou_date')->getValue()) {
             foreach($contributions as $contributionIds) {

@@ -72,7 +72,7 @@ class CRM_Cdntaxreceipts_Task_IssueSingleTaxReceipts extends CRM_Contribute_Form
     $this->assign('deliveryMethod', $delivery_method);
 
     // add radio buttons
-    $this->add('checkbox', 'receipt_option', ts('Re-issue duplicates', array('domain' => 'org.civicrm.cdntaxreceipts')));
+    $this->add('checkbox', 'receipt_option', ts('Also re-issue duplicates', array('domain' => 'org.civicrm.cdntaxreceipts')));
 
     if ($delivery_method != CDNTAX_DELIVERY_DATA_ONLY) {
       $this->add('checkbox', 'is_preview', ts('Run in preview mode?', array('domain' => 'org.civicrm.cdntaxreceipts')));

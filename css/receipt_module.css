@@ -9,6 +9,7 @@
 }
 
 .crm-container table.crm-info-panel td {
+  white-space: nowrap !important;
   font-size: 16px !important;
   padding: 10px !important;
   background-color: #fff !important;

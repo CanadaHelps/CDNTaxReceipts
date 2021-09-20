@@ -966,7 +966,7 @@ function cdntaxreceipts_eligibleAmount( $contributionId ) {
  * Issues an annual tax receipt for a given year.
  * Detects if the receipt is a duplicate and reacts appropriately.
  */
-function cdntaxreceipts_issueAnnualTaxReceipt( $contactId, $year, &$collectedPdf = NULL, $mode = CDNTAXRECEIPTS_MODE_BACKOFFICE ) {
+function cdntaxreceipts_issueAnnualTaxReceipt( $contactId, $year, &$collectedPdf = NULL, $mode = CDNTAXRECEIPTS_MODE_BACKOFFICE, $thankyou_html = NULL ) {
 
   // determine the send method
   list( $method, $email ) = cdntaxreceipts_sendMethodForContact($contactId);
@@ -991,6 +991,7 @@ function cdntaxreceipts_issueAnnualTaxReceipt( $contactId, $year, &$collectedPdf
     $receipt['is_duplicate'] = 1;
     $receipt['receive_date'] = $year;
     $receipt['issue_method'] = $method;
+    $receipt['thankyou_html'] = $thankyou_html;
   }
   else {
 
@@ -1029,6 +1030,7 @@ function cdntaxreceipts_issueAnnualTaxReceipt( $contactId, $year, &$collectedPdf
       'receipt_status' => 'issued',
       'contributions' => $receiptContributions,
       'email_tracking_id' => md5(uniqid(rand(), TRUE)),
+      'thankyou_html' => $thankyou_html,
     );
 
   }
@@ -1050,7 +1052,7 @@ function cdntaxreceipts_issueAnnualTaxReceipt( $contactId, $year, &$collectedPdf
  * @return array
  */
 function cdntaxreceipts_issueAggregateTaxReceipt($contactId, $year, $contributions, $method, &$collectedPdf = NULL,
-                                                 $mode = CDNTAXRECEIPTS_MODE_BACKOFFICE) {
+                                                 $mode = CDNTAXRECEIPTS_MODE_BACKOFFICE, $thankyou_html = NULL) {
   if ( count($contributions) == 0 ) {
     return array(FALSE, $method, NULL);
   }
@@ -1098,6 +1100,7 @@ function cdntaxreceipts_issueAggregateTaxReceipt($contactId, $year, $contributio
     $receipt['is_duplicate'] = 1;
     $receipt['issue_method'] = $method;
     $receipt['receive_date'] = $year;
+    $receipt['thankyou_html'] = $thankyou_html;
   }
   else {
     // calculate total amount
@@ -1129,6 +1132,7 @@ function cdntaxreceipts_issueAggregateTaxReceipt($contactId, $year, $contributio
       'receipt_status' => 'issued',
       'contributions' => $receiptContributions,
       'email_tracking_id' => md5(uniqid(rand(), TRUE)),
+      'thankyou_html' => $thankyou_html,
     );
   }
 
