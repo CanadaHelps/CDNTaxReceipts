@@ -215,6 +215,10 @@ class CRM_Cdntaxreceipts_Task_IssueAggregateTaxReceipts extends CRM_Contribute_F
     $this->setDefaults($defaults);
     $this->addButtons($buttons);
 
+    //Add Tokens
+    $tokens = CRM_Cdntaxreceipts_Task_PDFLetterCommon::listTokens();
+    $this->assign('tokens', CRM_Utils_Token::formatTokensForDisplay($tokens));
+
     $templates = CRM_Core_BAO_MessageTemplate::getMessageTemplates(FALSE);
     if($this->elementExists('template')) {
       $this->removeElement('template');

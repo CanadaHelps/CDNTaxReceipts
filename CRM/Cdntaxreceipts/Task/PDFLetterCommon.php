@@ -381,4 +381,11 @@ class CRM_Cdntaxreceipts_Task_PDFLetterCommon extends CRM_Contact_Form_Task_PDFL
     return $html;
   }
 
+  public static function listTokens() {
+    $tokens = CRM_Core_SelectValues::contactTokens();
+    $tokens = array_merge(CRM_Core_SelectValues::contributionTokens(), $tokens);
+    $tokens = array_merge(CRM_Core_SelectValues::domainTokens(), $tokens);
+    return $tokens;
+  }
+
 }

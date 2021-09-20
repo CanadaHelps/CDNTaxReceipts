@@ -24,7 +24,6 @@ class CRM_Cdntaxreceipts_Form_ViewTaxReceipt extends CRM_Core_Form {
       CRM_Core_Error::fatal(ts('You do not have permission to access this page'));
     }
     parent::preProcess();
-
     $contributionId = CRM_Utils_Array::value('id', $_GET);
     $contactId = CRM_Utils_Array::value('cid', $_GET);
 
@@ -200,6 +199,9 @@ class CRM_Cdntaxreceipts_Form_ViewTaxReceipt extends CRM_Core_Form {
     $this->setDefaults($defaults);
     $this->addButtons($buttons);
 
+    //Add Tokens
+    $tokens = CRM_Cdntaxreceipts_Task_PDFLetterCommon::listTokens();
+    $this->assign('tokens', CRM_Utils_Token::formatTokensForDisplay($tokens));
 
     $templates = CRM_Core_BAO_MessageTemplate::getMessageTemplates(FALSE);
     if($this->elementExists('template')) {
