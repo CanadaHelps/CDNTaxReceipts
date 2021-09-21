@@ -3,7 +3,7 @@
   <h3>Receipts Details</h3>
   <table class="crm-info-panel">
     <tr>
-      <td class="label bold-text">{ts domain='org.civicrm.cdntaxreceipts'}You have selected <strong>{$totalSelectedContributions}</strong> contributions. Of these, <strong>{$receiptList.totals.original}</strong> are eligible origials.{/ts}</td>
+      <td class="label bold-text">{ts domain='org.civicrm.cdntaxreceipts'}You have selected <strong>{$totalSelectedContributions}</strong> contributions. Of these, <strong>{$receiptList.totals.original}</strong> are eligible originals.{/ts}</td>
       <td></td><td></td><td></td>
     </tr>
   </table>
