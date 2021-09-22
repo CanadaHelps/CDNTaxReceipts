@@ -133,7 +133,8 @@ class CRM_Cdntaxreceipts_Task_IssueSingleTaxReceipts extends CRM_Contribute_Form
       'email_options' => 'email',
       'from_email_address' => $from_email_address,
       'group_by_separator' => 'comma',
-      'thankyou_date' => 1
+      'thankyou_date' => 1,
+      'receipt_option' => 0,
     ];
     $this->setDefaults($defaults);
     $this->addButtons($buttons);
@@ -151,10 +152,6 @@ class CRM_Cdntaxreceipts_Task_IssueSingleTaxReceipts extends CRM_Contribute_Form
         ['onChange' => "selectValue( this.value, '');"]
       );
     }
-  }
-
-  function setDefaultValues() {
-    return array('receipt_option' => 'original_only');
   }
 
   /**
