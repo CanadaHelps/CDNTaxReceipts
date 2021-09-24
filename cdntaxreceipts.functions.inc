@@ -1461,6 +1461,25 @@ function sendTemplate($params) {
     $params['html'] = $mailContent['html'];
   }
 
+  // Check Whether openTracking token present or not
+  // If not, add it in the html template
+  if($params['tplParams']['openTracking']) {
+    $dom = new DOMDocument;
+    $dom->loadHTML($params['html']);
+
+    $openTracking = $dom->getElementById('openTracking');
+    if(!$openTracking) {
+      // Create a Fragment
+      $openTrackingFragment = $dom->createDocumentFragment();
+
+      // Append the HTML
+      $imageSource = CRM_Utils_System::baseURL() . "civicrm/cdntaxreceipts/open?r=". $params['tplParams']['receipt']['email_tracking_id'];
+      $openTrackingFragment->appendXML('<img src="'.$imageSource.'" alt="" width="1" height="1" id="openTracking" border="0"></img>');
+      $dom->documentElement->appendChild($openTrackingFragment);
+      $params['html'] = $dom->saveHTML();
+    }
+  }
+
   if ($params['toEmail']) {
     $contactParams = [['email', 'LIKE', $params['toEmail'], 0, 1]];
     [$contact] = CRM_Contact_BAO_Query::apiQuery($contactParams);
