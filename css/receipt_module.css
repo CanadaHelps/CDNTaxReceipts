@@ -88,3 +88,8 @@
 .crm-container table.crm-info-panel td.label {
   width: 10px;
 }
+
+.crm-container table.crm-stripes-tr tr:nth-child(odd) td {
+  background: #f2f2f2 !important;
+  background-color: #f2f2f2 !important;
+}

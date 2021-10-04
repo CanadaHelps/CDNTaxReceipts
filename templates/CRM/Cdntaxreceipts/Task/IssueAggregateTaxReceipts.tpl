@@ -16,7 +16,7 @@
       <td></td><td></td>
     </tr>
   </table>
-  <table class="crm-info-panel border-top-td">
+  <table class="crm-stripes-rows crm-info-panel border-top-td crm-stripes-tr">
     <tr>
       <td class="label bold-weight">{ts}Contacts{/ts}</td>
       <td id="total_contacts" class="label">{$receiptList.original.$defaultYear.total_contacts}</td>

@@ -190,7 +190,7 @@ class CRM_Cdntaxreceipts_Task_IssueAggregateTaxReceipts extends CRM_Contribute_F
         'type' => 'next',
         'name' => 'Issue Tax Receipts',
         'isDefault' => TRUE,
-        'submitOnce' => TRUE,
+        'submitOnce' => FALSE,
       ),
     );
     //CRM-920: Integrate WYSWIG Editor on the form
@@ -290,8 +290,17 @@ class CRM_Cdntaxreceipts_Task_IssueAggregateTaxReceipts extends CRM_Contribute_F
       }
 
       $contributions = $contribution_status['contributions'];
-      $method = $contribution_status['issue_method'];
-
+      // $method = $contribution_status['issue_method'];
+      $method = 'print';
+      if($params['delivery_method']) {
+        require_once 'CRM/Contact/BAO/Contact.php';
+        list($displayname, $email, $doNotEmail, $onHold) = CRM_Contact_BAO_Contact::getContactDetails($contact_id);
+        if ( isset($email) ) {
+          if ( ! $doNotEmail && ! $onHold ) {
+            $method = 'email';
+          }
+        }
+      }
       if ( empty($issuedOn) && count($contributions) > 0 ) {
         //CRM-920: Thank-you Email Tool
         if($this->getElement('thankyou_email')->getValue()) {
