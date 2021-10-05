@@ -47,11 +47,10 @@
   display: none !important;
 }
 
+.crm-container .crm-submit-buttons button.crm-button_qf_IssueAggregateTaxReceipts_submit,
+.crm-container .crm-submit-buttons button.crm-button_qf_IssueAnnualTaxReceipts_submit,
+.crm-container .crm-submit-buttons button.crm-button_qf_IssueSingleTaxReceipts_submit,
 .crm-container .crm-submit-buttons button.crm-button_qf_ViewTaxReceipt_submit {
-  background: #A9A9A9 !important;
-}
-
-.crm-container .crm-submit-buttons button.crm-button_qf_IssueSingleTaxReceipts_submit {
   background: #A9A9A9 !important;
 }
 

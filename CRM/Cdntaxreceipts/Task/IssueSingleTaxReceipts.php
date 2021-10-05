@@ -112,7 +112,7 @@ class CRM_Cdntaxreceipts_Task_IssueSingleTaxReceipts extends CRM_Contribute_Form
         'type' => 'next',
         'name' => 'Issue Tax Receipts',
         'isDefault' => TRUE,
-        'submitOnce' => TRUE,
+        'submitOnce' => FALSE,
       ),
     );
 

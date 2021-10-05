@@ -108,7 +108,12 @@ class CRM_Cdntaxreceipts_Task_IssueAggregateTaxReceipts extends CRM_Contribute_F
         $receipts[$issue_type][$year]['total_contacts'] = count($receipts[$issue_type][$year]['contact_ids']);
       }
     }
-
+    if($receipts) {
+      foreach($receipts['original'] as $original_receipts) {
+        $receipts['totals']['total_ineligibles_contrib'] += $original_receipts['not_eligible'];
+      }
+      $receipts['totals']['total_eligibles_contrib'] = $receipts['totals']['original'] - $receipts['totals']['total_ineligibles_contrib'];
+    }
     $this->_receipts = $receipts;
 
   }

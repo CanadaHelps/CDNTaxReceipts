@@ -75,15 +75,25 @@ class CRM_Cdntaxreceipts_Task_IssueAnnualTaxReceipts extends CRM_Contact_Form_Ta
     foreach ( $this->_years as $year ) {
       $receiptTotal += $receipts[$year]['total'];
     }
-
+    foreach($this->_years as $receipt_year) {
+      if($receipts[$receipt_year]['contrib'] > 0) {
+        $receipt_years[] = $receipt_year;
+      }
+    }
     $this->assign('receiptCount', $receipts);
     $this->assign('receiptTotal', $receiptTotal);
-    $this->assign('receiptYears', $this->_years);
-
+    $this->assign('receiptYears', $receipt_years);
     // Add tax year as select box
-    $this->assign('defaultYear', (date("Y") - 1));
-    foreach( $this->_years as $year ) {
-      $tax_year['issue_'.$year] = $year;
+    if($receipt_years) {
+      foreach( $receipt_years as $year ) {
+        $tax_year['issue_'.$year] = $year;
+      }
+    } else {
+      $tax_year['issues'. date('Y')] = date('Y');
+      $receipt_years[] = date('Y');
+    }
+    if($tax_year) {
+      $this->assign('defaultYear', $receipt_years[0]);
     }
     $this->add('select', 'receipt_year',
       ts('Tax Year'),
@@ -135,7 +145,7 @@ class CRM_Cdntaxreceipts_Task_IssueAnnualTaxReceipts extends CRM_Contact_Form_Ta
         'type' => 'next',
         'name' => 'Issue Tax Receipts',
         'isDefault' => TRUE,
-        'submitOnce' => TRUE,
+        'submitOnce' => FALSE,
       ),
     );
     //CRM-919: Integrate WYSWIG Editor on the form
@@ -155,7 +165,8 @@ class CRM_Cdntaxreceipts_Task_IssueAnnualTaxReceipts extends CRM_Contact_Form_Ta
       'email_options' => 'email',
       'from_email_address' => $from_email_address,
       'group_by_separator' => 'comma',
-      'thankyou_date' => 1
+      'thankyou_date' => 1,
+      'receipt_year' => 'issue_'.$receipt_years[0],
     ];
     $this->setDefaults($defaults);
     $this->addButtons($buttons);
@@ -173,12 +184,6 @@ class CRM_Cdntaxreceipts_Task_IssueAnnualTaxReceipts extends CRM_Contact_Form_Ta
         ['onChange' => "selectValue( this.value, '');"]
       );
     }
-
-
-  }
-
-  function setDefaultValues() {
-    return array('receipt_year' => 'issue_' . (date("Y") - 1),);
   }
 
   /**

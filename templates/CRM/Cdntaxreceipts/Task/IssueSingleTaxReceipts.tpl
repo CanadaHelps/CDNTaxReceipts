@@ -7,7 +7,7 @@
       <td></td><td></td><td></td>
     </tr>
   </table>
-  <table class="crm-info-panel border-top-td">
+  <table class="crm-info-panel border-top-td crm-stripes-tr">
     <tr>
       <td class="label bold-weight">{ts}Not Yet Receipted{/ts}</td>
       <td class="label">{$originalTotal}</td>

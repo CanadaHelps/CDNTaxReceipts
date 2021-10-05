@@ -10,7 +10,7 @@
       <td></td><td></td>
     </tr>
   </table>
-  <table class="crm-info-panel border-top-td">
+  <table class="crm-info-panel border-top-td crm-stripes-tr">
     <tr>
       <td class="label bold-weight">{ts}Receipts{/ts}</td>
       <td id="total_receipts" class="label">{$receiptCount.$defaultYear.total}</td>
