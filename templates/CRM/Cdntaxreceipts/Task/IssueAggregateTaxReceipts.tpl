@@ -27,8 +27,7 @@
     </tr>
     <tr>
       <td class="label bold-weight">{ts}Total Amount{/ts}</td>
-      {math equation="x - y" x=$receiptList.original.$defaultYear.total_amount y=$receiptList.original.$defaultYear.not_eligible_amount assign="total_issue"}
-      <td id="total_amount">{$total_issue|crmMoney}</td>
+      <td id="total_amount">{$receiptList.totals.total_eligible_amount.$defaultYear|crmMoney}</td>
       <td class="label display-cell-padding bold-weight">{ts}Skipped Contributions{/ts}</td>
       <td id="skipped_contributions" class="label">{$receiptList.original.$defaultYear.not_eligible+$receiptList.duplicate.$defaultYear.total_contrib}</td>
       <td></td>
@@ -75,7 +74,7 @@
       $("#receipt_year").change(function(){
         var tax_year = $('option:selected', this).text();
         var total_contributions = receipts.original[tax_year].total_contrib-receipts.original[tax_year].not_eligible;
-        var total_amount = receipts.original[tax_year].total_amount-receipts.original[tax_year].not_eligible_amount;
+        var total_amount = receipts.totals.total_eligible_amount[tax_year];
         $('#total_contributions').text(total_contributions);
         $('#total_contacts').text(receipts.original[tax_year].total_contacts);
         $('#total_amount').text("$ "+ (total_amount).toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,'));

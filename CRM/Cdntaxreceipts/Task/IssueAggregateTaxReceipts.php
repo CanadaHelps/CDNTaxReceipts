@@ -134,9 +134,21 @@ class CRM_Cdntaxreceipts_Task_IssueAggregateTaxReceipts extends CRM_Contribute_F
 
     CRM_Core_Resources::singleton()->addStyleFile('org.civicrm.cdntaxreceipts', 'css/civicrm_cdntaxreceipts.css');
 
-    $this->assign('receiptList', $this->_receipts);
     $this->assign('receiptYears', $this->_years);
 
+    // Re-calculte total amount
+    if($this->_receipts['original']) {
+      foreach($this->_receipts['original'] as $receipt_original_year => $receipts_originals) {
+        if($receipts_originals['contact_ids']) {
+          foreach($receipts_originals['contact_ids'] as $receipt_contacts) {
+            $this->_receipts['totals']['total_eligible_amount'][$receipt_original_year] += array_sum(array_column($receipt_contacts['contributions'], 'total_amount'));
+          }
+        } else {
+          $this->_receipts['totals']['total_eligible_amount'][$receipt_original_year] = 0;
+        }
+      }
+    }
+    $this->assign('receiptList', $this->_receipts);
     // Add tax year as select box
     foreach( $this->_years as $year ) {
       $tax_year['issue_'.$year] = $year;
