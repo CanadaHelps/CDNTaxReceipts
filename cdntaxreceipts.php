@@ -66,6 +66,37 @@ function cdntaxreceipts_civicrm_buildForm( $formName, &$form ) {
       'template' => 'CRM/Cdntaxreceipts/Form/AddAdvantage.tpl',
     ));
   }
+
+  if (is_a( $form, 'CRM_Contribute_Form_Task_Result')) {
+    $data = &$form->controller->container();
+    if(isset($data['valid'])){
+      if($data['valid']['IssueAggregateTaxReceipts']) {
+        CRM_Core_Resources::singleton()->addStyle('
+          .crm-button {
+            float: left !important;
+            border: none 0 !important;
+            text-shadow: none !important;
+            margin-bottom: 20px !important;
+          }
+          .crm-form-submit i {
+            display: none !important;
+          }
+          button {
+            background: #1466A9 !important;
+            color: #fff;
+            font-family: "Lato" !important;
+            font-size: 14px !important;
+            text-transform: none !important;
+            line-height: 1;
+            text-shadow: none !important;
+            vertical-align: middle;
+            box-shadow: 0px 0px 3px 0 rgba(0,0,0,0.2) !important;
+            padding: 10px 20px !important;
+          }
+        ');
+      }
+    }
+  }
 }
 
 /**

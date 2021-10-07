@@ -24,7 +24,6 @@ class CRM_Cdntaxreceipts_Form_ViewTaxReceipt extends CRM_Core_Form {
       CRM_Core_Error::fatal(ts('You do not have permission to access this page'));
     }
     parent::preProcess();
-
     $contributionId = CRM_Utils_Array::value('id', $_GET);
     $contactId = CRM_Utils_Array::value('cid', $_GET);
 
@@ -92,6 +91,9 @@ class CRM_Cdntaxreceipts_Form_ViewTaxReceipt extends CRM_Core_Form {
    */
   function buildQuickForm() {
 
+    //CRM-917: Add Custom Stylesheet to pages as well
+    CRM_Core_Resources::singleton()->addStyleFile('org.civicrm.cdntaxreceipts', 'css/receipt_module.css');
+
     if ($this->_reissue) {
       $receipt_contributions = array();
       foreach ( $this->_receipt['contributions'] as $c ) {
@@ -118,28 +120,54 @@ class CRM_Cdntaxreceipts_Form_ViewTaxReceipt extends CRM_Core_Form {
 
     $buttons[] = array(
       'type' => 'cancel',
-      'name' => ts('Done', array('domain' => 'org.civicrm.cdntaxreceipts')),
+      'name' => ts('Back', array('domain' => 'org.civicrm.cdntaxreceipts')),
     );
 
     if (CRM_Core_Permission::check( 'issue cdn tax receipts' ) ) {
+      if ($this->_reissue && !$this->_isCancelled) {
+        $buttons[] = array(
+          'type' => 'submit',
+          'name' => ts('Void Receipt', array('domain' => 'org.civicrm.cdntaxreceipts')),
+          'isDefault' => FALSE,
+          'class' => 'void-receipt',
+        );
+      } else {
+        $buttons[] = array(
+          'type' => 'submit',
+          'name' => ts('Preview', array('domain' => 'org.civicrm.cdntaxreceipts')),
+          'isDefault' => FALSE,
+        );
+      }
       $buttons[] = array(
         'type' => 'next',
         'name' => $buttonLabel,
         'isDefault' => TRUE,
       );
-      if ($this->_reissue && !$this->_isCancelled) {
-        $buttons[] = array(
-          'type' => 'submit',
-          'name' => ts('Cancel Tax Receipt', array('domain' => 'org.civicrm.cdntaxreceipts')),
-          'isDefault' => FALSE,
-        );
-      }
     }
     $this->addButtons($buttons);
 
     $this->assign('buttonLabel', $buttonLabel);
 
     $this->assign('method', $this->_method);
+
+    //CRM-921: Add delivery Method to form
+    $delivery_method = CRM_Core_BAO_Setting::getItem(CDNTAX_SETTINGS, 'delivery_method');
+    $delivery_placeholder = null;
+    $delivery_options = [];
+
+    $delivery_options[CDNTAX_DELIVERY_PRINT_ONLY] = 'Print';
+    $delivery_options[CDNTAX_DELIVERY_PRINT_EMAIL] = 'Email';
+    $this->add('select',
+      'delivery_method',
+      ts('Method'),
+      $delivery_options,
+      FALSE,
+      ['class' => 'crm-select2']
+    );
+
+    // Add Thank-you Setting block
+    $this->add('checkbox', 'thankyou_date', ts('Mark Contribution as thanked', array('domain' => 'org.civicrm.cdntaxreceipts')));
+    $this->add('checkbox', 'thankyou_email', ts('Send a custom Thank You Email Message', array('domain' => 'org.civicrm.cdntaxreceipts')));
 
     if ( $this->_method == 'email' ) {
       $this->assign('receiptEmail', $this->_sendTarget);
@@ -149,6 +177,41 @@ class CRM_Cdntaxreceipts_Form_ViewTaxReceipt extends CRM_Core_Form {
       $this->assign('pdf_file', $this->_pdfFile);
     }
 
+    //CRM-921: Integrate WYSWIG Editor on the form
+    CRM_Contribute_Form_Task_PDFLetterCommon::buildQuickForm($this);
+    if($this->elementExists('from_email_address')) {
+      $this->removeElement('from_email_address');
+    }
+    $from_email_address = current(CRM_Core_BAO_Domain::getNameAndEmail(FALSE, TRUE));
+    $this->add('text', 'from_email_address', ts('From Email Address'), $from_email_address, TRUE);
+    $this->add('text', 'email_options', ts('Print and Email Options'), 'email', FALSE);
+    $this->add('text', 'group_by_separator', ts('Group By Seperator'), 'comma', FALSE);
+    $defaults = [
+      'margin_left' => 0.75,
+      'margin_right' => 0.75,
+      'margin_top' => 0.75,
+      'margin_bottom' => 0.75,
+      'email_options' => 'email',
+      'from_email_address' => $from_email_address,
+      'group_by_separator' => 'comma',
+      'thankyou_date' => 1
+    ];
+    $this->setDefaults($defaults);
+    $this->addButtons($buttons);
+
+    //Add Tokens
+    $tokens = CRM_Cdntaxreceipts_Task_PDFLetterCommon::listTokens();
+    $this->assign('tokens', CRM_Utils_Token::formatTokensForDisplay($tokens));
+
+    $templates = CRM_Core_BAO_MessageTemplate::getMessageTemplates(FALSE);
+    if($this->elementExists('template')) {
+      $this->removeElement('template');
+      $this->assign('templates', TRUE);
+      $this->add('select', "template", ts('Use Template'),
+        ['default' => 'Default Message'] + $templates + ['0' => ts('Other Custom')], FALSE,
+        ['onChange' => "selectValue( this.value, '');"]
+      );
+    }
   }
 
   /**
@@ -165,6 +228,8 @@ class CRM_Cdntaxreceipts_Form_ViewTaxReceipt extends CRM_Core_Form {
     if ( ! CRM_Core_Permission::check( 'issue cdn tax receipts' ) ) {
       CRM_Core_Error::fatal(ts('You do not have permission to access this page', array('domain' => 'org.civicrm.cdntaxreceipts')));
     }
+
+    $params = $this->controller->exportValues($this->_name);
 
     $method = '';
 
@@ -183,6 +248,17 @@ class CRM_Cdntaxreceipts_Form_ViewTaxReceipt extends CRM_Core_Form {
 
     // If we are cancelling the tax receipt
     if ($buttonName == '_qf_ViewTaxReceipt_submit') {
+      if(!$this->_reissue) {
+        $receiptsForPrinting = cdntaxreceipts_openCollectedPDF();
+        $previewMode = TRUE;
+        list($result, $method, $pdf) = cdntaxreceipts_issueTaxReceipt( $contribution,  $receiptsForPrinting, $previewMode  );
+        if($result == TRUE) {
+          cdntaxreceipts_sendCollectedPDF($receiptsForPrinting, 'Receipt-To-Print-' . (int) $_SERVER['REQUEST_TIME'] . '.pdf');
+        } else {
+          $statusMsg = ts('Encountered an error. Tax receipt has not been issued.', array('domain' => 'org.civicrm.cdntaxreceipts'));
+          CRM_Core_Session::setStatus($statusMsg, '', 'error');
+        }
+      }
 
       // Get the Tax Receipt that has already been issued previously for this Contribution
       list($issued_on, $receipt_id) = cdntaxreceipts_issued_on($contribution->id);
@@ -194,10 +270,8 @@ class CRM_Cdntaxreceipts_Form_ViewTaxReceipt extends CRM_Core_Form {
       }
       else {
         $statusMsg = ts('Encountered an error. Tax receipt has not been cancelled.', array('domain' => 'org.civicrm.cdntaxreceipts'));
-
       }
       CRM_Core_Session::setStatus($statusMsg, '', 'error');
-
       // refresh the form, with file stored in session if we need it.
       $urlParams = array('reset=1', 'cid='.$contactId, 'id='.$contributionId);
     }
@@ -208,10 +282,39 @@ class CRM_Cdntaxreceipts_Form_ViewTaxReceipt extends CRM_Core_Form {
         CRM_Core_Session::setStatus($statusMsg, '', 'error');
       }
       else {
-
+        if($this->getElement('thankyou_email')->getValue()) {
+          if($this->getElement('html_message')->getValue()) {
+            if(isset($params['template'])) {
+              if($params['template'] !== 'default') {
+                $this->_contributionIds = [$contribution->id];
+                $from_email_address = current(CRM_Core_BAO_Domain::getNameAndEmail(FALSE, TRUE));
+                if($from_email_address) {
+                  $data = &$this->controller->container();
+                  $data['values']['ViewTaxReceipt']['from_email_address'] = $from_email_address;
+                  $data['values']['ViewTaxReceipt']['subject'] = $this->getElement('subject')->getValue();
+                  $data['values']['ViewTaxReceipt']['html_message'] = $this->getElement('html_message')->getValue();
+                  $thankyou_html = CRM_Cdntaxreceipts_Task_PDFLetterCommon::postProcess($this, $params);
+                  if($thankyou_html) {
+                    if(is_array($thankyou_html)) {
+                      $contribution->thankyou_html = array_values($thankyou_html)[0];
+                    } else {
+                      $contribution->thankyou_html = $thankyou_html;
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
         list($result, $method, $pdf) = cdntaxreceipts_issueTaxReceipt( $contribution );
 
         if ($result == TRUE) {
+          //CRM-921: Mark Contribution as thanked if checked
+          if($this->getElement('thankyou_date')->getValue()) {
+            $contribution->thankyou_date = date('Y-m-d H:i:s', CRM_Utils_Time::time());
+            $contribution->save();
+          }
+
           if ($method == 'email') {
             $statusMsg = ts('Tax Receipt has been emailed to the contributor.', array('domain' => 'org.civicrm.cdntaxreceipts'));
           }
@@ -277,6 +380,5 @@ class CRM_Cdntaxreceipts_Form_ViewTaxReceipt extends CRM_Core_Form {
       CRM_Core_Session::setStatus( $statusMsg, '', 'error' );
     }
   }
-
 }
 
