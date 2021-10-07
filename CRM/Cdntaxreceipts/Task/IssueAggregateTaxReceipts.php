@@ -150,12 +150,14 @@ class CRM_Cdntaxreceipts_Task_IssueAggregateTaxReceipts extends CRM_Contribute_F
     }
     $this->assign('receiptList', $this->_receipts);
     // Add tax year as select box
+    krsort($this->_years);
     foreach( $this->_years as $year ) {
       $tax_year['issue_'.$year] = $year;
     }
     if($this->_years) {
       $this->assign('defaultYear', array_values($this->_years)[0]);
     }
+
     $this->add('select', 'receipt_year',
       ts('Tax Year'),
       $tax_year,
