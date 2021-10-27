@@ -1,6 +1,7 @@
 <?php
 
 use CRM_Cdntaxreceipts_ExtensionUtil as E;
+use CRM_Canadahelps_ExtensionUtils as EU;
 
 require_once 'tcpdf/tcpdf.php';
 require_once('FPDI/fpdi.php');
@@ -321,6 +322,7 @@ function _cdntaxreceipts_writePage(&$f, $pdf_variables, $receipt) {
 
   $pdf_variables['thankyou_note'] = true; 
   $results = CRM_Utils_Hook::singleton()->invoke(3, $f, $pdf_variables, $receipt, CRM_Utils_Hook::$_nullObject, CRM_Utils_Hook::$_nullObject, CRM_Utils_Hook::$_nullObject, 'cdntaxreceipts_writeReceipt');
+  _cdntaxreceipts_writeReceipt($f, $pdf_variables, $receipt);
   $pdf_variables['thankyou_note'] = false; 
   // if custom rewrite is implemented
   // don't execute _cdntaxreceipts_writeReceipt 
@@ -330,14 +332,15 @@ function _cdntaxreceipts_writePage(&$f, $pdf_variables, $receipt) {
     if(!$pdf_variables['is_duplicate'] && $pdf_variables["mode"] !== CDNTAXRECEIPTS_MODE_PREVIEW) {
       $pdf_variables['duplicate_offset'] = TRUE;
       CRM_Utils_Hook::singleton()->invoke(3, $f, $pdf_variables, $receipt, CRM_Utils_Hook::$_nullObject, CRM_Utils_Hook::$_nullObject, CRM_Utils_Hook::$_nullObject, 'cdntaxreceipts_writeReceipt');
+      _cdntaxreceipts_writeReceipt($f, $pdf_variables, $receipt);
     }
     if($pdf_variables['is_duplicate']) {
       $pdf_variables['is_duplicate'] = TRUE;
       $pdf_variables['duplicate_offset'] = TRUE;
       CRM_Utils_Hook::singleton()->invoke(3, $f, $pdf_variables, $receipt, CRM_Utils_Hook::$_nullObject, CRM_Utils_Hook::$_nullObject, CRM_Utils_Hook::$_nullObject, 'cdntaxreceipts_writeReceipt');
+      _cdntaxreceipts_writeReceipt($f, $pdf_variables, $receipt);
     }   
     return;
-    
   }
 
 
@@ -356,17 +359,23 @@ function _cdntaxreceipts_writePage(&$f, $pdf_variables, $receipt) {
   else {
     // print original AND duplicate copy
     $mymargin_top = $pdf_variables['mymargin_top'];
-    _cdntaxreceipts_writeReceipt($f, $pdf_variables);
+    _cdntaxreceipts_writeReceipt($f, $pdf_variables, $receipt);
     $pdf_variables["mymargin_top"] = $mymargin_top + 100;
     $pdf_variables["is_duplicate"] = TRUE;
-    _cdntaxreceipts_writeReceipt($f, $pdf_variables);
+    _cdntaxreceipts_writeReceipt($f, $pdf_variables, $receipt);
     $pdf_variables["mymargin_top"] = $mymargin_top + 100*2;
     $pdf_variables["is_duplicate"] = TRUE;
-    _cdntaxreceipts_writeReceipt($f, $pdf_variables);
+    _cdntaxreceipts_writeReceipt($f, $pdf_variables, $receipt);
   }
 }
 
-function _cdntaxreceipts_writeReceipt(&$pdf, $pdf_variables) {
+function _cdntaxreceipts_writeReceipt(&$pdf, &$pdf_variables, $receipt) {
+  //Set PDF Variable to custom for complete rewrite
+  $pdf_variables['is_custom_rewrite'] = true;
+  if($pdf_variables['thankyou_note']) {
+    _receiptThankYouHeader($pdf, $pdf_variables, $receipt);
+    return;
+  }
 
   // Extract variables
   $mode = $pdf_variables["mode"];
@@ -394,58 +403,227 @@ function _cdntaxreceipts_writeReceipt(&$pdf, $pdf_variables) {
   $advantage_amount = $pdf_variables['advantage_amount'];
   $contribution_amount = $pdf_variables['contribution_amount'];
 
-  // Middle center section
+
+
+  // Add Font
+  // convert TTF font to TCPDF format
+  $imageLocalPath = dirname(__FILE__).'/img/CDNTaxReceipts/';
+  $basePath = dirname(__FILE__).'/fonts/Lato/';
+  $fontLatoRegular = TCPDF_FONTS::addTTFfont($basePath.'Lato-Semibold.ttf', 'TrueTypeUnicode', '', 32);
+  $fontLatoLight = TCPDF_FONTS::addTTFfont($basePath.'Lato-Light.ttf', 'TrueTypeUnicode', '', 32);
+
+  // CH Set Receipt Margins
+  $top_header_margin_offset = 10;
+  $side_indentation_margin = 55;
+  $mymargin_top += $top_header_margin_offset;
+  // Line Height
+  $line_height = 5;
+
+  // Duplicate Offset
+  $duplicate_offset = 0;
+  if(isset($pdf_variables['duplicate_offset'])) {
+    if($pdf_variables['duplicate_offset'] == TRUE) {
+      $duplicate_offset = 130;
+    }
+  }
+  // Non-Single Receipts
+  $grid2_mid_offset = 0;
+  if($issue_type !== 'single') {
+    $contribution_amount = array_sum(array_column($receipt_contributions, 'contribution_amount')); 
+    $grid2_mid_offset = 10;
+  }
+  // Grid Co-Ordinates
+  $grid1_y_top = 15 + $duplicate_offset + $top_header_margin_offset;
+  $grid2_y_top = 35 + $duplicate_offset + $top_header_margin_offset;
+  $grid2_x_mid = 85 + $grid2_mid_offset;
+  $grid2_x_right = 120;
+  $grid3_y_top = 65 + $duplicate_offset + $top_header_margin_offset;
+  $grid4_y_top = 90 + $duplicate_offset + $top_header_margin_offset; 
+  $footer_y_top = 110 + $duplicate_offset + $top_header_margin_offset;
+
+  // My Margin Top
+  $mymargin_top += $duplicate_offset;
+
+  // Text Color
+  $pdf->SetTextColor(35,35,35);
+
+  //Font Sizes 
+  $bigFont = 14;
+  $smallFont = 11;
+  $footerFont = 9;
+
+  // WaterMark center section
   if ($mode == CDNTAXRECEIPTS_MODE_PREVIEW) {
-    $pdf->Image($pdf_img_files_path . 'preview_mode.png', $mymargin_left + 65, $mymargin_top, '', 45);
+    $pdf->Image($imageLocalPath . 'PREVIEW.png', 0, $mymargin_top + 35, '', 45, 'PNG', '', 'T', false, 300, 'C');
   }
   else if ($receipt_status == 'cancelled') {
-    $pdf->Image($pdf_img_files_path . 'cancelled_trans.png', $mymargin_left + 65, $mymargin_top, '', 45);
+    $pdf->Image($imageLocalPath . 'CANCELLED.png', 0, $mymargin_top + 35, '', 0, 'PNG', '', 'T', false, 300, 'C');
   }
   else if ($is_duplicate) {
-    $pdf->Image($pdf_img_files_path . 'duplicate_trans.png', $mymargin_left + 65, $mymargin_top, '', 45);
+    // CRM-713: Remove duplicate watermark from the receipts
+    // TODO: Clean up this code if the request is never reverted by Product Team
+    // $pdf->Image($imageLocalPath . 'DUPLICATE.png', 0, $mymargin_top + 35, '', 45, 'PNG', '', 'T', false, 300, 'C');
   }
-  // Top left section
+
+  // Grid Top: Heading
+  $pdf->SetY($mymargin_top);
+  $pdf->SetFont($fontLatoRegular, '', $bigFont);
+  $pdf->Write(10, ts('Official Tax Receipt For Income Tax Purposes', array('domain' => 'org.civicrm.cdntaxreceipts')));
+
   $pdf_template_file = Civi::settings()->get('receipt_pdftemplate');
   if (!empty($pdf_template_file)) {
   }
   else {
+    // Grid 1: Right Section
     $receipt_logo = Civi::settings()->get('receipt_logo');
     if ( empty($receipt_logo) ) {
       $receipt_logo = $pdf_img_files_path . 'your-logo.png';
     }
-    $pdf->Image($receipt_logo, $mymargin_left, $mymargin_top, '', 30);
+    // Max Height : 30, Max Width : 45
+    list($w, $h) = EU::setImageDimension($receipt_logo, 30, 45);
+    $pdf->Image($receipt_logo, 10, 10 + $duplicate_offset + $top_header_margin_offset, $w, $h, 'PNG', '', 'T', false, 300, 'R');
 
-  // Top right section
-  $pdf->SetFont('Helvetica', '', 8);
-  $pdf->SetY($mymargin_top);
-  $pdf->Write(10, Civi::settings()->get('org_name'), '', 0, 'R', TRUE, 0, FALSE, FALSE, 0);
-  $pdf->SetY($mymargin_top + 4);
-  $pdf->Write(10, Civi::settings()->get('org_address_line1'), '', 0, 'R', TRUE, 0, FALSE, FALSE, 0);
-  $pdf->SetY($mymargin_top + 8);
-  $pdf->Write(10, Civi::settings()->get('org_address_line2'), '', 0, 'R', TRUE, 0, FALSE, FALSE, 0);
-  $pdf->SetY($mymargin_top + 12);
 
-  $telTxt = ts('Tel: %1', array(1 => Civi::settings()->get('org_tel'), 'domain' => 'org.civicrm.cdntaxreceipts'));
-  if ( Civi::settings()->get('org_fax' ) != '' ) {
-    $telTxt .= '; ' . ts('Fax: %1', array(1 => Civi::settings()->get('org_fax'), 'domain' => 'org.civicrm.cdntaxreceipts'));
+    // Grid 1: Left Section
+    $grid_1_counter = 1;
+    $org_text_limit = 50;
+    $org_name = Civi::settings()->get('org_name');
+    $registrationTxt = ts('Charitable Registration #: %1', array(1 => Civi::settings()->get('org_charitable_no'), 'domain' => 'org.civicrm.cdntaxreceipts'));
+
+    $pdf->SetFont($fontLatoRegular, '', $smallFont);
+    $pdf->SetY($grid1_y_top);
+    $org_name_array = EU::getStringLimitArray($org_name, $org_text_limit);
+    for($i=0; $i<2; $i++) {
+      if (isset($org_name_array[$i])) {
+        if(mb_strlen($org_name_array[$i]) > $org_text_limit) {
+          $pdf->Write(10, strtoupper(EU::stringLimiter($org_name_array[$i], $org_text_limit, '')), '', 0, 'L', TRUE, 0, FALSE, FALSE, 0);
+        } else {
+          $pdf->Write(10, strtoupper($org_name_array[$i]), '', 0, 'L', TRUE, 0, FALSE, FALSE, 0);
+        }
+        $pdf->SetY(EU::getReceiptLineHeight($grid1_y_top, $line_height, $grid_1_counter++));
+      }
+    }
+    $pdf->SetFont($fontLatoLight, '', $smallFont);
+    $pdf->Write(10, $registrationTxt, '', 0, 'L', TRUE, 0, FALSE, FALSE, 0);
+    $pdf->SetY(EU::getReceiptLineHeight($grid1_y_top, $line_height, $grid_1_counter++));
+    $pdf->Write(10, Civi::settings()->get('org_address_line1'), '', 0, 'L', TRUE, 0, FALSE, FALSE, 0);
+    $pdf->SetY(EU::getReceiptLineHeight($grid1_y_top, $line_height, $grid_1_counter++));
+    $pdf->Write(10, Civi::settings()->get('org_address_line2'), '', 0, 'L', TRUE, 0, FALSE, FALSE, 0);
   }
-  $pdf->Write(10, $telTxt, '', 0, 'R', TRUE, 0, FALSE, FALSE, 0);
-  $pdf->SetFont('Helvetica', 'I', 8);
-  $pdf->SetY($mymargin_top + 16);
 
-  $emailTxt = ts('Email: %1; Website: %2', array(
-    1 => Civi::settings()->get('org_email'),
-    2 => Civi::settings()->get('org_web'),
-    'domain' => 'org.civicrm.cdntaxreceipts')
-  );
-  $registrationTxt = ts('Charitable Registration: %1', array(1 => Civi::settings()->get('org_charitable_no'), 'domain' => 'org.civicrm.cdntaxreceipts'));
-
-  $pdf->Write(10, $emailTxt, '', 0, 'R', TRUE, 0, FALSE, FALSE, 0);
-  $pdf->SetY($mymargin_top + 20);
-  $pdf->Write(10, $registrationTxt, '', 0, 'R', TRUE, 0, FALSE, FALSE, 0);
+  // Grid 2: Left Section
+  $pdf->setY(EU::getReceiptLineHeight($grid2_y_top, $line_height, 1.5));
+  $pdf->SetFont($fontLatoRegular, '', $smallFont);
+  $pdf->Write(10, ts("Donation Received: "));
+  $pdf->SetFont($fontLatoLight, '', $smallFont);
+  $pdf->Write(10, ts($display_date), array('domain' => 'org.civicrm.cdntaxreceipts'));
+  $pdf->setY(EU::getReceiptLineHeight($grid2_y_top, $line_height, 2.5));
+  $pdf->SetFont($fontLatoRegular, '', $smallFont);
+  if($issue_type !== 'single') {
+    $pdf->Write(10, ts("Total Donation Amount: "));
+  } else {
+    $pdf->Write(10, ts("Donation Amount: "));
   }
+  $pdf->SetFont($fontLatoLight, '', $smallFont);
+  $pdf->Write(10, ts('$'.number_format($contribution_amount, 2)), array('domain' => 'org.civicrm.cdntaxreceipts'));
+  // Advantage and In-Kind Fields
+  $index_advantage = 3.5;
+  if ($advantage_amount > 0) {
+    $pdf->setY(EU::getReceiptLineHeight($grid2_y_top, $line_height, $index_advantage));
+    $pdf->SetFont($fontLatoRegular, '', $smallFont);
+    $pdf->Write(10, ts("Value of Advantage to: "));
+    $pdf->SetFont($fontLatoLight, '', $smallFont);
+    $pdf->Write(10, ts('$'.number_format($advantage_amount, 2)), array('domain' => 'org.civicrm.cdntaxreceipts'));
+    $index_advantage += 1;
+  }
+  $pdf->setY(EU::getReceiptLineHeight($grid2_y_top, $line_height, $index_advantage));
+  $pdf->SetFont($fontLatoRegular, '', $smallFont);
+  $pdf->Write(10, ts("Eligible Amount of Gift: "));
+  $pdf->SetFont($fontLatoLight, '', $smallFont);
+  $pdf->Write(10, ts('$'.number_format($amount, 2)));
+  
+  
 
-  // Right section
+  // Grid 2: Centre Section
+  $pdf->SetXY($grid2_x_mid, EU::getReceiptLineHeight($grid2_y_top, $line_height, 1.5));
+  $pdf->SetFont($fontLatoRegular, '', $smallFont);
+  $pdf->Write(10, ts("Receipt #: "));
+  $pdf->SetFont($fontLatoLight, '', $smallFont);
+  $pdf->Write(10, ts($receipt_number), array('domain' => 'org.civicrm.cdntaxreceipts'));
+  $pdf->SetXY($grid2_x_mid, EU::getReceiptLineHeight($grid2_y_top, $line_height, 2.5));
+  $pdf->SetFont($fontLatoRegular, '', $smallFont);
+  $pdf->Write(10, ts("Receipt Issued: "));
+  $pdf->SetFont($fontLatoLight, '', $smallFont);
+  $pdf->Write(10, ts($issued_on), array('domain' => 'org.civicrm.cdntaxreceipts'));
+  
+  // Get Location of the Charity
+  $address = CRM_Core_BAO_Location::getValues(['contact_id' => CRM_Core_Config::domainID()], TRUE)['address'][1];
+  $address['province'] = CRM_Core_PseudoConstant::stateProvince($address['state_province_id']);
+  if($address && $address['state_province_id']) {
+    $pdf->SetXY($grid2_x_mid, EU::getReceiptLineHeight($grid2_y_top, $line_height, 3.5));
+    $pdf->SetFont($fontLatoRegular, '', $smallFont);
+    $pdf->Write(10, ts("Location Issued: "));
+    $pdf->SetFont($fontLatoLight, '', $smallFont);
+    $address_full = $address['city'].", ".$address['province'];
+    // Check Address Length
+    if(mb_strlen($address_full) < 18) {
+      $pdf->Write(10, ts($address_full), array('domain' => 'org.civicrm.cdntaxreceipts'));
+    } else {
+      $address_array = EU::getStringLimitArray($address_full, 18);
+      $index_address = 4.5;
+      foreach($address_array as $address_lines) {
+        if(mb_strlen($address_lines) > 18) {
+          $pdf->Write(10, ts(mb_substr($address_lines, 0, 18)), array('domain' => 'org.civicrm.cdntaxreceipts'));
+          $pdf->setXY($grid2_x_mid + 28.75, EU::getReceiptLineHeight($grid2_y_top, $line_height, $index_address++));
+          $pdf->Write(10, ts(mb_substr($address_lines, 18, 36)), array('domain' => 'org.civicrm.cdntaxreceipts'));
+          $pdf->setXY($grid2_x_mid + 28.75, EU::getReceiptLineHeight($grid2_y_top, $line_height, $index_address++));
+        } else {
+          $pdf->Write(10, ts($address_lines), array('domain' => 'org.civicrm.cdntaxreceipts'));
+          $pdf->setXY($grid2_x_mid + 28.75, EU::getReceiptLineHeight($grid2_y_top, $line_height, $index_address++));
+        }
+      }
+    }
+  }
+  // Grid 2: Right Section
+  $text_limit = 25;
+  $pdf->SetXY(0, EU::getReceiptLineHeight($grid2_y_top, $line_height, 2));
+  $pdf->SetFont($fontLatoRegular, '', $smallFont);
+  $pdf->Cell(0, 0, ts('Donated by:', array('domain' => 'org.civicrm.cdntaxreceipts')), 0, 0, 'R');
+  $pdf->Ln($line_height);
+  $pdf->SetFont($fontLatoLight, '', $smallFont);
+  $donated_by = [$displayname, $address_line_1, $address_line_1b, $address_line_2, $address_line_3];
+  foreach($donated_by as $donor_detail) {
+    if(trim($donor_detail)) {
+      if(mb_strlen($donor_detail) <= $text_limit) {
+        $pdf->Cell(0, 0, ts($donor_detail, array('domain' => 'org.civicrm.cdntaxreceipts')), 0, $line_height, 'R');
+      } else {
+        $donor_detail_array = EU::getStringLimitArray($donor_detail, $text_limit);
+        for($i=0; $i < 2; $i++) {
+          if(mb_strlen($donor_detail_array[$i]) > $text_limit) {
+            if(strpos($donor_detail_array[$i], '-') !== false) {
+              $hyphenedString = explode("-", $donor_detail_array[$i]);
+              $donor_detail_sub_array = EU::getStringLimitArray(implode(" ", $hyphenedString), $text_limit);
+              $donor_detail_sub_array_count = count($donor_detail_sub_array);
+              $i_ddsa = 1;
+              foreach($donor_detail_sub_array as $ddsa) {
+                $i_ddsa_hyphen = ($i_ddsa == $donor_detail_sub_array_count) ? '' : '-';
+                $pdf->Cell(0, 0, ts(str_replace(' ','-',$ddsa).$i_ddsa_hyphen, array('domain' => 'org.civicrm.cdntaxreceipts')), 0, $line_height, 'R');  
+                $i_ddsa++;
+              }
+            } else {
+              $pdf->Cell(0, 0, ts(mb_substr($donor_detail_array[$i], 0, $text_limit), array('domain' => 'org.civicrm.cdntaxreceipts')), 0, $line_height, 'R');
+              $pdf->Cell(0, 0, ts(mb_substr($donor_detail_array[$i], $text_limit), array('domain' => 'org.civicrm.cdntaxreceipts')), 0, $line_height, 'R');
+            }
+          } else {
+            $pdf->Cell(0, 0, ts(mb_substr($donor_detail_array[$i], 0, $text_limit), array('domain' => 'org.civicrm.cdntaxreceipts')), 0, $line_height, 'R');
+          }
+        }
+      }
+    }
+  }
+  
+
+  // Check Background Image or WaterMark
   $x_detailscolumn = 120;
   $y_detailscolumnstart = 22;
   $pdf_template_file = Civi::settings()->get('receipt_pdftemplate');
@@ -455,158 +633,214 @@ function _cdntaxreceipts_writeReceipt(&$pdf, $pdf_variables) {
     $background_image = Civi::settings()->get('receipt_watermark');
     if ( $background_image ) $pdf->Image(Civi::settings()->get('receipt_watermark'), $mymargin_left + $x_detailscolumn, $mymargin_top + $y_detailscolumnstart + 6, '', 40);
   }
-  $pdf->SetXY($mymargin_left + $x_detailscolumn, $mymargin_top + $y_detailscolumnstart + 6);
-  $pdf->SetFont('Helvetica', 'B', 8);
-  $pdf->Write(10, ts("Issue Date: %1", array(1 => $issued_on, 'domain' => 'org.civicrm.cdntaxreceipts')));
-  $pdf->SetXY($mymargin_left + $x_detailscolumn, $mymargin_top + $y_detailscolumnstart + 12);
-  $pdf->Write(10, ts("Received on: %1", array(1 => $display_date, 'domain' => 'org.civicrm.cdntaxreceipts')));
-  $pdf->SetXY($mymargin_left + $x_detailscolumn, $mymargin_top + $y_detailscolumnstart + 18);
-  $pdf->Write(10, ts("Eligible Amount:  $%1", array(1 => number_format($amount, 2), 'domain' => 'org.civicrm.cdntaxreceipts')));
-  $pdf->SetXY($mymargin_left + $x_detailscolumn, $mymargin_top + $y_detailscolumnstart + 24);
-  // JMA Addition
-  $pdf->Write(10, ts("Total Amount:  $%1", array(1 => number_format($contribution_amount, 2), 'domain' => 'org.civicrm.cdntaxreceipts')));
-  $pdf->SetXY($mymargin_left + $x_detailscolumn, $mymargin_top + $y_detailscolumnstart + 34);
 
-  if ($issue_type == 'annual') {
-    $pdf->Write(10, ts("Thank you for giving in %1!", array( 1 => $display_year)));
-    // $pdf->Write(10, "Contribution(s): ");
-    // foreach ($receipt_contributions as $key => $value) {
-    //   $test = $receipt_contributions[$key]['contribution_id'];
-    //   $pdf->Write(10, $receipt_contributions[$key]['contribution_id'] . ' ');
-    // }
-  }
-  else if (strlen($source_funds) < 36 && strlen($source_funds) > 0) {
-    $pdf->Write(10, $source_funds);
-  }
-  else if (strlen($source_funds) > 0) {
-    $source_funds_words = explode(" ", substr($source_funds, 0, 36));
-    $source_funds_lastbit = array_pop($source_funds_words);
-    $pdf->Write(10, implode(" ", $source_funds_words));
-    $source_funds_count = count($source_funds_words);
-    // $source_funds_nextline = array_splice(explode(" ", $source_funds), $source_funds_count);
-    $exploded = explode(" ", $source_funds);
-    $source_funds_nextline = array_splice($exploded, $source_funds_count);
-    $pdf->SetXY($mymargin_left + $x_detailscolumn + 16, $mymargin_top + $y_detailscolumnstart + 38);
-    $pdf->Write(10, implode(" ", $source_funds_nextline));
-  }
-
-  // Left section
-  $pdf->SetFont('Helvetica', 'B', 8);
-  $pdf->SetY($mymargin_top + $y_detailscolumnstart + 6);
-  $pdf->Write(10, ts("Receipt No: %1", array(1 => $receipt_number, 'domain' => 'org.civicrm.cdntaxreceipts')));
-  $pdf->SetFont('Helvetica', 'B', 8);
-  $pdf->SetY($mymargin_top + $y_detailscolumnstart + 10);
-  $pdf->Write(10, ts("Received from: ", array('domain' => 'org.civicrm.cdntaxreceipts')), '', 0, 'L', TRUE, 0, FALSE, FALSE, 0);
-  $pdf->SetFont('Helvetica', 'B', 10);
-  $pdf->SetXY($mymargin_left+10, $mymargin_top + $y_detailscolumnstart + 20);
-  $pdf->Write(10, strtoupper($displayname), '', 0, 'L', TRUE, 0, FALSE, FALSE, 0);
-
-  if (!$address_line_1b){
-    $pdf->SetFont('Helvetica', '', 10);
-    $pdf->SetXY($mymargin_left+10, $mymargin_top + $y_detailscolumnstart + 24);
-    $pdf->Write(10, strtoupper($address_line_1), '', 0, 'L', TRUE, 0, FALSE, FALSE, 0);
-    $pdf->SetXY($mymargin_left+10, $mymargin_top + $y_detailscolumnstart + 28);
-    $pdf->Write(10, strtoupper($address_line_2), '', 0, 'L', TRUE, 0, FALSE, FALSE, 0);
-    $pdf->SetXY($mymargin_left+10, $mymargin_top + $y_detailscolumnstart + 32);
-    $pdf->Write(10, strtoupper($address_line_3), '', 0, 'L', TRUE, 0, FALSE, FALSE, 0);
-  }
-  else {
-    $pdf->SetFont('Helvetica', '', 10);
-    $pdf->SetXY($mymargin_left+10, $mymargin_top + $y_detailscolumnstart + 24);
-    $pdf->Write(10, strtoupper($address_line_1), '', 0, 'L', TRUE, 0, FALSE, FALSE, 0);
-    $pdf->SetXY($mymargin_left+10, $mymargin_top + $y_detailscolumnstart + 28);
-    $pdf->Write(10, strtoupper($address_line_1b), '', 0, 'L', TRUE, 0, FALSE, FALSE, 0);
-    $pdf->SetXY($mymargin_left+10, $mymargin_top + $y_detailscolumnstart + 32);
-    $pdf->Write(10, strtoupper($address_line_2), '', 0, 'L', TRUE, 0, FALSE, FALSE, 0);
-    $pdf->SetXY($mymargin_left+10, $mymargin_top + $y_detailscolumnstart + 36);
-    $pdf->Write(10, strtoupper($address_line_3), '', 0, 'L', TRUE, 0, FALSE, FALSE, 0);
-  }
-
-  $valueAdvantage = ts('Value of advantage');
-  // If this is an in-kind donation
-  if ( !empty($inkind_values) ) {
-    $valueAdvantage = ts('Value of advantage to');
-    $inkind_str = ts('Donation In Kind: %1', array(1 => $inkind_values[0], 'domain' => 'org.civicrm.cdntaxreceipts'));
-
-    if (!empty($inkind_values[3])) {
-      if ($inkind_values[3] < $amount) {
-          $inkind_str .= ' - ' . ts('Cost: $%1', array(1 => $inkind_values[3], 'domain' => 'org.civicrm.cdntaxreceipts'));
-      }
-    }
-
-    $pdf->SetFont('Helvetica', 'B', 8);
-    $pdf->SetXY($mymargin_left + 10, $mymargin_top + $y_detailscolumnstart + 50);
-    $pdf->Write(10, $inkind_str, ' - ', 0, 'L', TRUE, 0, FALSE, FALSE, 0);
-
-    $pdf->SetFont('Helvetica', 'B', 8);
-    $pdf->SetXY($mymargin_left + $x_detailscolumn, $mymargin_top + $y_detailscolumnstart + 30);
-
-    $pdf->Write(10, ts("Appraiser: %1", array(1 => $inkind_values[1], 'domain' => 'org.civicrm.cdntaxreceipts')));
-    $pdf->SetXY($mymargin_left + $x_detailscolumn, $mymargin_top + $y_detailscolumnstart + 34);
-
-    if (!empty($inkind_values[2])) {
-      $addressString = wordwrap($inkind_values[2], 20, CRM_Core_DAO::VALUE_SEPARATOR);
-      $lines = explode(CRM_Core_DAO::VALUE_SEPARATOR, $addressString);
-      $pdf->Write(10, ts("Address of Appraiser: %1", array(1 => $lines[0], 'domain' => 'org.civicrm.cdntaxreceipts')));
-      $pdf->SetXY($mymargin_left + $x_detailscolumn + 30, $mymargin_top + $y_detailscolumnstart + 38);
-      foreach ($lines as $key => $line) {
-        if ($key) {
-          $pdf->Write(10, $line);
-        }
-      }
-    }
-  }
-
-  // Advantage fields.
-  if ($advantage_amount > 0) {
-    $pdf->SetXY($mymargin_left+10, $mymargin_top + $y_detailscolumnstart + 38);
-    $pdf->SetFont('Helvetica', 'B', 8);
-    $pdf->Write(10, ts("$valueAdvantage: $%1", array(1 => number_format($advantage_amount, 2), 'domain' => 'org.civicrm.cdntaxreceipts')));
-  }
+  // Grid 3: Left In-Kind Section
+  $pdf->setY($grid3_y_top);
+  $index_in_kind = 1;
+  $string_length = 75;
   if (!empty($advantage_description)) {
-    $pdf->SetXY($mymargin_left + 10, $mymargin_top + $y_detailscolumnstart + 44);
-    $pdf->SetFont('Helvetica', 'B', 8);
-    $pdf->Write(10, ts("Description of advantage: %1", array(1 => $advantage_description)));
+    $pdf->SetFont($fontLatoRegular, '', $smallFont);
+    $pdf->Write(10, ts("Description of Advantage:"));
+    $pdf->SetFont($fontLatoLight, '', $smallFont);
+    $pdf->setY(EU::getReceiptLineHeight($grid3_y_top, $line_height, $index_in_kind));
+    $pdf->Write(10, ts(EU::stringLimiter($advantage_description, $string_length)));
+    $index_in_kind += 1.5;
+  }
+
+  if (!empty($inkind_values)) {
+    if(!empty($inkind_values[0])) {
+      $pdf->setY(EU::getReceiptLineHeight($grid3_y_top, $line_height, $index_in_kind));
+      $index_in_kind += 1;
+      $pdf->SetFont($fontLatoRegular, '', $smallFont);
+      $pdf->Write(10, ts("Description of Property Received:"));
+      $pdf->SetFont($fontLatoLight, '', $smallFont);
+      $pdf->setY(EU::getReceiptLineHeight($grid3_y_top, $line_height, $index_in_kind));
+      $pdf->Write(10, ts(EU::stringLimiter($inkind_values[0], $string_length)));
+      $index_in_kind += 1.5;
+    }
+
+    if(!empty($inkind_values[1])) {
+      $pdf->setY(EU::getReceiptLineHeight($grid3_y_top, $line_height, $index_in_kind));
+      $index_in_kind += 1;
+      $pdf->SetFont($fontLatoRegular, '', $smallFont);
+      $pdf->Write(10, ts("Fair Market Value Appraised by:"));
+      $pdf->SetFont($fontLatoLight, '', $smallFont);
+      $pdf->setY(EU::getReceiptLineHeight($grid3_y_top, $line_height, $index_in_kind));
+      $pdf->Write(10, ts(EU::stringLimiter($inkind_values[1], $string_length - 20)));
+      $index_in_kind += 1.5;
+    }
+
+
+    if(!empty($inkind_values[2])) {
+      $pdf->setY(EU::getReceiptLineHeight($grid3_y_top, $line_height, $index_in_kind));
+      $index_in_kind += 1;
+      $pdf->SetFont($fontLatoRegular, '', $smallFont);
+      $pdf->Write(10, ts("Address of Appraiser:"));
+      $pdf->SetFont($fontLatoLight, '', $smallFont);
+      $pdf->setY(EU::getReceiptLineHeight($grid3_y_top, $line_height, $index_in_kind));
+      $pdf->Write(10, ts(EU::stringLimiter($inkind_values[2], $string_length - 20)));
+      $index_in_kind += 1.5;
+    }
   }
 
 
-  // Bottom left section
+  // Grid 4 Signature
   if (!empty($pdf_template_file)) {
   }
   else {
-    $pdf->SetFont('Helvetica', 'B', 8);
-    $pdf->SetY($mymargin_top + 82);
-    $pdf->Write(10, $line_1, '', 0, 'L', TRUE, 0, FALSE, FALSE, 0);
-    $pdf->SetFont('Helvetica', '', 8);
-    $pdf->SetY($mymargin_top + 86, 0, 'L', TRUE, 0, FALSE, FALSE, 0);
-    $pdf->Write(10, ts('Canada Revenue Agency: canada.ca/charities-giving', array('domain' => 'org.civicrm.cdntaxreceipts')));
-
-    // Bottom center section
-    $pdf->SetFont('Helvetica', 'B', 8);
-    $pdf->SetXY($mymargin_left + 92, $mymargin_top + 82);
-    $pdf->Write(10, ts('Thank you!', array('domain' => 'org.civicrm.cdntaxreceipts')));
-
-    // Bottom right section
-    $signature = Civi::settings()->get('receipt_authorized_signature_text');
-    if ( $signature == '' ) {
-      $signature = ts('Authorized Signature', array('domain' => 'org.civicrm.cdntaxreceipts'));
-    }
-    $sig_offset = strlen($signature) - 20;
-    $pdf_template_file = Civi::settings()->get('receipt_pdftemplate');
-
+    $pdf->setY($grid4_y_top);
+    $pdf->SetFont($fontLatoRegular, '', $smallFont);
+    $pdf->Cell(0, 0, ts('Authorized Signature', array('domain' => 'org.civicrm.cdntaxreceipts')), 0, 0, 'R');
     $sig_image = Civi::settings()->get('receipt_signature');
     if (empty($sig_image)) {
       $sig_image = $pdf_img_files_path . 'authorized-signature.png';
     }
-    $pdf->Image($sig_image, $mymargin_left + 137, $mymargin_top + 77, '', 15);
-    $pdf->Line($mymargin_left + 136, $mymargin_top + 89, $mymargin_left + 186, $mymargin_top + 89);
-    $pdf->SetXY($mymargin_left + 148 - $sig_offset, $mymargin_top + 86);
-    $pdf->SetFont("Helvetica", "I", 7);
-    $pdf->Write(10, $signature);
+
+    // Max Height : 25, Max Width : 35
+    list($w, $h) = EU::setImageDimension($sig_image, 25, 35);
+    $pdf->Image($sig_image, 0, EU::getReceiptLineHeight($grid4_y_top, $line_height, 1.25), $w, $h, 'PNG', '', 'T', false, 300, 'R', false, false, 0, false, false, false);
   }
 
-  // Line at the bottom
-  $pdf->Line($mymargin_left, $mymargin_top + 95, 198, $mymargin_top + 95, 'dash');
+  // Footer Section
+  $pdf->SetY($footer_y_top);
+  $pdf->SetFont($fontLatoLight, '', $footerFont);
+  $pdf->Ln(2*$line_height);
+  $pdf->Cell(0, 0, ts('Canada Revenue Agency - canada.ca/charities-giving', array('domain' => 'org.civicrm.cdntaxreceipts')), 0, $line_height, 'C');
+  $lineStyle = array('width' => 0.3, 'cap' => 'butt', 'join' => 'miter', 'dash' => 4, 'phase' => 40);
+  if (empty($duplicate_offset)) {
+    $pdf->Line($mymargin_left, $footer_y_top + 18, 198, $footer_y_top + 18, $lineStyle);
+  }
+}
+
+function _receiptThankYouHeader($pdf, $pdf_variables, $receipt) {
+  // Make tokens work on new Receipts
+  $result = civicrm_api3('MessageTemplate', 'get', [
+    'sequential' => 1,
+    'msg_title' => "CDN Tax Receipts - Thank you Note",
+  ]); 
+  if($result['values'][0]) {
+    $message_tpl = $result['values'][0];
+    $newString = $message_tpl['msg_html'] ?? NULL;
+    $messageToken = CRM_Utils_Token::getTokens($newString);
+    $contact =  civicrm_api3('Contact', 'get', [
+      'sequential' => 1,
+      'id' => $receipt['contact_id'],
+    ]);
+    $tokenHtml = CRM_Utils_Token::replaceContactTokens($newString, $contact, TRUE, $messageToken);
+    $domain = CRM_Core_BAO_Domain::getDomain();
+    $tokenHtml = CRM_Utils_Token::replaceDomainTokens($tokenHtml, $domain, TRUE, $messageToken);
+  }
+
+  //PDF Variables 
+  $mymargin_left = $pdf_variables["mymargin_left"];
+  $mymargin_top = $pdf_variables["mymargin_top"];
+
+  // Add Font
+  // convert TTF font to TCPDF format
+  $imageLocalPath = dirname(__FILE__).'/img/CDNTaxReceipts/';
+  $basePath = dirname(__FILE__).'/fonts/Lato/';
+  $fontLatoRegular = TCPDF_FONTS::addTTFfont($basePath.'Lato-Semibold.ttf', 'TrueTypeUnicode', '', 32);
+  $fontLatoLight = TCPDF_FONTS::addTTFfont($basePath.'Lato-Light.ttf', 'TrueTypeUnicode', '', 32);
+
+  // CH Set Receipt Margins
+  $top_header_margin_offset = 10;
+  $side_indentation_margin = 55;
+  $mymargin_top += $top_header_margin_offset;
+  // Line Height
+  $line_height = 4;
+
+
+  // Grid Co-Ordinates
+  $grid1_x_mid = $mymargin_left + 4;
+  $grid2_y_top = 42 + $top_header_margin_offset;
+  $grid2_x_mid = 25;
+  $grid2_x_right = 20;
+  $grid3_y_top = 75 + $top_header_margin_offset;
+  $grid4_y_top = 90 + $top_header_margin_offset; 
+  $footer_y_top = 110 + $top_header_margin_offset;
+
+
+  // Text Color
+  $pdf->SetTextColor(35,35,35);
+
+  //Font Sizes 
+  $bigFont = 14;
+  $smallFont = 11;
+  $smallerFont = 10;
+  $footerFont = 9;
+
+  // Grid 1: Right Section
+  $receipt_logo = Civi::settings()->get('receipt_logo');
+  if ( empty($receipt_logo) ) {
+    $receipt_logo = $pdf_img_files_path . 'your-logo.png';
+  }
+  // Max Height : 30, Max Width : 45
+  list($w, $h) = EU::setImageDimension($receipt_logo, 30, 45);
+  $pdf->Image($receipt_logo, 10, 10 + $top_header_margin_offset, $w, $h, 'PNG', '', 'T', false, 300, 'R');
+
+
+  // Grid 1: Left Section
+  $grid_1_counter = 1;
+  $org_text_limit = 32;
+  $org_name = Civi::settings()->get('org_name');
+  $pdf->SetFont($fontLatoRegular, '', $smallerFont);
+  $pdf->SetXY($grid1_x_mid, $mymargin_top);
+  $org_name_array = EU::getStringLimitArray($org_name, $org_text_limit);
+  for($i=0; $i<2; $i++) {
+    if($org_name_array[$i]){
+      if(mb_strlen($org_name_array[$i]) > $org_text_limit) {
+        $pdf->Write(10, strtoupper(EU::stringLimiter($org_name_array[$i], $org_text_limit, '')), '', 0, 'L', TRUE, 0, FALSE, FALSE, 0);
+      } else {
+        $pdf->Write(10, strtoupper($org_name_array[$i]), '', 0, 'L', TRUE, 0, FALSE, FALSE, 0);
+      }
+      $pdf->SetXY($grid1_x_mid, EU::getReceiptLineHeight($mymargin_top, $line_height, $grid_1_counter++));
+    }
+  }
+  $pdf->SetFont($fontLatoLight, '', $smallerFont);
+  $pdf->Write(10, Civi::settings()->get('org_address_line1'), '', 0, 'L', TRUE, 0, FALSE, FALSE, 0);
+  $pdf->SetXY($grid1_x_mid, EU::getReceiptLineHeight($mymargin_top, $line_height, $grid_1_counter++));
+  $pdf->Write(10, Civi::settings()->get('org_address_line2'), '', 0, 'L', TRUE, 0, FALSE, FALSE, 0);
+
+
+  // Grid 2
+  $line_index = 1;
+  $pdf->setXY($grid2_x_mid, $grid2_y_top);
+  // Grid 2: Heading
+  $pdf->SetFont($fontLatoLight, '', $smallerFont);
+  if($pdf_variables['displayname']) {
+    $pdf->Write(10, ts($pdf_variables['displayname'], array('domain' => 'org.civicrm.cdntaxreceipts')));
+  }
+  if($pdf_variables['address_line_1']) {
+    $pdf->setXY($grid2_x_mid, EU::getReceiptLineHeight($grid2_y_top, $line_height, $line_index++));
+    $pdf->Write(10, ts($pdf_variables['address_line_1'], array('domain' => 'org.civicrm.cdntaxreceipts')));
+  }
+  if($pdf_variables['address_line_1b']) {
+    $pdf->setXY($grid2_x_mid, EU::getReceiptLineHeight($grid2_y_top, $line_height, $line_index++));
+    $pdf->Write(10, ts($pdf_variables['address_line_1b'], array('domain' => 'org.civicrm.cdntaxreceipts')));
+  }
+  if($pdf_variables['address_line_2']) {
+    $pdf->setXY($grid2_x_mid, EU::getReceiptLineHeight($grid2_y_top, $line_height, $line_index++));
+    $pdf->Write(10, ts($pdf_variables['address_line_2'], array('domain' => 'org.civicrm.cdntaxreceipts')));
+  }
+  if($pdf_variables['address_line_3']) {
+    $pdf->setXY($grid2_x_mid, EU::getReceiptLineHeight($grid2_y_top, $line_height, $line_index++));
+    $pdf->Write(10, ts($pdf_variables['address_line_3'], array('domain' => 'org.civicrm.cdntaxreceipts')));
+  }
+  
+
+  // Grid 3
+  // THank You HTML Message
+
+  $pdf->SetXY(0, $grid3_y_top);
+  $pdf->SetFont($fontLatoLight, '', $smallFont);
+  if($result['values'][0]) {
+    $pdf->writeHTML($tokenHtml, true, false, true, false, '');
+  }
+  //Footer
+  $lineStyle = array('width' => 0.3, 'cap' => 'butt', 'join' => 'miter', 'dash' => 4, 'phase' => 40);
+  $pdf->Line($mymargin_left, $footer_y_top + 18, 198, $footer_y_top + 18, $lineStyle);
+  
+  return;
 }
 
 /**************************************
