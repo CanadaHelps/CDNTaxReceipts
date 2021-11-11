@@ -325,6 +325,102 @@ function cdntaxreceipts_contributions_get_status($contributionIds = array()) {
   return $contributions;
 }
 
+
+/**
+ * @param array $contributionIds
+ * @return array $contributions with the contents below
+ *
+ */
+function cdntaxreceipts_contributions_get_status_inkind($contributionIds = array()) {
+  $contributions = array();
+
+  $ids = implode(',', $contributionIds);
+
+  if (!empty($contributionIds)) {
+    $sql = "
+    SELECT
+        contrib.id as contribution_id
+      , contrib.contact_id
+      , contrib.total_amount
+      , ifnull(contrib.non_deductible_amount, 0) as non_deductible_amount
+      , contrib.receive_date
+      , contrib_type.name
+      , cdntax_a.advantage_description
+      , YEAR(contrib.receive_date) as receive_year
+      , IF(cdntax_c.receipt_id IS NULL, 0, cdntax_c.receipt_id) as receipt_id
+    FROM civicrm_contribution contrib
+    INNER JOIN civicrm_financial_type contrib_type
+            ON contrib.financial_type_id = contrib_type.id
+    LEFT  JOIN cdntaxreceipts_log_contributions cdntax_c
+            ON contrib.id = cdntax_c.contribution_id
+    LEFT  JOIN cdntaxreceipts_advantage cdntax_a
+            ON contrib.id = cdntax_a.contribution_id
+    WHERE contrib.id IN($ids)";
+
+    $dao = CRM_Core_DAO::executeQuery($sql);
+
+    while ($dao->fetch()) {
+      $id = $dao->contribution_id;
+
+      $eligible = cdntaxreceipts_eligibleForReceipt($id);
+      $contributions[$id] = array(
+        'contribution_id' => $id,
+        'contact_id' => $dao->contact_id,
+        'total_amount' => $dao->total_amount,
+        'non_deductible_amount' => $dao->non_deductible_amount,
+        'receive_date' => $dao->receive_date,
+        'receive_year' => $dao->receive_year,
+        'eligible' => $eligible,
+        'receipt_id' => $dao->receipt_id,
+        'advantage_description' => $dao->advantage_description,
+        'inkind' => false,
+      );
+      if(in_array($dao->name, ['In-kind', 'In Kind'])) {
+        require_once 'CRM/Core/BAO/CustomField.php';
+        $groupTitle = 'In Kind donation fields';
+        $fieldLabel_description = 'Description of property';
+        $customFieldID_description = CRM_Core_BAO_CustomField::getCustomFieldID( $fieldLabel_description, $groupTitle );
+        $fieldLabel_appraisedby = 'Appraised by';
+        $customFieldID_appraisedby = CRM_Core_BAO_CustomField::getCustomFieldID( $fieldLabel_appraisedby, $groupTitle );
+        $fieldLabel_appraiseraddress = 'Address of Appraiser';
+        $customFieldID_appraiseraddress = CRM_Core_BAO_CustomField::getCustomFieldID( $fieldLabel_appraiseraddress, $groupTitle );
+        $fieldLabel_cost = 'Original cost';
+        $customFieldID_cost = CRM_Core_BAO_CustomField::getCustomFieldID( $fieldLabel_cost, $groupTitle );
+
+        require_once 'CRM/Core/BAO/CustomValueTable.php';
+
+        $custom_id = 'custom_' . $customFieldID_description;
+        $params = array('entityID' => $id, $custom_id => 1);
+        $values = CRM_Core_BAO_CustomValueTable::getValues($params);
+        $inkind_values['Description of Property Received'] = !empty($values[$custom_id]) ? $values[$custom_id] : 'N/A';
+
+        $custom_id = 'custom_' . $customFieldID_appraisedby;
+        $params = array('entityID' => $id, $custom_id => 1);
+        $values = CRM_Core_BAO_CustomValueTable::getValues($params);
+        $inkind_values['Fair Market Value Appraised by'] = $values[$custom_id];
+
+        $custom_id = 'custom_' . $customFieldID_appraiseraddress;
+        $params = array('entityID' => $id, $custom_id => 1);
+        $values = CRM_Core_BAO_CustomValueTable::getValues($params);
+        $inkind_values['Address of Appraiser'] = $values[$custom_id];
+
+        $custom_id = 'custom_' . $customFieldID_cost;
+        $params = array('entityID' => $id, $custom_id => 1);
+        $values = CRM_Core_BAO_CustomValueTable::getValues($params);
+        //$inkind_values['Original Cost'] = $values[$custom_id];
+
+        $contributions[$id]['inkind'] = true;
+        $contributions[$id]['inkind_values'] = $inkind_values;
+        $inkind_values = [];
+      }
+    }
+  }
+  foreach ($contributions as $id => $contrib) {
+    $contributions[$id]['non_deductible_amount'] = $contributions[$id]['total_amount'] - cdntaxreceipts_eligibleAmount($id);
+  }
+  return $contributions;
+}
+
 /**
  * Record a tax receipt as having been opened by the email
  * recipient.
