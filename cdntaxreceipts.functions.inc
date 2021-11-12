@@ -789,7 +789,7 @@ function _addItemizedDetails(&$pdf, &$pdf_variables, $receipt) {
   $string_length = 30;
   $contribution_aggregate_counter_left = $contribution_aggregate_counter_right = 1;
   $contribution_values_count = 1;
-  $contribution_values_limit = 16;
+  $contribution_values_limit = 18;
   foreach($pdf_variables['receipt_contributions'] as $contribution) {
     if($contribution_values_count > $contribution_values_limit) {
       // Add Footer on the Previous page
@@ -855,7 +855,7 @@ function _addItemizedDetails(&$pdf, &$pdf_variables, $receipt) {
     $pdf->SetFont($fontLatoLight, '', $smallFont);
     $pdf->setXY($grid2_x_mid, EU::getReceiptLineHeight($grid2_y_top+6.5, $line_height, $contribution_aggregate_counter_right++));
     if($contribution['inkind']) {
-      $pdf->SetFont($fontLatoBoldItalic, '', $inkindHeaderFont);
+      $pdf->SetFont($fontLatoRegular, '', $inkindHeaderFont);
       $pdf->Write(10, ts("In-kind Donation"));
     }
     $contribution_aggregate_counter_right += 1.75;
@@ -872,7 +872,24 @@ function _addItemizedDetails(&$pdf, &$pdf_variables, $receipt) {
       $pdf->SetFont($fontLatoRegular, '', $smallFont);
       $pdf->Write(10, ts("Description of Advantage: "));
       $pdf->SetFont($fontLatoLight, '', $smallFont);
-      $pdf->Write(10, ts($contribution['advantage_description']), array('domain' => 'org.civicrm.cdntaxreceipts'));
+      if(mb_strlen($contribution['advantage_description']) > $string_length) {
+        $advantage_description_array = EU::getStringLimitArray($contribution['advantage_description'], $string_length);
+        for($i=0; $i<2; $i++) {
+          if($advantage_description_array[$i]){
+            if(mb_strlen($advantage_description_array[$i]) > $string_length) {
+              $pdf->Write(10, ts(EU::stringLimiter($advantage_description_array[$i], $string_length, '')), array('domain' => 'org.civicrm.cdntaxreceipts'));
+            } else {
+              $pdf->Write(10, ts($advantage_description_array[$i]), array('domain' => 'org.civicrm.cdntaxreceipts'));
+            }
+            if($i == 0) {
+              $pdf->setXY($grid2_x_mid, EU::getReceiptLineHeight($grid2_y_top, $line_height, $contribution_aggregate_counter_right++));
+            }
+          }
+        }
+        $contribution_values_count++;
+      } else {
+        $pdf->Write(10, ts($contribution['advantage_description']), array('domain' => 'org.civicrm.cdntaxreceipts'));
+      }
       $contribution_values_count++;
     }
     if($contribution['inkind_values'] ) {
@@ -888,7 +905,24 @@ function _addItemizedDetails(&$pdf, &$pdf_variables, $receipt) {
           $pdf->SetFont($fontLatoRegular, '', $smallFont);
           $pdf->Write(10, ts($inkind_values_label.": "));
           $pdf->SetFont($fontLatoLight, '', $smallFont);
-          $pdf->Write(10, ts(EU::stringLimiter($inkind_values_aggregate, $string_length, '')), array('domain' => 'org.civicrm.cdntaxreceipts'));
+          if(mb_strlen($inkind_values_aggregate) > $string_length) {
+            $inkind_values_aggregate_array = EU::getStringLimitArray($inkind_values_aggregate, $string_length);
+            for($i=0; $i<2; $i++) {
+              if($inkind_values_aggregate_array[$i]){
+                if(mb_strlen($inkind_values_aggregate_array[$i]) > $string_length) {
+                  $pdf->Write(10, ts(EU::stringLimiter($inkind_values_aggregate_array[$i], $string_length, '')), array('domain' => 'org.civicrm.cdntaxreceipts'));
+                } else {
+                  $pdf->Write(10, ts($inkind_values_aggregate_array[$i]), array('domain' => 'org.civicrm.cdntaxreceipts'));
+                }
+                if($i == 0) {
+                  $pdf->setXY($grid2_x_mid, EU::getReceiptLineHeight($grid2_y_top, $line_height, $contribution_aggregate_counter_right++));
+                }
+              }
+            }
+            $contribution_values_count++;
+          } else {
+            $pdf->Write(10, ts($inkind_values_aggregate), array('domain' => 'org.civicrm.cdntaxreceipts'));
+          }
           $contribution_values_count++;
           $inkind_ctr++;
         }
