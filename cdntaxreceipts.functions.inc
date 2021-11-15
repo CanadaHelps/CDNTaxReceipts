@@ -649,16 +649,15 @@ function _cdntaxreceipts_writeReceipt(&$pdf, &$pdf_variables, $receipt) {
 
   // Grid 3: Left In-Kind Section
   $pdf->setY($grid3_y_top);
-  $index_in_kind = 1;
-  $string_length = 75;
+  $index_in_kind = 0;
+  $string_length = 50;
   if (!empty($advantage_description)) {
+    $index_in_kind += 1;
     $pdf->SetFont($fontLatoRegular, '', $smallFont);
     $pdf->Write(10, ts("Description of Advantage: "));
     $pdf->SetFont($fontLatoLight, '', $smallFont);
-    //$pdf->setY(EU::getReceiptLineHeight($grid3_y_top, $line_height, $index_in_kind));
     $pdf->Write(10, ts(EU::stringLimiter($advantage_description, $string_length)));
   }
-
   if (!empty($inkind_values)) {
     if(!empty($inkind_values[0])) {
       $pdf->setY(EU::getReceiptLineHeight($grid3_y_top, $line_height, $index_in_kind));
@@ -667,6 +666,13 @@ function _cdntaxreceipts_writeReceipt(&$pdf, &$pdf_variables, $receipt) {
       $pdf->Write(10, ts("Description of Property Received: "));
       $pdf->SetFont($fontLatoLight, '', $smallFont);
       $pdf->Write(10, ts(EU::stringLimiter($inkind_values[0], $string_length)));
+    } else {
+      $pdf->setY(EU::getReceiptLineHeight($grid3_y_top, $line_height, $index_in_kind));
+      $index_in_kind += 1;
+      $pdf->SetFont($fontLatoRegular, '', $smallFont);
+      $pdf->Write(10, ts("Description of Property Received: "));
+      $pdf->SetFont($fontLatoLight, '', $smallFont);
+      $pdf->Write(10, ts('N/A'));
     }
 
     if(!empty($inkind_values[1])) {
