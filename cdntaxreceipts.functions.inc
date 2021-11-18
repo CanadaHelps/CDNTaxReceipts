@@ -692,7 +692,7 @@ function _cdntaxreceipts_writeReceipt(&$pdf, &$pdf_variables, $receipt) {
         $pdf->SetFont($fontLatoRegular, '', $smallFont);
         $pdf->Write(10, $inkindvalues_label[$i]);
         $pdf->SetFont($fontLatoLight, '', $smallFont);
-        if(mb_strlen($inkind_values[$i]) > $string_length) {
+        if(mb_strlen($inkind_values[$i]) > $string_length && $i == 0) {
           $inkind_values_array = EU::getStringLimitArray($inkind_values[$i], $string_length);
           $pdf->Write(10, ts(EU::stringLimiter($inkind_values_array[0], $string_length)));
           $pdf->setY(EU::getReceiptLineHeight($grid3_y_top, $line_height, $index_in_kind++));
