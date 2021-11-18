@@ -518,9 +518,21 @@ function _cdntaxreceipts_writeReceipt(&$pdf, &$pdf_variables, $receipt) {
     $pdf->SetFont($fontLatoLight, '', $smallFont);
     $pdf->Write(10, $registrationTxt, '', 0, 'L', TRUE, 0, FALSE, FALSE, 0);
     $pdf->SetY(EU::getReceiptLineHeight($grid1_y_top, $line_height, $grid_1_counter++));
-    $pdf->Write(10, Civi::settings()->get('org_address_line1'), '', 0, 'L', TRUE, 0, FALSE, FALSE, 0);
-    $pdf->SetY(EU::getReceiptLineHeight($grid1_y_top, $line_height, $grid_1_counter++));
-    $pdf->Write(10, Civi::settings()->get('org_address_line2'), '', 0, 'L', TRUE, 0, FALSE, FALSE, 0);
+    $org_address_array = [Civi::settings()->get('org_address_line1'), Civi::settings()->get('org_address_line2')];
+    foreach($org_address_array as $address_lines) {
+      if(mb_strlen($address_lines) > $org_text_limit) {
+        $address_lines_array = EU::getStringLimitArray($address_lines, $org_text_limit);
+        for($i=0; $i<2; $i++) {
+          if (isset($address_lines_array[$i])) {
+            $pdf->Write(10, strtoupper($address_lines_array[$i]), '', 0, 'L', TRUE, 0, FALSE, FALSE, 0);
+            $pdf->SetY(EU::getReceiptLineHeight($grid1_y_top, $line_height, $grid_1_counter++));
+          }
+        }
+      } else {
+        $pdf->Write(10, $address_lines, '', 0, 'L', TRUE, 0, FALSE, FALSE, 0);
+        $pdf->SetY(EU::getReceiptLineHeight($grid1_y_top, $line_height, $grid_1_counter++));
+      }
+    }
   }
   
 
@@ -650,48 +662,45 @@ function _cdntaxreceipts_writeReceipt(&$pdf, &$pdf_variables, $receipt) {
   // Grid 3: Left In-Kind Section
   $pdf->setY($grid3_y_top);
   $index_in_kind = 0;
-  $string_length = 50;
+  $string_length = 45;
   if (!empty($advantage_description)) {
     $index_in_kind += 1;
     $pdf->SetFont($fontLatoRegular, '', $smallFont);
     $pdf->Write(10, ts("Description of Advantage: "));
     $pdf->SetFont($fontLatoLight, '', $smallFont);
-    $pdf->Write(10, ts(EU::stringLimiter($advantage_description, $string_length)));
-  }
-  if (!empty($inkind_values)) {
-    if(!empty($inkind_values[0])) {
-      $pdf->setY(EU::getReceiptLineHeight($grid3_y_top, $line_height, $index_in_kind));
-      $index_in_kind += 1;
-      $pdf->SetFont($fontLatoRegular, '', $smallFont);
-      $pdf->Write(10, ts("Description of Property Received: "));
-      $pdf->SetFont($fontLatoLight, '', $smallFont);
-      $pdf->Write(10, ts(EU::stringLimiter($inkind_values[0], $string_length)));
+    if(mb_strlen($advantage_description) > $string_length) {
+      $advantage_description_array = EU::getStringLimitArray($advantage_description, $string_length);
+      $pdf->Write(10, ts(EU::stringLimiter($advantage_description_array[0], $string_length)));
+      $pdf->setY(EU::getReceiptLineHeight($grid3_y_top, $line_height, $index_in_kind++));
+      $pdf->Write(10, ts(EU::stringLimiter($advantage_description_array[1], $string_length)));
     } else {
-      $pdf->setY(EU::getReceiptLineHeight($grid3_y_top, $line_height, $index_in_kind));
-      $index_in_kind += 1;
-      $pdf->SetFont($fontLatoRegular, '', $smallFont);
-      $pdf->Write(10, ts("Description of Property Received: "));
-      $pdf->SetFont($fontLatoLight, '', $smallFont);
-      $pdf->Write(10, ts('N/A'));
+      $pdf->Write(10, ts(EU::stringLimiter($advantage_description, $string_length)));
     }
-
-    if(!empty($inkind_values[1])) {
-      $pdf->setY(EU::getReceiptLineHeight($grid3_y_top, $line_height, $index_in_kind));
-      $index_in_kind += 1;
-      $pdf->SetFont($fontLatoRegular, '', $smallFont);
-      $pdf->Write(10, ts("Fair Market Value Appraised by: "));
-      $pdf->SetFont($fontLatoLight, '', $smallFont);
-      $pdf->Write(10, ts(EU::stringLimiter($inkind_values[1], $string_length - 20)));
-    }
-
-
-    if(!empty($inkind_values[2])) {
-      $pdf->setY(EU::getReceiptLineHeight($grid3_y_top, $line_height, $index_in_kind));
-      $index_in_kind += 1;
-      $pdf->SetFont($fontLatoRegular, '', $smallFont);
-      $pdf->Write(10, ts("Address of Appraiser: "));
-      $pdf->SetFont($fontLatoLight, '', $smallFont);
-      $pdf->Write(10, ts(EU::stringLimiter($inkind_values[2], $string_length - 20)));
+  }
+  
+  $inkindvalues_label = [
+    'Description of Property Received: ',
+    'Fair Market Value Appraised by: ',
+    'Address of Appraiser: ',
+  ];
+  
+  if (!empty($inkind_values)) {
+    $inkind_values[0] = empty($inkind_values[0]) ? 'N/A': $inkind_values[0];
+    for($i=0; $i <3; $i++) {
+      if(!empty($inkind_values[$i])) {
+        $pdf->setY(EU::getReceiptLineHeight($grid3_y_top, $line_height, $index_in_kind++));
+        $pdf->SetFont($fontLatoRegular, '', $smallFont);
+        $pdf->Write(10, $inkindvalues_label[$i]);
+        $pdf->SetFont($fontLatoLight, '', $smallFont);
+        if(mb_strlen($inkind_values[$i]) > $string_length) {
+          $inkind_values_array = EU::getStringLimitArray($inkind_values[$i], $string_length);
+          $pdf->Write(10, ts(EU::stringLimiter($inkind_values_array[0], $string_length)));
+          $pdf->setY(EU::getReceiptLineHeight($grid3_y_top, $line_height, $index_in_kind++));
+          $pdf->Write(10, ts(EU::stringLimiter($inkind_values_array[1], $string_length)));
+        } else {
+          $pdf->Write(10, ts(EU::stringLimiter($inkind_values[$i], $string_length)));
+        }
+      }
     }
   }
 
@@ -801,6 +810,7 @@ function _addItemizedDetails(&$pdf, &$pdf_variables, $receipt) {
   $pdf->SetXY($mymargin_left, $grid1_y_top);
   $pdf->Write(10, 'Supplemental Information', '', 0, 'L', TRUE, 0, FALSE, FALSE, 0);
   $string_length = 30;
+  $string_length_offset = 75;
   $contribution_aggregate_counter_left = $contribution_aggregate_counter_right = 1;
   $contribution_values_count = 1;
   $contribution_values_limit = 18;
@@ -887,14 +897,11 @@ function _addItemizedDetails(&$pdf, &$pdf_variables, $receipt) {
       $pdf->Write(10, ts("Description of Advantage: "));
       $pdf->SetFont($fontLatoLight, '', $smallFont);
       if(mb_strlen($contribution['advantage_description']) > $string_length) {
-        $advantage_description_array = EU::getStringLimitArray($contribution['advantage_description'], $string_length);
+        $advantage_description_array = EU::getStringLimitArrayOffset($contribution['advantage_description'], $string_length, $string_length_offset);
         for($i=0; $i<2; $i++) {
           if($advantage_description_array[$i]){
-            if(mb_strlen($advantage_description_array[$i]) > $string_length) {
-              $pdf->Write(10, ts(EU::stringLimiter($advantage_description_array[$i], $string_length, '')), array('domain' => 'org.civicrm.cdntaxreceipts'));
-            } else {
-              $pdf->Write(10, ts($advantage_description_array[$i]), array('domain' => 'org.civicrm.cdntaxreceipts'));
-            }
+            $string_length_limit = ($i == 0) ? $string_length : $string_length_offset;
+            $pdf->Write(10, ts(EU::stringLimiter($advantage_description_array[$i], $string_length_limit, '')), array('domain' => 'org.civicrm.cdntaxreceipts'));
             if($i == 0) {
               $pdf->setXY($grid2_x_mid, EU::getReceiptLineHeight($grid2_y_top, $line_height, $contribution_aggregate_counter_right++));
             }
@@ -920,14 +927,11 @@ function _addItemizedDetails(&$pdf, &$pdf_variables, $receipt) {
           $pdf->Write(10, ts($inkind_values_label.": "));
           $pdf->SetFont($fontLatoLight, '', $smallFont);
           if(mb_strlen($inkind_values_aggregate) > $string_length) {
-            $inkind_values_aggregate_array = EU::getStringLimitArray($inkind_values_aggregate, $string_length);
+            $inkind_values_aggregate_array = EU::getStringLimitArrayOffset($inkind_values_aggregate, $string_length, $string_length_offset);
             for($i=0; $i<2; $i++) {
               if($inkind_values_aggregate_array[$i]){
-                if(mb_strlen($inkind_values_aggregate_array[$i]) > $string_length) {
-                  $pdf->Write(10, ts(EU::stringLimiter($inkind_values_aggregate_array[$i], $string_length, '')), array('domain' => 'org.civicrm.cdntaxreceipts'));
-                } else {
-                  $pdf->Write(10, ts($inkind_values_aggregate_array[$i]), array('domain' => 'org.civicrm.cdntaxreceipts'));
-                }
+                $string_length_limit = ($i == 0) ? $string_length : $string_length_offset;
+                $pdf->Write(10, ts(EU::stringLimiter($inkind_values_aggregate_array[$i], $string_length_limit, '')), array('domain' => 'org.civicrm.cdntaxreceipts'));
                 if($i == 0) {
                   $pdf->setXY($grid2_x_mid, EU::getReceiptLineHeight($grid2_y_top, $line_height, $contribution_aggregate_counter_right++));
                 }
