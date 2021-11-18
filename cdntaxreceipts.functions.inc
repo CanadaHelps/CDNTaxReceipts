@@ -524,7 +524,7 @@ function _cdntaxreceipts_writeReceipt(&$pdf, &$pdf_variables, $receipt) {
         $address_lines_array = EU::getStringLimitArray($address_lines, $org_text_limit);
         for($i=0; $i<2; $i++) {
           if (isset($address_lines_array[$i])) {
-            $pdf->Write(10, strtoupper($address_lines_array[$i]), '', 0, 'L', TRUE, 0, FALSE, FALSE, 0);
+            $pdf->Write(10, $address_lines_array[$i], '', 0, 'L', TRUE, 0, FALSE, FALSE, 0);
             $pdf->SetY(EU::getReceiptLineHeight($grid1_y_top, $line_height, $grid_1_counter++));
           }
         }
