@@ -445,7 +445,7 @@ function _cdntaxreceipts_writeReceipt(&$pdf, &$pdf_variables, $receipt) {
   }
   // Grid Co-Ordinates
   $grid1_y_top = 15 + $duplicate_offset + $top_header_margin_offset;
-  $grid2_y_top = 35 + $duplicate_offset + $top_header_margin_offset;
+  $grid2_y_top = 38 + $duplicate_offset + $top_header_margin_offset;
   $grid2_x_mid = 85 + $grid2_mid_offset;
   $grid2_x_right = 120;
   $grid2b_y_top = 55 + $duplicate_offset + $top_header_margin_offset;
