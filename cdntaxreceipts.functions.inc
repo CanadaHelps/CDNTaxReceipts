@@ -847,7 +847,6 @@ function _addItemizedDetails(&$pdf, &$pdf_variables, $receipt) {
       // In-Kind Section
       $pdf->SetFont($fontLatoRegular, '', $bigFont);
       $pdf->SetXY($mymargin_left, $grid1_y_top);
-      $pdf->Write(10, 'Supplemental Information', '', 0, 'L', TRUE, 0, FALSE, FALSE, 0);
     }
     // Left Contribution Details Section
     if($contribution_aggregate_counter_left == 1) {
