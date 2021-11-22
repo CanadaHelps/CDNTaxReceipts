@@ -698,7 +698,7 @@ function _cdntaxreceipts_writeReceipt(&$pdf, &$pdf_variables, $receipt) {
           $pdf->setY(EU::getReceiptLineHeight($grid3_y_top, $line_height, $index_in_kind++));
           $pdf->Write(10, ts(EU::stringLimiter($inkind_values_array[1], $string_length)));
         } else {
-          $pdf->Write(10, ts(EU::stringLimiter($inkind_values[$i], $string_length)));
+          $pdf->Write(10, ts(EU::stringLimiter($inkind_values[$i], $string_length+20)));
         }
       }
     }
