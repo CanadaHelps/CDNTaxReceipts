@@ -7,9 +7,9 @@
  * extension.
  */
 class CRM_Cdntaxreceipts_ExtensionUtil {
-  const SHORT_NAME = "cdntaxreceipts";
-  const LONG_NAME = "org.civicrm.cdntaxreceipts";
-  const CLASS_PREFIX = "CRM_Cdntaxreceipts";
+  const SHORT_NAME = 'cdntaxreceipts';
+  const LONG_NAME = 'org.civicrm.cdntaxreceipts';
+  const CLASS_PREFIX = 'CRM_Cdntaxreceipts';
 
   /**
    * Translate a string using the extension's domain.
@@ -74,86 +74,6 @@ class CRM_Cdntaxreceipts_ExtensionUtil {
   public static function findClass($suffix) {
     return self::CLASS_PREFIX . '_' . str_replace('\\', '_', $suffix);
   }
-
-  /**
-   * Copied core function CRM_Financial_BAO_FinancialTypeAccount::createDefaultFinancialAccounts() to get rid of Cost of Sale GL account mapping with Fund
-  */
-  public static function createDefaultFinancialAccounts($financialType) {
-    $titles = [];
-    $financialAccountTypeID = CRM_Core_OptionGroup::values('financial_account_type', FALSE, FALSE, FALSE, NULL, 'name');
-    $accountRelationship    = CRM_Core_OptionGroup::values('account_relationship', FALSE, FALSE, FALSE, NULL, 'name');
-
-    $relationships = [
-      array_search('Accounts Receivable Account is', $accountRelationship) => array_search('Asset', $financialAccountTypeID),
-      array_search('Expense Account is', $accountRelationship) => array_search('Expenses', $financialAccountTypeID),
-      array_search('Income Account is', $accountRelationship) => array_search('Revenue', $financialAccountTypeID),
-    ];
-
-    $dao = CRM_Core_DAO::executeQuery('SELECT id, financial_account_type_id FROM civicrm_financial_account WHERE name LIKE %1',
-      [1 => [$financialType->name, 'String']]
-    );
-    $dao->fetch();
-    $existingFinancialAccount = [];
-    if (!$dao->N) {
-      $params = [
-        'name' => $financialType->name,
-        'contact_id' => CRM_Core_DAO::getFieldValue('CRM_Core_DAO_Domain', CRM_Core_Config::domainID(), 'contact_id'),
-        'financial_account_type_id' => array_search('Revenue', $financialAccountTypeID),
-        'description' => $financialType->description,
-        'account_type_code' => 'INC',
-        'accounting_code' => '4300',
-        'is_active' => 1,
-      ];
-      $financialAccount = CRM_Financial_BAO_FinancialAccount::add($params);
-    }
-    else {
-      $existingFinancialAccount[$dao->financial_account_type_id] = $dao->id;
-    }
-    $params = [
-      'entity_table' => 'civicrm_financial_type',
-      'entity_id' => $financialType->id,
-    ];
-    foreach ($relationships as $key => $value) {
-      if (!array_key_exists($value, $existingFinancialAccount)) {
-        if ($accountRelationship[$key] == 'Accounts Receivable Account is') {
-          $params['financial_account_id'] = CRM_Core_DAO::getFieldValue('CRM_Financial_DAO_FinancialAccount', 'Accounts Receivable', 'id', 'name');
-          if (!empty($params['financial_account_id'])) {
-            $titles[] = 'Accounts Receivable';
-          }
-          else {
-            $query = "SELECT financial_account_id, name FROM civicrm_entity_financial_account
-            LEFT JOIN civicrm_financial_account ON civicrm_financial_account.id = civicrm_entity_financial_account.financial_account_id
-            WHERE account_relationship = {$key} AND entity_table = 'civicrm_financial_type' LIMIT 1";
-            $dao = CRM_Core_DAO::executeQuery($query);
-            $dao->fetch();
-            $params['financial_account_id'] = $dao->financial_account_id;
-            $titles[] = $dao->name;
-          }
-        }
-        elseif ($accountRelationship[$key] == 'Income Account is' && empty($existingFinancialAccount)) {
-          $params['financial_account_id'] = $financialAccount->id;
-        }
-        else {
-          $query = "SELECT id, name FROM civicrm_financial_account WHERE is_default = 1 AND financial_account_type_id = {$value}";
-          $dao = CRM_Core_DAO::executeQuery($query);
-          $dao->fetch();
-          $params['financial_account_id'] = $dao->id;
-          $titles[] = $dao->name;
-        }
-      }
-      else {
-        $params['financial_account_id'] = $existingFinancialAccount[$value];
-        $titles[] = $financialType->name;
-      }
-      $params['account_relationship'] = $key;
-      CRM_Financial_BAO_FinancialTypeAccount::add($params);
-    }
-    if (!empty($existingFinancialAccount)) {
-      $titles = [];
-    }
-    return $titles;
-  }
-
 }
 
 use CRM_Cdntaxreceipts_ExtensionUtil as E;
@@ -272,8 +192,9 @@ function _cdntaxreceipts_civix_civicrm_disable() {
  * @param $op string, the type of operation being performed; 'check' or 'enqueue'
  * @param $queue CRM_Queue_Queue, (for 'enqueue') the modifiable list of pending up upgrade tasks
  *
- * @return mixed  based on op. for 'check', returns array(boolean) (TRUE if upgrades are pending)
- *                for 'enqueue', returns void
+ * @return mixed
+ *   based on op. for 'check', returns array(boolean) (TRUE if upgrades are pending)
+ *   for 'enqueue', returns void
  *
  * @link https://docs.civicrm.org/dev/en/latest/hooks/hook_civicrm_upgrade
  */
@@ -304,7 +225,7 @@ function _cdntaxreceipts_civix_upgrader() {
  * @param string $dir base dir
  * @param string $pattern , glob pattern, eg "*.txt"
  *
- * @return array(string)
+ * @return array
  */
 function _cdntaxreceipts_civix_find_files($dir, $pattern) {
   if (is_callable(['CRM_Utils_File', 'findFiles'])) {
@@ -323,7 +244,7 @@ function _cdntaxreceipts_civix_find_files($dir, $pattern) {
     if ($dh = opendir($subdir)) {
       while (FALSE !== ($entry = readdir($dh))) {
         $path = $subdir . DIRECTORY_SEPARATOR . $entry;
-        if ($entry{0} == '.') {
+        if ($entry[0] == '.') {
         }
         elseif (is_dir($path)) {
           $todos[] = $path;
@@ -334,6 +255,7 @@ function _cdntaxreceipts_civix_find_files($dir, $pattern) {
   }
   return $result;
 }
+
 /**
  * (Delegated) Implements hook_civicrm_managed().
  *
@@ -441,7 +363,7 @@ function _cdntaxreceipts_civix_civicrm_themes(&$themes) {
  * @link http://php.net/glob
  * @param string $pattern
  *
- * @return array, possibly empty
+ * @return array
  */
 function _cdntaxreceipts_civix_glob($pattern) {
   $result = glob($pattern);
@@ -549,14 +471,6 @@ function _cdntaxreceipts_civix_civicrm_alterSettingsFolders(&$metaDataFolders = 
  *
  * @link https://docs.civicrm.org/dev/en/latest/hooks/hook_civicrm_entityTypes
  */
-
 function _cdntaxreceipts_civix_civicrm_entityTypes(&$entityTypes) {
-  $entityTypes = array_merge($entityTypes, array (
-    'CRM_Cdntaxreceipts_DAO_CdnAdvantage' => 
-    array (
-      'name' => 'CdnAdvantage',
-      'class' => 'CRM_Cdntaxreceipts_DAO_CdnAdvantage',
-      'table' => 'cdntaxreceipts_advantage',
-    ),
-  ));
+  $entityTypes = array_merge($entityTypes, []);
 }

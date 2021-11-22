@@ -1,0 +1,41 @@
+{
+  "singlePR": {
+    "include": [
+      {
+        "php-versions": "CIVICARROT_PHP_SENSIBLE",
+        "drupal": "CIVICARROT_DRUPAL_LATEST",
+        "civicrm": "dev-master"
+      }
+    ]
+  },
+  "periodic": {
+    "MyDaily": {
+      "cronSpec": "30 3 * * *",
+      "testType": "all",
+      "matrix": {
+        "include": [
+          {
+            "php-versions": "CIVICARROT_PHP_SENSIBLE",
+            "drupal": "CIVICARROT_DRUPAL_LATEST",
+            "civicrm": "dev-master"
+          },
+          {
+            "php-versions": "CIVICARROT_PHP_SENSIBLE",
+            "drupal": "CIVICARROT_DRUPAL_LATEST",
+            "civicrm": "CIVICARROT_CIVI_RELEASECANDIDATE"
+          },
+          {
+            "php-versions": "CIVICARROT_PHP_SENSIBLE",
+            "drupal": "CIVICARROT_DRUPAL_LATEST",
+            "civicrm": "CIVICARROT_CIVI_LATEST"
+          },
+          {
+            "php-versions": "7.4",
+            "drupal": "~9.2.0",
+            "civicrm": "~5.39.0"
+          }
+        ]
+      }
+    }
+  }
+}
