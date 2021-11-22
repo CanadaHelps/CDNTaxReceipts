@@ -186,7 +186,7 @@ function cdntaxreceipts_load_receipt($receipt_id) {
  */
 
  //TODO: Should return success or failure
-function cdntaxreceipts_log($receipt) {
+function cdntaxreceipts_log(&$receipt) {
 
   $uid = CRM_Utils_System::getLoggedInUfID();
   $uid = empty($uid) ? 1 : $uid;
@@ -216,6 +216,15 @@ function cdntaxreceipts_log($receipt) {
   }
   $receipt_id = CRM_Core_DAO::singleValueQuery('SELECT LAST_INSERT_ID()');
 
+  if ($receipt_id && Civi::settings()->get('receipt_serial')) {
+    $receipt_no = Civi::settings()->get('receipt_prefix') . str_pad($receipt_id, 8, 0, STR_PAD_LEFT);
+    CRM_Core_DAO::executeQuery('UPDATE cdntaxreceipts_log SET receipt_no = %1 WHERE id = %2', [
+      1 => [$receipt_no, 'String'],
+      2 => [$receipt_id, 'Positive'],
+    ]);
+    $receipt['receipt_no'] = $receipt_no;
+  }
+
   // add line items
   foreach ( $receipt['contributions'] as $contribution ) {
     $params = array(
@@ -235,7 +244,6 @@ function cdntaxreceipts_log($receipt) {
   }
   $transaction->commit();
   return $receipt_id;
-
 }
 
 /**

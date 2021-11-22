@@ -58,25 +58,18 @@ function cdntaxreceipts_processTaxReceipt($receipt, &$collectedPdf = NULL, $mode
   $preferred_language = CRM_Core_DAO::getFieldValue('CRM_Contact_DAO_Contact', $receipt['contact_id'], 'preferred_language');
   _cdntaxreceipts_setReceiptanguage($preferred_language);
 
-  // @todo Deprecate this function - see issue 103. This used to be on the settings form but has been removed. For now if it had been previously set we still use the same (broken) implementation from before.
-  $serial_receipt = Civi::settings()->get('receipt_serial');
-  if ($serial_receipt && empty($receipt['is_duplicate'])) {
-    // use my experimental alternative to generating serial receipt numbers, unless this is a re-issue
-    $lock = new CRM_Core_Lock('cdntaxreceipts.processTaxReceipt');
-    if (!$lock->acquire()) {
-      $userAlert = ts('Failed to acquire lock. No receipts were processed.');
-      CRM_Core_Session::setStatus($userAlert, ts('Warning'), 'alert');
-      return array(FALSE,'',NULL);
-    }
-    $next_id = cdntaxreceipts_log_next_id();
-    $receipt['receipt_no'] = Civi::settings()->get('receipt_prefix') . str_pad($next_id, 8, 0, STR_PAD_LEFT);
-  }
   // allow modules to alter any details
   // invoke hook_cdntaxreceipts_alter_receipt(&$receipt)
   //   modules should accept a reference to the $receipt array and alter it directly if they wish
   //   one useful use case: alter the $receipt['source'] line to include custom text
   //   to alter receipt amount, use hook_cdntaxreceipts_eligibleAmount() instead
   CRM_Utils_Hook::singleton()->invoke(['receipt'], $receipt, CRM_Utils_Hook::$_nullObject, CRM_Utils_Hook::$_nullObject, CRM_Utils_Hook::$_nullObject, CRM_Utils_Hook::$_nullObject, CRM_Utils_Hook::$_nullObject, 'cdntaxreceipts_alter_receipt');
+
+  // Log the receipt
+  // Must be done before the PDF formatting in order to get the receipt_no if sequential
+  if (!$receipt['is_duplicate'] && $mode != CDNTAXRECEIPTS_MODE_PREVIEW) {
+    cdntaxreceipts_log($receipt);
+  }
 
   if ($receipt['issue_method'] == 'data') {
     // generate log entry only, no PDF file needed
@@ -152,18 +145,9 @@ function cdntaxreceipts_processTaxReceipt($receipt, &$collectedPdf = NULL, $mode
       }
     }
   }
-  if (!empty($lock)) {
-    $lock->release();
-  }
 
   // Switch the locale back to the original locale
   CRM_Core_I18n::singleton()->setLocale($old_locale);
-
-  // log the receipt
-  if (!$receipt['is_duplicate'] && $sent && $mode != CDNTAXRECEIPTS_MODE_PREVIEW) {
-    cdntaxreceipts_log($receipt);
-    // TODO: log an activity
-  }
 
   if (isset($collectedPdf) && $pdf_file) {
     unlink($pdf_file); // file is no longer needed
