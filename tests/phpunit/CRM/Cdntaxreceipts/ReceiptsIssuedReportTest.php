@@ -61,6 +61,7 @@ class CRM_Cdntaxreceipts_ReceiptsIssuedReportTest extends CRM_Cdntaxreceipts_Bas
         'civicrm_cdntaxreceipts_log_contributions_contribution_id' => 1,
         'civicrm_contact_sort_name_link' => '/index.php?q=civicrm/contact/view&amp;reset=1&amp;cid=' . $contact_id,
         'civicrm_contact_sort_name_hover' => 'View Contact Summary for this Contact',
+        'class' => NULL,
       ]
     ], $data);
   }
@@ -122,6 +123,7 @@ class CRM_Cdntaxreceipts_ReceiptsIssuedReportTest extends CRM_Cdntaxreceipts_Bas
         'civicrm_contribution_payment_instrument_id' => 'Check',
         'civicrm_contact_sort_name_link' => '/index.php?q=civicrm/contact/view&amp;reset=1&amp;cid=' . $contact_id,
         'civicrm_contact_sort_name_hover' => 'View Contact Summary for this Contact',
+        'class' => NULL,
       ]
     ], $data);
   }

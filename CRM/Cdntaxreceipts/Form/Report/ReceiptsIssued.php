@@ -25,6 +25,7 @@ class CRM_Cdntaxreceipts_Form_Report_ReceiptsIssued extends CRM_Report_Form {
           array(
             'no_display' => TRUE,
             'required' => TRUE,
+            'type' => CRM_Utils_Type::T_INT,
           ),
         ),
         'grouping' => 'tax-fields',
@@ -46,7 +47,7 @@ class CRM_Cdntaxreceipts_Form_Report_ReceiptsIssued extends CRM_Report_Form {
           'receipt_no' => array('title' => 'Receipt No.', 'default' => TRUE),
           'issue_type' => array('title' => 'Issue Type', 'default' => TRUE),
           'issue_method' => array('title' => 'Issue Method', 'default' => TRUE),
-          'uid' => array('title' => 'Issued By', 'default' => TRUE),
+          'uid' => array('title' => 'Issued By', 'default' => TRUE, 'type' => CRM_Utils_Type::T_INT),
           'receipt_status' => array('title' => 'Receipt Status', 'default' => TRUE,),
           'email_opened' => array('title' => 'Email Open Date', 'type' => CRM_Utils_Type::T_TIMESTAMP, 'default' => TRUE),
         ),
@@ -112,7 +113,9 @@ class CRM_Cdntaxreceipts_Form_Report_ReceiptsIssued extends CRM_Report_Form {
         array(
           'contribution_id' => array(
             'default' => TRUE,
-            'dbAlias' => "GROUP_CONCAT(DISTINCT cdntaxreceipts_log_contributions_civireport.contribution_id ORDER BY cdntaxreceipts_log_contributions_civireport.contribution_id SEPARATOR ', ')", ),
+            'dbAlias' => "GROUP_CONCAT(DISTINCT cdntaxreceipts_log_contributions_civireport.contribution_id ORDER BY cdntaxreceipts_log_contributions_civireport.contribution_id SEPARATOR ', ')",
+            'type' => CRM_Utils_Type::T_INT,
+           ),
         ),
         'grouping' => 'tax-fields',
       ),
