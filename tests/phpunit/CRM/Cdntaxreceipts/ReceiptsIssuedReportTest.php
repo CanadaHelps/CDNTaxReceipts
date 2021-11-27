@@ -46,6 +46,15 @@ class CRM_Cdntaxreceipts_ReceiptsIssuedReportTest extends CRM_Cdntaxreceipts_Bas
 
     // run report
     $data = civicrm_api3('report_template', 'getrows', ['report_id' => 'cdntaxreceipts/receiptsissued'])['values'];
+
+    // We don't care about this and it was introduced in 5.45 so causes fails
+    // on earlier matrices.
+    unset($data[0]['class']);
+
+    // I'm still a little confused about how this passes even when using assertSame.
+    // The data types for the 'id' fields are strings in $data, so they
+    // shouldn't match when using strict comparison. But is it worth caring
+    // about.
     $this->assertEquals([
       [
         'civicrm_contact_sort_name' => 'Miller, Joe',
@@ -61,7 +70,6 @@ class CRM_Cdntaxreceipts_ReceiptsIssuedReportTest extends CRM_Cdntaxreceipts_Bas
         'civicrm_cdntaxreceipts_log_contributions_contribution_id' => 1,
         'civicrm_contact_sort_name_link' => '/index.php?q=civicrm/contact/view&amp;reset=1&amp;cid=' . $contact_id,
         'civicrm_contact_sort_name_hover' => 'View Contact Summary for this Contact',
-        'class' => NULL,
       ]
     ], $data);
   }
@@ -106,6 +114,10 @@ class CRM_Cdntaxreceipts_ReceiptsIssuedReportTest extends CRM_Cdntaxreceipts_Bas
       ],
     ])['values'];
 
+    // We don't care about this and it was introduced in 5.45 so causes fails
+    // on earlier matrices.
+    unset($data[0]['class']);
+
     $this->assertEquals([
       [
         'civicrm_contact_sort_name' => 'Miller, Joe',
@@ -123,7 +135,6 @@ class CRM_Cdntaxreceipts_ReceiptsIssuedReportTest extends CRM_Cdntaxreceipts_Bas
         'civicrm_contribution_payment_instrument_id' => 'Check',
         'civicrm_contact_sort_name_link' => '/index.php?q=civicrm/contact/view&amp;reset=1&amp;cid=' . $contact_id,
         'civicrm_contact_sort_name_hover' => 'View Contact Summary for this Contact',
-        'class' => NULL,
       ]
     ], $data);
   }
