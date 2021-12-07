@@ -11,8 +11,8 @@ return array (
     'params' => 
     array (
       'version' => 3,
-      'label' => 'Tax Receipts - Receipts Not Issued',
-      'description' => 'Tax Receipts - Receipts Not Issued (org.civicrm.cdntaxreceipts)',
+      'label' => 'Tax Receipts (Not Yet Issued)',
+      'description' => 'All Tax Receipts not yet Issued',
       'class_name' => 'CRM_Cdntaxreceipts_Form_Report_ReceiptsNotIssued',
       'report_url' => 'cdntaxreceipts/receiptsnotissued',
       'component' => 'CiviContribute',
