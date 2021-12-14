@@ -169,6 +169,16 @@ function cdntaxreceipts_processTaxReceipt($receipt, &$collectedPdf = NULL, $mode
   // log the receipt
   if (!$receipt['is_duplicate'] && $sent && $mode != CDNTAXRECEIPTS_MODE_PREVIEW) {
     cdntaxreceipts_log($receipt);
+    //CRM-1057: Update Receipt number and flag is_receipted custom field
+    if($receipt['receipt_no']) {
+      foreach($receipt['contributions'] as $contribution) {
+        civicrm_api3('CustomValue', 'create', [
+          'entity_id' => $contribution['contribution_id'],
+          EU::getCustomFieldID('Is_Receipted_') => 1,
+          EU::getCustomFieldID('Receipt_Number') => $receipt['receipt_no'],
+        ]);
+      }
+    }
     // TODO: log an activity
   }
 
