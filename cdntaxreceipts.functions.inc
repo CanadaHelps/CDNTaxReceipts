@@ -52,7 +52,6 @@ require_once('FPDI/fpdi.php');
  * This method is common to both single and annual receipts.
  */
 function cdntaxreceipts_processTaxReceipt($receipt, &$collectedPdf = NULL, $mode, $method = NULL) {
-
   // Get contact details
   list($displayname, $email) = CRM_Contact_BAO_Contact::getContactDetails($receipt['contact_id']);
 
@@ -305,6 +304,7 @@ function cdntaxreceipts_generateFormattedReceipt($receipt, &$collectedPdf = NULL
     "receipt_status" => $receipt['receipt_status'],
     "advantage_description" => $receipt['advantage_description'],
     "advantage_amount" => $receipt['advantage_amount'],
+    "total_advantage_amount" => isset($receipt['total_advantage_amount']) ? $receipt['total_advantage_amount'] : 0,
     "contribution_amount" => $receipt['contribution_amount'],
     "thankyou_html" => $receipt['thankyou_html']
   );
@@ -613,6 +613,16 @@ function _cdntaxreceipts_writeReceipt(&$pdf, &$pdf_variables, $receipt) {
     $pdf->Write(10, ts('$'.number_format($advantage_amount, 2)), array('domain' => 'org.civicrm.cdntaxreceipts'));
     $index_advantage += 1;
   }
+
+  if ($pdf_variables['total_advantage_amount'] > 0) {
+    $pdf->setY(EU::getReceiptLineHeight($grid2b_y_top, $line_height, $index_advantage));
+    $pdf->SetFont($fontLatoRegular, '', $smallFont);
+    $pdf->Write(10, ts("Value of Advantage to: "));
+    $pdf->SetFont($fontLatoLight, '', $smallFont);
+    $pdf->Write(10, ts('$'.number_format($pdf_variables['total_advantage_amount'], 2)), array('domain' => 'org.civicrm.cdntaxreceipts'));
+    $index_advantage += 1;
+  }
+
   $pdf->setY(EU::getReceiptLineHeight($grid2b_y_top, $line_height, $index_advantage));
   $pdf->SetFont($fontLatoRegular, '', $smallFont);
   $pdf->Write(10, ts("Eligible Amount of Gift: "));
@@ -1610,6 +1620,7 @@ function cdntaxreceipts_issueAggregateTaxReceipt($contactId, $year, $contributio
     $receiptContributions = array();
     $totalReceipt = 0;
     $inkind_aggregate = FALSE;
+    $total_advantage_amount = 0;
     foreach ( $contributions as $c ) {
       $eligibleAmount =  cdntaxreceipts_eligibleAmount($c['contribution_id']);
       $receiptContributions[] = array(
@@ -1626,6 +1637,9 @@ function cdntaxreceipts_issueAggregateTaxReceipt($contactId, $year, $contributio
         $inkind_aggregate = TRUE;
       }
       $totalReceipt += $eligibleAmount;
+      if($c['non_deductible_amount']) {
+        $total_advantage_amount += $c['non_deductible_amount']; 
+      }
     }
 
     // generate a receipt number
@@ -1645,6 +1659,7 @@ function cdntaxreceipts_issueAggregateTaxReceipt($contactId, $year, $contributio
       'email_tracking_id' => md5(uniqid(rand(), TRUE)),
       'thankyou_html' => $thankyou_html,
       'inkind_aggregate' => $inkind_aggregate,
+      'total_advantage_amount' => $total_advantage_amount,
     );
   }
   return cdntaxreceipts_processTaxReceipt($receipt, $collectedPdf, $mode);
