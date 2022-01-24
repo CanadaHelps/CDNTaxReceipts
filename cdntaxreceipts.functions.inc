@@ -569,18 +569,18 @@ function _cdntaxreceipts_writeReceipt(&$pdf, &$pdf_variables, $receipt) {
     $address_full = $address['city'].", ".$address['province'];
     // Check Address Length
     if(mb_strlen($address_full) < 45) {
-      $pdf->Write(10, ts($address_full), array('domain' => 'org.civicrm.cdntaxreceipts'));
+      $pdf->Write(10, $address_full, array('domain' => 'org.civicrm.cdntaxreceipts'));
     } else {
       $address_array = EU::getStringLimitArray($address_full, 45);
       $index_address = 4.5;
       foreach($address_array as $address_lines) {
         if(mb_strlen($address_lines) > 45) {
-          $pdf->Write(10, ts(mb_substr($address_lines, 0, 23)), array('domain' => 'org.civicrm.cdntaxreceipts'));
+          $pdf->Write(10, mb_substr($address_lines, 0, 23), array('domain' => 'org.civicrm.cdntaxreceipts'));
           $pdf->setY(EU::getReceiptLineHeight($grid2_y_top, $line_height, $index_address++));
-          $pdf->Write(10, ts(mb_substr($address_lines, 23, 45)), array('domain' => 'org.civicrm.cdntaxreceipts'));
+          $pdf->Write(10, mb_substr($address_lines, 23, 45), array('domain' => 'org.civicrm.cdntaxreceipts'));
           $pdf->setY(EU::getReceiptLineHeight($grid2_y_top, $line_height, $index_address++));
         } else {
-          $pdf->Write(10, ts($address_lines), array('domain' => 'org.civicrm.cdntaxreceipts'));
+          $pdf->Write(10, $address_lines, array('domain' => 'org.civicrm.cdntaxreceipts'));
           $pdf->setXY($grid2_x_mid + 28.75, EU::getReceiptLineHeight($grid2_y_top, $line_height, $index_address++));
         }
 
@@ -640,7 +640,7 @@ function _cdntaxreceipts_writeReceipt(&$pdf, &$pdf_variables, $receipt) {
   foreach($donated_by as $donor_detail) {
     if(trim($donor_detail)) {
       if(mb_strlen($donor_detail) <= $text_limit) {
-        $pdf->Cell(0, 0, ts($donor_detail, array('domain' => 'org.civicrm.cdntaxreceipts')), 0, $line_height, 'R');
+        $pdf->Cell(0, 0, $donor_detail, 0, $line_height, 'R');
       } else {
         $donor_detail_array = EU::getStringLimitArray($donor_detail, $text_limit);
         for($i=0; $i < 2; $i++) {
@@ -652,15 +652,15 @@ function _cdntaxreceipts_writeReceipt(&$pdf, &$pdf_variables, $receipt) {
               $i_ddsa = 1;
               foreach($donor_detail_sub_array as $ddsa) {
                 $i_ddsa_hyphen = ($i_ddsa == $donor_detail_sub_array_count) ? '' : '-';
-                $pdf->Cell(0, 0, ts(str_replace(' ','-',$ddsa).$i_ddsa_hyphen, array('domain' => 'org.civicrm.cdntaxreceipts')), 0, $line_height, 'R');  
+                $pdf->Cell(0, 0, str_replace(' ','-',$ddsa).$i_ddsa_hyphen, 0, $line_height, 'R');  
                 $i_ddsa++;
               }
             } else {
-              $pdf->Cell(0, 0, ts(mb_substr($donor_detail_array[$i], 0, $text_limit), array('domain' => 'org.civicrm.cdntaxreceipts')), 0, $line_height, 'R');
-              $pdf->Cell(0, 0, ts(mb_substr($donor_detail_array[$i], $text_limit), array('domain' => 'org.civicrm.cdntaxreceipts')), 0, $line_height, 'R');
+              $pdf->Cell(0, 0, mb_substr($donor_detail_array[$i], 0, $text_limit), 0, $line_height, 'R');
+              $pdf->Cell(0, 0, mb_substr($donor_detail_array[$i], $text_limit), 0, $line_height, 'R');
             }
           } else {
-            $pdf->Cell(0, 0, ts(mb_substr($donor_detail_array[$i], 0, $text_limit), array('domain' => 'org.civicrm.cdntaxreceipts')), 0, $line_height, 'R');
+            $pdf->Cell(0, 0, mb_substr($donor_detail_array[$i], 0, $text_limit), 0, $line_height, 'R');
           }
         }
       }
@@ -690,11 +690,11 @@ function _cdntaxreceipts_writeReceipt(&$pdf, &$pdf_variables, $receipt) {
     $pdf->SetFont($fontLatoLight, '', $smallFont);
     if(mb_strlen($advantage_description) > $string_length) {
       $advantage_description_array = EU::getStringLimitArray($advantage_description, $string_length);
-      $pdf->Write(10, ts(EU::stringLimiter($advantage_description_array[0], $string_length)));
+      $pdf->Write(10, EU::stringLimiter($advantage_description_array[0], $string_length));
       $pdf->setY(EU::getReceiptLineHeight($grid3_y_top, $line_height, $index_in_kind++));
-      $pdf->Write(10, ts(EU::stringLimiter($advantage_description_array[1], $string_length)));
+      $pdf->Write(10, EU::stringLimiter($advantage_description_array[1], $string_length));
     } else {
-      $pdf->Write(10, ts(EU::stringLimiter($advantage_description, $string_length)));
+      $pdf->Write(10, EU::stringLimiter($advantage_description, $string_length));
     }
   }
   
@@ -714,11 +714,11 @@ function _cdntaxreceipts_writeReceipt(&$pdf, &$pdf_variables, $receipt) {
         $pdf->SetFont($fontLatoLight, '', $smallFont);
         if(mb_strlen($inkind_values[$i]) > $string_length && $i == 0) {
           $inkind_values_array = EU::getStringLimitArray($inkind_values[$i], $string_length);
-          $pdf->Write(10, ts(EU::stringLimiter($inkind_values_array[0], $string_length)));
+          $pdf->Write(10, EU::stringLimiter($inkind_values_array[0], $string_length));
           $pdf->setY(EU::getReceiptLineHeight($grid3_y_top, $line_height, $index_in_kind++));
-          $pdf->Write(10, ts(EU::stringLimiter($inkind_values_array[1], $string_length)));
+          $pdf->Write(10, EU::stringLimiter($inkind_values_array[1], $string_length));
         } else {
-          $pdf->Write(10, ts(EU::stringLimiter($inkind_values[$i], $string_length+20)));
+          $pdf->Write(10, EU::stringLimiter($inkind_values[$i], $string_length+20));
         }
       }
     }
@@ -921,7 +921,7 @@ function _addItemizedDetails(&$pdf, &$pdf_variables, $receipt) {
         for($i=0; $i<2; $i++) {
           if($advantage_description_array[$i]){
             $string_length_limit = ($i == 0) ? $string_length : $string_length_offset;
-            $pdf->Write(10, ts(EU::stringLimiter($advantage_description_array[$i], $string_length_limit, '')), array('domain' => 'org.civicrm.cdntaxreceipts'));
+            $pdf->Write(10, EU::stringLimiter($advantage_description_array[$i], $string_length_limit, ''), array('domain' => 'org.civicrm.cdntaxreceipts'));
             if($i == 0) {
               $pdf->setXY($grid2_x_mid, EU::getReceiptLineHeight($grid2_y_top, $line_height, $contribution_aggregate_counter_right++));
             }
@@ -929,7 +929,7 @@ function _addItemizedDetails(&$pdf, &$pdf_variables, $receipt) {
         }
         $contribution_values_count++;
       } else {
-        $pdf->Write(10, ts($contribution['advantage_description']), array('domain' => 'org.civicrm.cdntaxreceipts'));
+        $pdf->Write(10, $contribution['advantage_description'], array('domain' => 'org.civicrm.cdntaxreceipts'));
       }
       $contribution_values_count++;
     }
@@ -944,14 +944,14 @@ function _addItemizedDetails(&$pdf, &$pdf_variables, $receipt) {
         if($inkind_values_aggregate) {
           $pdf->setXY($grid2_x_mid, EU::getReceiptLineHeight($grid2_y_top, $line_height, $contribution_aggregate_counter_right++));
           $pdf->SetFont($fontLatoRegular, '', $smallFont);
-          $pdf->Write(10, ts($inkind_values_label.": "));
+          $pdf->Write(10, $inkind_values_label.": ");
           $pdf->SetFont($fontLatoLight, '', $smallFont);
           if(mb_strlen($inkind_values_aggregate) > $string_length) {
             $inkind_values_aggregate_array = EU::getStringLimitArrayOffset($inkind_values_aggregate, $string_length, $string_length_offset);
             for($i=0; $i<2; $i++) {
               if($inkind_values_aggregate_array[$i]){
                 $string_length_limit = ($i == 0) ? $string_length : $string_length_offset;
-                $pdf->Write(10, ts(EU::stringLimiter($inkind_values_aggregate_array[$i], $string_length_limit, '')), array('domain' => 'org.civicrm.cdntaxreceipts'));
+                $pdf->Write(10, EU::stringLimiter($inkind_values_aggregate_array[$i], $string_length_limit, ''), array('domain' => 'org.civicrm.cdntaxreceipts'));
                 if($i == 0) {
                   $pdf->setXY($grid2_x_mid, EU::getReceiptLineHeight($grid2_y_top, $line_height, $contribution_aggregate_counter_right++));
                 }
@@ -959,7 +959,7 @@ function _addItemizedDetails(&$pdf, &$pdf_variables, $receipt) {
             }
             $contribution_values_count++;
           } else {
-            $pdf->Write(10, ts($inkind_values_aggregate), array('domain' => 'org.civicrm.cdntaxreceipts'));
+            $pdf->Write(10, $inkind_values_aggregate, array('domain' => 'org.civicrm.cdntaxreceipts'));
           }
           $contribution_values_count++;
           $inkind_ctr++;
@@ -1087,23 +1087,23 @@ function _receiptThankYouHeader($pdf, $pdf_variables, $receipt) {
   // Grid 2: Heading
   $pdf->SetFont($fontLatoLight, '', $smallerFont);
   if($pdf_variables['displayname']) {
-    $pdf->Write(10, ts($pdf_variables['displayname'], array('domain' => 'org.civicrm.cdntaxreceipts')));
+    $pdf->Write(10, $pdf_variables['displayname']);
   }
   if($pdf_variables['address_line_1']) {
     $pdf->setXY($grid2_x_mid, EU::getReceiptLineHeight($grid2_y_top, $line_height, $line_index++));
-    $pdf->Write(10, ts($pdf_variables['address_line_1'], array('domain' => 'org.civicrm.cdntaxreceipts')));
+    $pdf->Write(10, $pdf_variables['address_line_1']);
   }
   if($pdf_variables['address_line_1b']) {
     $pdf->setXY($grid2_x_mid, EU::getReceiptLineHeight($grid2_y_top, $line_height, $line_index++));
-    $pdf->Write(10, ts($pdf_variables['address_line_1b'], array('domain' => 'org.civicrm.cdntaxreceipts')));
+    $pdf->Write(10, $pdf_variables['address_line_1b']);
   }
   if($pdf_variables['address_line_2']) {
     $pdf->setXY($grid2_x_mid, EU::getReceiptLineHeight($grid2_y_top, $line_height, $line_index++));
-    $pdf->Write(10, ts($pdf_variables['address_line_2'], array('domain' => 'org.civicrm.cdntaxreceipts')));
+    $pdf->Write(10, $pdf_variables['address_line_2']);
   }
   if($pdf_variables['address_line_3']) {
     $pdf->setXY($grid2_x_mid, EU::getReceiptLineHeight($grid2_y_top, $line_height, $line_index++));
-    $pdf->Write(10, ts($pdf_variables['address_line_3'], array('domain' => 'org.civicrm.cdntaxreceipts')));
+    $pdf->Write(10, $pdf_variables['address_line_3']);
   }
   
 
