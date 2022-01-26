@@ -1060,12 +1060,12 @@ function _receiptThankYouHeader($pdf, $pdf_variables, $receipt) {
 
   // Grid 1: Left Section
   $grid_1_counter = 1;
-  $org_text_limit = 32;
+  $org_text_limit = 50;
   $org_name = Civi::settings()->get('org_name');
   $pdf->SetFont($fontLatoRegular, '', $smallerFont);
   $pdf->SetXY($grid1_x_mid, $mymargin_top);
   $org_name_array = EU::getStringLimitArray($org_name, $org_text_limit);
-  for($i=0; $i<2; $i++) {
+  for($i=0; $i<3; $i++) {
     if($org_name_array[$i]){
       if(mb_strlen($org_name_array[$i]) > $org_text_limit) {
         $pdf->Write(10, strtoupper(EU::stringLimiter($org_name_array[$i], $org_text_limit, '')), '', 0, 'L', TRUE, 0, FALSE, FALSE, 0);
