@@ -996,7 +996,8 @@ function _receiptThankYouHeader($pdf, $pdf_variables, $receipt) {
   $result = civicrm_api3('MessageTemplate', 'get', [
     'sequential' => 1,
     'msg_title' => "CDN Tax Receipts - Thank you Note",
-  ]); 
+  ]);
+  
   if($result['values'][0]) {
     $message_tpl = $result['values'][0];
     $newString = $message_tpl['msg_html'] ?? NULL;
@@ -1005,9 +1006,26 @@ function _receiptThankYouHeader($pdf, $pdf_variables, $receipt) {
       'sequential' => 1,
       'id' => $receipt['contact_id'],
     ]);
+    $returnProperties = ['display_name'];
+    $contactTokenValues = CRM_Utils_Token::getTokenDetails(['contact_id' => $receipt['contact_id']],
+      $returnProperties,
+      true,
+      true,
+      NULL,
+      $messageToken
+    );
+    $contactValues = $contact['values'][0];
+    if(!empty($contactTokenValues)) {
+      $contactValues = array_merge($contactValues, $contactTokenValues[0][$receipt['contact_id']]);
+    }
+    $categories = CRM_Cdntaxreceipts_Task_PDFLetterCommon::getTokenCategories();
     $tokenHtml = CRM_Utils_Token::replaceContactTokens($newString, $contact, TRUE, $messageToken);
     $domain = CRM_Core_BAO_Domain::getDomain();
     $tokenHtml = CRM_Utils_Token::replaceDomainTokens($tokenHtml, $domain, TRUE, $messageToken);
+    $tokenHtml = CRM_Utils_Token::replaceContributionTokens($tokenHtml, $pdf_variables, TRUE, $messageToken);
+    if(!empty($contactTokenValues)) {
+      $tokenHtml = CRM_Utils_Token::replaceHookTokens($tokenHtml, $contactValues, $categories, TRUE);
+    }
   }
 
   //PDF Variables 
