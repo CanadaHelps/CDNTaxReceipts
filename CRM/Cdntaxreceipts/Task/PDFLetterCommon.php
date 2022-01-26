@@ -74,7 +74,6 @@ class CRM_Cdntaxreceipts_Task_PDFLetterCommon extends CRM_Contact_Form_Task_PDFL
       //@todo - comment on what is stored there
       $contributionIDs = $form->getVar('_contributionContactIds');
     }
-    
     [$contributions, $contacts] = self::buildContributionArray($groupBy, $contributionIDs, $returnProperties, $skipOnHold, $skipDeceased, $messageToken, $task, $separator, $form->_includesSoftCredits);
     $html = [];
     $contactHtml = $emailedHtml = [];
@@ -386,6 +385,21 @@ class CRM_Cdntaxreceipts_Task_PDFLetterCommon extends CRM_Contact_Form_Task_PDFL
     $tokens = array_merge(CRM_Core_SelectValues::contributionTokens(), $tokens);
     $tokens = array_merge(CRM_Core_SelectValues::domainTokens(), $tokens);
     return $tokens;
+  }
+
+
+  /**
+   * Get the categories required for rendering tokens.
+   *
+   * @return array
+   */
+  public static function getTokenCategories() {
+    if (!isset(Civi::$statics[__CLASS__]['token_categories'])) {
+      $tokens = [];
+      CRM_Utils_Hook::tokens($tokens);
+      Civi::$statics[__CLASS__]['token_categories'] = array_keys($tokens);
+    }
+    return Civi::$statics[__CLASS__]['token_categories'];
   }
 
 }
