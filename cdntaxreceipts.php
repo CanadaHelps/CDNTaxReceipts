@@ -452,8 +452,8 @@ function cdntaxreceipts_civicrm_alterMailParams(&$params, $context) {
 
   $msg_template_types = array('contribution_online_receipt', 'contribution_offline_receipt');
 
-  if (isset($params['groupName'])
-      && $params['groupName'] == 'msg_tpl_workflow_contribution'
+  $groupName = isset($params['groupName']) ? $params['groupName'] : (isset($params['workflow']) ? $params['workflow'] : '');
+  if (($groupName == 'msg_tpl_workflow_contribution' || $groupName == 'contribution_online_receipt' || $groupName == 'contribution_offline_receipt')
       && isset($params['valueName'])
       && in_array($params['valueName'], $msg_template_types)) {
 
