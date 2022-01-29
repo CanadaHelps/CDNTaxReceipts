@@ -3,8 +3,13 @@
     "include": [
       {
         "php-versions": "CIVICARROT_PHP_SENSIBLE",
-        "drupal": "CIVICARROT_DRUPAL_LATEST",
+        "drupal": "CIVICARROT_DRUPAL_PRIOR",
         "civicrm": "dev-master"
+      },
+      {
+        "php-versions": "7.4",
+        "drupal": "9.3.*",
+        "civicrm": "5.39.*"
       }
     ]
   },
@@ -16,22 +21,22 @@
         "include": [
           {
             "php-versions": "CIVICARROT_PHP_SENSIBLE",
-            "drupal": "CIVICARROT_DRUPAL_LATEST",
+            "drupal": "CIVICARROT_DRUPAL_PRIOR",
             "civicrm": "dev-master"
           },
           {
             "php-versions": "CIVICARROT_PHP_SENSIBLE",
-            "drupal": "CIVICARROT_DRUPAL_LATEST",
+            "drupal": "CIVICARROT_DRUPAL_PRIOR",
             "civicrm": "CIVICARROT_CIVI_RELEASECANDIDATE"
           },
           {
             "php-versions": "CIVICARROT_PHP_SENSIBLE",
-            "drupal": "CIVICARROT_DRUPAL_LATEST",
+            "drupal": "CIVICARROT_DRUPAL_PRIOR",
             "civicrm": "CIVICARROT_CIVI_LATEST"
           },
           {
             "php-versions": "7.4",
-            "drupal": "~9.2.0",
+            "drupal": "~9.3.0",
             "civicrm": "~5.39.0"
           }
         ]
