@@ -12,9 +12,12 @@ class CRM_Cdntaxreceipts_Form_Settings extends CRM_Core_Form {
 
   CONST SETTINGS = 'CDNTaxReceipts';
 
+  protected $unsavedChangesWarn = TRUE;
+
   function buildQuickForm() {
 
     CRM_Utils_System::setTitle(ts('Configure CDN Tax Receipts', array('domain' => 'org.civicrm.cdntaxreceipts')));
+    CRM_Core_Resources::singleton()->addStyleFile('org.civicrm.cdntaxreceipts', 'css/civicrm_cdntaxreceipts.css');
 
     $this->processOrgOptions('build');
     $this->processReceiptOptions('build');

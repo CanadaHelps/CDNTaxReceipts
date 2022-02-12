@@ -67,7 +67,7 @@
           <p class="description">{ts domain='org.civicrm.cdntaxreceipts'}Logo size: 280x120 pixels; File types allowed: .jpg .png.{/ts}</p>
 	  {if $receipt_logo}
 	      {if $receipt_logo_class}<span class="crm-error">The file {$receipt_logo} was not found</span>
-	      {else}<p class="label">Current {$form.receipt_logo.label}: {$receipt_logo}</p>{/if}
+	      {else}<p class="label">Current {$form.receipt_logo.label}: {$receipt_logo}<span class="cdntaxreceipts-imagedelete"><a href="{crmURL p='civicrm/cdntaxreceipts/imagedelete' q='type=receipt_logo'}">{ts}Delete{/ts}</a></span></p>{/if}
 	  {/if}</td>
       </tr>
       <tr>
@@ -76,7 +76,7 @@
           <p class="description">{ts domain='org.civicrm.cdntaxreceipts'}Signature size: 141x58 pixels; File types allowed: .jpg .png.{/ts}</p>
 	  {if $receipt_signature}
 	      {if $receipt_signature_class}<span class="crm-error">The file {$receipt_signature} was not found</span>
-	      {else}<p class="label">Current {$form.receipt_signature.label}: {$receipt_signature}</p>{/if}
+	      {else}<p class="label">Current {$form.receipt_signature.label}: {$receipt_signature}<span class="cdntaxreceipts-imagedelete"><a href="{crmURL p='civicrm/cdntaxreceipts/imagedelete' q='type=receipt_signature'}">{ts}Delete{/ts}</a></span></p>{/if}
 	  {/if}</td>
       </tr>
       <tr>
@@ -85,7 +85,7 @@
           <p class="description">{ts domain='org.civicrm.cdntaxreceipts'}Watermark Image size: 250x250 pixels; File types allowed: .jpg .png.{/ts}</p>
 	  {if $receipt_watermark}
 	      {if $receipt_watermark_class}<span class="crm-error">The file {$receipt_watermark} was not found</span>
-	      {else}<p class="label">Current {$form.receipt_watermark.label}: {$receipt_watermark}</p>{/if}
+	      {else}<p class="label">Current {$form.receipt_watermark.label}: {$receipt_watermark}<span class="cdntaxreceipts-imagedelete"><a href="{crmURL p='civicrm/cdntaxreceipts/imagedelete' q='type=receipt_watermark'}">{ts}Delete{/ts}</a></span></p>{/if}
 	  {/if}</td>
       </tr>
       <tr>
@@ -94,7 +94,7 @@
           <p class="description">{ts domain='org.civicrm.cdntaxreceipts'}Upload your own PDF template: .pdf{/ts}</p>
 	  {if $receipt_pdftemplate}
 	      {if $receipt_pdftemplate_class}<span class="crm-error">The file {$receipt_pdftemplate} was not found</span>
-	      {else}<p class="label">Current {$form.receipt_pdftemplate.label}: {$receipt_pdftemplate}</p>{/if}
+	      {else}<p class="label">Current {$form.receipt_pdftemplate.label}: {$receipt_pdftemplate}<span class="cdntaxreceipts-imagedelete"><a href="{crmURL p='civicrm/cdntaxreceipts/imagedelete' q='type=receipt_pdftemplate'}">{ts}Delete{/ts}</a></span></p>{/if}
 	  {/if}</td>
       </tr>
     </tbody>
