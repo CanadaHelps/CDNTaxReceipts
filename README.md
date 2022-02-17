@@ -63,7 +63,9 @@ Since there are multiple contributions on one receipt there are some differences
 
 - To issue Annual Tax Receipts, go to Search > Find Contacts (or Search > Advanced Search), run a search for contacts, select one or more contacts, and select "Issue Annual Tax Receipts" in the actions drop-down. Follow on-screen instructions from there.
 
-The extension also enables two report templates, which can be used to see a list of receipts issued and receipts outstanding.
+**Reports**
+
+The extension also enables two CiviReport templates, found under `Reports - Contribution Reports - New Contribution Report`, which can be used to see a list of receipts issued and receipts outstanding.
 
 - Tax Receipts - Receipts Issued
 - Tax Receipts - Receipts Not Issued
