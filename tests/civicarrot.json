@@ -9,7 +9,7 @@
       {
         "php-versions": "7.4",
         "drupal": "9.3.*",
-        "civicrm": "5.39.*"
+        "civicrm": "5.45.*"
       }
     ]
   },
@@ -37,7 +37,7 @@
           {
             "php-versions": "7.4",
             "drupal": "~9.3.0",
-            "civicrm": "~5.39.0"
+            "civicrm": "~5.45.0"
           }
         ]
       }
