@@ -308,6 +308,17 @@ function cdntaxreceipts_civicrm_disable() {
 }
 
 /**
+ * Implements hook_civicrm_entityTypes().
+ *
+ * Declare entity types provided by this module.
+ *
+ * @link http://wiki.civicrm.org/confluence/display/CRMDOC/hook_civicrm_entityTypes
+ */
+function cdntaxreceipts_civicrm_entityTypes(&$entityTypes) {
+  _cdntaxreceipts_civix_civicrm_entityTypes($entityTypes);
+}
+
+/**
  * Implementation of hook_civicrm_upgrade
  *
  * @param $op string, the type of operation being performed; 'check' or 'enqueue'
