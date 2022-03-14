@@ -255,6 +255,10 @@ function cdntaxreceipts_generateFormattedReceipt($receipt, &$collectedPdf = NULL
   else {
     $display_year = $receipt['receive_date'];
     $display_date = date('M j, Y', mktime(0,0,0,1,1,$receipt['receive_date'])) . ' - ' . date('M j, Y', mktime(0,0,0,12,31,$receipt['receive_date']));
+    if ( $receipt['issue_type'] == 'aggregate' ) {
+      $max_date = max(array_map('strtotime', array_column($receipt['contributions'], 'receive_date')));
+      $display_date = date('M j, Y', mktime(0,0,0,1,1,$receipt['receive_date'])) . ' - ' . date('M j, Y', $max_date);
+    }
   }
 
   $line_1 = ts("This is your Official Receipt for income tax purposes.", array('domain' => 'org.civicrm.cdntaxreceipts'));
@@ -308,7 +312,6 @@ function cdntaxreceipts_generateFormattedReceipt($receipt, &$collectedPdf = NULL
     "contribution_amount" => $receipt['contribution_amount'],
     "thankyou_html" => $receipt['thankyou_html']
   );
-
   $output_files = array($pdf);
   if ( isset($collectedPdf) && ( $receipt['issue_method'] == 'print' || $mode == CDNTAXRECEIPTS_MODE_PREVIEW) ) {
     $output_files[] = $collectedPdf;
