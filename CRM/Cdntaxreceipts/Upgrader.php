@@ -68,9 +68,6 @@ Attached please find your official tax receipt for income tax purposes.
   protected function createTables() {
     $character_settings = $this->getDatabaseCharacterSettings();
 
-    CRM_Core_DAO::executeQuery("DROP TABLE IF EXISTS cdntaxreceipts_log_contributions");
-    CRM_Core_DAO::executeQuery("DROP TABLE IF EXISTS cdntaxreceipts_log");
-
     CRM_Core_DAO::executeQuery("CREATE TABLE cdntaxreceipts_log (
 id int(11) NOT NULL AUTO_INCREMENT COMMENT 'The internal id of the issuance.',
 receipt_no varchar(128) NOT NULL  COMMENT 'Receipt Number.',
@@ -102,7 +99,15 @@ receive_date datetime NOT NULL COMMENT 'Date on which the contribution was recei
 PRIMARY KEY (id),
 FOREIGN KEY (receipt_id) REFERENCES cdntaxreceipts_log(id),
 INDEX contribution_id (contribution_id)
-) ENGINE=InnoDB DEFAULT CHARSET={$character_settings['charset']} COLLATE {$character_settings['collation']} COMMENT='Contributions for each tax reciept issuing.'");
+) ENGINE=InnoDB DEFAULT CHARSET={$character_settings['charset']} COLLATE {$character_settings['collation']} COMMENT='Contributions for each tax receipt issuing.'");
+
+    CRM_Core_DAO::executeQuery("CREATE TABLE cdntaxreceipts_advantage (
+id int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
+contribution_id int(10) UNSIGNED NOT NULL,
+advantage_description varchar(255) DEFAULT NULL,
+PRIMARY KEY (id),
+INDEX contribution_id (contribution_id)
+) ENGINE=InnoDB DEFAULT CHARSET={$character_settings['charset']} COLLATE {$character_settings['collation']}");
   }
 
   /**
