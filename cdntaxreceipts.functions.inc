@@ -500,10 +500,10 @@ function _cdntaxreceipts_writeReceipt(&$pdf, $pdf_variables) {
     $pdf->Write(10, strtoupper($address_line_3), '', 0, 'L', TRUE, 0, FALSE, FALSE, 0);
   }
 
-  $valueAdvantage = ts('Value of advantage');
+  $valueAdvantage = ts('Value of advantage:');
   // If this is an in-kind donation
   if ( !empty($inkind_values) ) {
-    $valueAdvantage = ts('Value of advantage to');
+    $valueAdvantage = ts('Value of advantage to:');
     $inkind_str = ts('Donation In Kind: %1', array(1 => $inkind_values[0], 'domain' => 'org.civicrm.cdntaxreceipts'));
 
     if (!empty($inkind_values[3])) {
@@ -539,7 +539,8 @@ function _cdntaxreceipts_writeReceipt(&$pdf, $pdf_variables) {
   if ($advantage_amount > 0) {
     $pdf->SetXY($mymargin_left+10, $mymargin_top + $y_detailscolumnstart + 38);
     $pdf->SetFont('Helvetica', 'B', 8);
-    $pdf->Write(10, ts("$valueAdvantage: $%1", array(1 => number_format($advantage_amount, 2), 'domain' => 'org.civicrm.cdntaxreceipts')));
+    // @todo Not a very good way of concatenating
+    $pdf->Write(10, $valueAdvantage . CRM_Utils_Money::format($advantage_amount));
   }
   if (!empty($advantage_description)) {
     $pdf->SetXY($mymargin_left + 10, $mymargin_top + $y_detailscolumnstart + 44);
