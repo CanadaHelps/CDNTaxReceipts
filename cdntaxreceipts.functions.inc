@@ -592,10 +592,8 @@ function _cdntaxreceipts_writeReceipt(&$pdf, $pdf_variables) {
 /**
  * set up the custom field structure for In-Kind tax receipts
  */
-
 function cdntaxreceipts_configure_inkind_fields() {
   // check if the In-kind contribution type exists.  if not, create it.
-  require_once 'CRM/Financial/DAO/FinancialType.php';
   $dao = new CRM_Financial_DAO_FinancialType();
   $dao->name = 'In Kind';
 
@@ -606,7 +604,7 @@ function cdntaxreceipts_configure_inkind_fields() {
     $dao->save();
   }
 
-  E::createDefaultFinancialAccounts($dao);
+  CRM_Cdntaxreceipts_Upgrader::createDefaultFinancialAccounts($dao);
 
   $contrib_type_id = $dao->id;
 

@@ -202,13 +202,12 @@ AND COLUMN_NAME = 'receipt_status'");
     $this->ctx->log->info('Applying update 1511: adding missing financial accounts to "In-Kind" fund');
 
     // add missing GL account to In-kind fund
-    require_once 'CRM/Financial/DAO/FinancialType.php';
     $financialType = new CRM_Financial_DAO_FinancialType();
     $financialType->name = 'In-kind';
 
     if ($financialType->find(TRUE)) {
       try {
-        $this->createDefaultFinancialAccounts($financialType);
+        CRM_Cdntaxreceipts_Upgrader::createDefaultFinancialAccounts($financialType);
       }
       catch (Exception $e) {
       }
@@ -366,7 +365,7 @@ AND COLUMN_NAME = 'receipt_status'");
    * Copied core function CRM_Financial_BAO_FinancialTypeAccount::createDefaultFinancialAccounts() to get rid of Cost of Sale GL account mapping with Fund
    * (this was in the civix file, moved here by ML)
    */
-  public function createDefaultFinancialAccounts($financialType) {
+  public static function createDefaultFinancialAccounts($financialType) {
     $titles = [];
     $financialAccountTypeID = CRM_Core_OptionGroup::values('financial_account_type', FALSE, FALSE, FALSE, NULL, 'name');
     $accountRelationship    = CRM_Core_OptionGroup::values('account_relationship', FALSE, FALSE, FALSE, NULL, 'name');
