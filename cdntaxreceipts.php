@@ -9,6 +9,54 @@ define('CDNTAXRECEIPTS_MODE_PREVIEW', 2);
 define('CDNTAXRECEIPTS_MODE_WORKFLOW', 3);
 
 function cdntaxreceipts_civicrm_buildForm( $formName, &$form ) {
+  if (is_a( $form, 'CRM_Cdntaxreceipts_Form_Settings')) {
+    //CRM-1235 DMS - After Signature/Logo is uploaded in Receipt Settings, page continues to display "No File Chosen" 
+    $receipt_logo = Civi::settings()->get('receipt_logo');
+    $receipt_logo_type = pathinfo($receipt_logo, PATHINFO_EXTENSION);
+    $receipt_logo_data = file_get_contents($receipt_logo);
+    $receipt_logo_url = 'data:image/' . $receipt_logo_type . ';base64,' . base64_encode($receipt_logo_data);
+   
+    $receipt_signature = Civi::settings()->get('receipt_signature');
+    $receipt_signature_type = pathinfo($receipt_signature, PATHINFO_EXTENSION);
+    $receipt_signature_data = file_get_contents($receipt_signature);
+    $receipt_signature_url = 'data:image/' . $receipt_signature_type . ';base64,' . base64_encode($receipt_signature_data);
+     CRM_Core_Resources::singleton()->addScript(
+      "CRM.$(function($) {
+        $( '.crm-form-file' ).change(function() {
+         var attr_name = this.id;
+         const file = this.files[0];
+         if (file){
+          let reader = new FileReader();
+          reader.onload = function(event){
+           var ImagePreviewObj = $('#'+attr_name).parent().find('img').attr('id');
+            $('#'+ImagePreviewObj).attr('src', event.target.result);
+            $('#'+ImagePreviewObj).parent().find('span').hide();
+          }
+          reader.readAsDataURL(file);
+         }
+        });
+        $( document ).ready(function() {
+          var receiptLogo = '$receipt_logo_url';
+          var receiptSignature = '$receipt_signature_url';
+          if(!receiptLogo || receiptLogo.length > 0)
+          {
+            $('#ReceiptLogoPreview').attr('src', receiptLogo );
+          }
+          if(!receiptSignature || receiptSignature.length > 0)
+          {
+            $('#ReceiptSignaturePreview').attr('src', receiptSignature);
+          }
+        });
+      });
+    ");
+    CRM_Core_Resources::singleton()->addStyle('
+    .preview_image {
+      max-width: 100px;
+      max-height: 100px;
+      min-width: 100px;
+      min-height: 100px;
+    }');
+  }
   if (is_a( $form, 'CRM_Contribute_Form_ContributionView')) {
     // add "Issue Tax Receipt" button to the "View Contribution" page
     // if the Tax Receipt has NOT yet been issued -> display a white maple leaf icon
@@ -167,7 +215,38 @@ function cdntaxreceipts_civicrm_post($op, $objectName, $objectId, &$objectRef) {
  */
 
 function cdntaxreceipts_civicrm_postProcess( $formName, &$form ) {
-
+  if (is_a( $form, 'CRM_Cdntaxreceipts_Form_Settings')) {
+    //CRM-1235 DMS - After Signature/Logo is uploaded in Receipt Settings, page continues to display "No File Chosen"
+    $receipt_logo = Civi::settings()->get('receipt_logo');
+    $receipt_logo_type = pathinfo($receipt_logo, PATHINFO_EXTENSION);
+    $receipt_logo_data = file_get_contents($receipt_logo);
+    $receipt_logo_url = 'data:image/' . $receipt_logo_type . ';base64,' . base64_encode($receipt_logo_data);
+   
+    $receipt_signature = Civi::settings()->get('receipt_signature');
+    $receipt_signature_type = pathinfo($receipt_signature, PATHINFO_EXTENSION);
+    $receipt_signature_data = file_get_contents($receipt_signature);
+    $receipt_signature_url = 'data:image/' . $receipt_signature_type . ';base64,' . base64_encode($receipt_signature_data);
+    
+    CRM_Core_Resources::singleton()->addScript(
+      "CRM.$(function($) {
+        $( document ).ready(function() {
+          var receiptLogo = '$receipt_logo_url';
+          var receiptSignature = '$receipt_signature_url';
+          if(!receiptLogo || receiptLogo.length > 0)
+          {
+            $('#ReceiptLogoPreview').attr('src', receiptLogo);
+            $('#ReceiptLogoPreview').parent().find('span').hide();
+          }
+          if(!receiptSignature || receiptSignature.length > 0)
+          {
+            $('#ReceiptSignaturePreview').attr('src',receiptSignature);
+            $('#ReceiptSignaturePreview').parent().find('span').hide();
+          }
+        });
+      });
+    ");
+  
+  }
   // first check whether I really need to process this form
   if ( ! is_a( $form, 'CRM_Contribute_Form_ContributionView' ) ) {
     return;
