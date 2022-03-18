@@ -251,14 +251,13 @@ function cdntaxreceipts_generateFormattedReceipt($receipt, &$collectedPdf = NULL
       $display_date = substr($receipt['receive_date'], 0, 10);
     }
     $display_year = '';
+    $display_date_text = 'Donation Received: ';
   }
   else {
     $display_year = $receipt['receive_date'];
-    $display_date = date('M j, Y', mktime(0,0,0,1,1,$receipt['receive_date'])) . ' - ' . date('M j, Y', mktime(0,0,0,12,31,$receipt['receive_date']));
-    if ( $receipt['issue_type'] == 'aggregate' ) {
-      $max_date = max(array_map('strtotime', array_column($receipt['contributions'], 'receive_date')));
-      $display_date = date('M j, Y', mktime(0,0,0,1,1,$receipt['receive_date'])) . ' - ' . date('M j, Y', $max_date);
-    }
+    //$display_date = date('M j, Y', mktime(0,0,0,1,1,$receipt['receive_date'])) . ' - ' . date('M j, Y', mktime(0,0,0,12,31,$receipt['receive_date']));
+    $display_date = $display_year;
+    $display_date_text = 'Tax Year: ';
   }
 
   $line_1 = ts("This is your Official Receipt for income tax purposes.", array('domain' => 'org.civicrm.cdntaxreceipts'));
@@ -294,6 +293,7 @@ function cdntaxreceipts_generateFormattedReceipt($receipt, &$collectedPdf = NULL
     "amount" => $receipt['receipt_amount'],
     "display_date" => $display_date,
     "display_year" => $display_year,
+    "display_date_text" => $display_date_text,
     "issued_on" => date('Y-m-d', $receipt['issued_on']),
     "issue_type" => $receipt['issue_type'],
     "receipt_number" => $receipt['receipt_no'],
@@ -413,6 +413,7 @@ function _cdntaxreceipts_writeReceipt(&$pdf, &$pdf_variables, $receipt) {
   $source_funds = $pdf_variables["source_funds"];
   $amount = $pdf_variables["amount"];
   $display_date = $pdf_variables["display_date"];
+  $display_date_text = $pdf_variables["display_date_text"];
   $issued_on = $pdf_variables["issued_on"];
   $receipt_number = $pdf_variables["receipt_number"];
   $displayname = $pdf_variables["displayname"];
@@ -594,7 +595,7 @@ function _cdntaxreceipts_writeReceipt(&$pdf, &$pdf_variables, $receipt) {
   // Grid 2B: Left Section
   $pdf->setY(EU::getReceiptLineHeight($grid2b_y_top, $line_height, 1.5));
   $pdf->SetFont($fontLatoRegular, '', $smallFont);
-  $pdf->Write(10, ts("Donation Received: "));
+  $pdf->Write(10, $display_date_text);
   $pdf->SetFont($fontLatoLight, '', $smallFont);
   $pdf->Write(10, ts($display_date), array('domain' => 'org.civicrm.cdntaxreceipts'));
   $pdf->setY(EU::getReceiptLineHeight($grid2b_y_top, $line_height, 2.5));
