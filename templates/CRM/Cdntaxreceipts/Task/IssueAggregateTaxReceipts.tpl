@@ -3,12 +3,6 @@
   <h3>Receipts Details</h3>
   <table class="crm-info-panel">
     <tr>
-      <td class="label bold-text">{ts domain='org.civicrm.cdntaxreceipts'}You have selected <strong>{$totalSelectedContributions}</strong> contributions. Of these, <strong>{$receiptList.totals.total_eligibles_contrib}</strong> are eligible originals.{/ts}</td>
-      <td></td><td></td><td></td>
-    </tr>
-  </table>
-  <table class="crm-info-panel">
-    <tr>
       <td class="label bold-text">{ts}Tax Year{/ts}</td>
       <td id="receipt_year">
         {$form.receipt_year.html}
