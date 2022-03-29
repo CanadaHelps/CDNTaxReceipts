@@ -92,3 +92,7 @@
   background: #f2f2f2 !important;
   background-color: #f2f2f2 !important;
 }
+
+.crm-info-panel #receipt_year {
+  width:23.25%;
+}
