@@ -24,17 +24,13 @@ function cdntaxreceipts_civicrm_buildForm( $formName, &$form ) {
       "CRM.$(function($) {
         $( '.crm-form-file' ).change(function() {
          var attr_name = this.id;
-         $('#'+attr_name).next('.previewImageName').remove();
-         $('#'+attr_name).css('color','transparent');
          const file = this.files[0];
          if (file){
-          var fileName = [file.name.split('.').shift(),file.name.split('.').pop().toLowerCase()].join('.');
           let reader = new FileReader();
           reader.onload = function(event){
            var ImagePreviewObj = $('#'+attr_name).parent().find('img').attr('id');
             $('#'+ImagePreviewObj).attr('src', event.target.result);
             $('#'+ImagePreviewObj).parent().find('span').hide();
-            $('<p>'+fileName+'</p>').addClass('previewImageName').insertAfter($('#'+attr_name));
           }
           reader.readAsDataURL(file);
          }
@@ -45,14 +41,10 @@ function cdntaxreceipts_civicrm_buildForm( $formName, &$form ) {
           if(!receiptLogo || receiptLogo.length > 0)
           {
             $('#ReceiptLogoPreview').attr('src', receiptLogo );
-            $('#receipt_logo').css('color','transparent');
-            $('#receipt_logo').attr('title', ' ' );
           }
           if(!receiptSignature || receiptSignature.length > 0)
           {
             $('#ReceiptSignaturePreview').attr('src', receiptSignature);
-            $('#receipt_signature').css('color','transparent');
-            $('#receipt_signature').attr('title', ' ' );
           }
         });
       });
