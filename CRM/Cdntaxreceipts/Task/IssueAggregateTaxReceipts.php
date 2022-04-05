@@ -89,6 +89,38 @@ class CRM_Cdntaxreceipts_Task_IssueAggregateTaxReceipts extends CRM_Contribute_F
         }
         else {
           $receipts[$issue_type][$year]['not_eligible']++;
+          $result = civicrm_api3('Contribution', 'get', [
+            'sequential' => 1,
+            'return' => ["contribution_source", "contribution_status_id", "payment_instrument_id", "total_amount", "financial_type_id", "contribution_page_id"],
+            'id' => $status['contribution_id'],
+          ]);
+          if($result['values'][0]['financial_type_id']) {
+            $fund = civicrm_api3('FinancialType', 'get', [
+              'sequential' => 1,
+              'id' => $result['values'][0]['financial_type_id'],
+            ]);
+            if($fund['values']) {
+              $result['values'][0]['fund'] = $fund['values'][0]['name'];
+            }
+          }
+          if($result['values'][0]['contribution_page_id']) {
+            $campaign = civicrm_api3('ContributionPage', 'get', [
+              'sequential' => 1,
+              'id' => $result['values'][0]['contribution_page_id'],
+            ]);
+            if($campaign['values']) {
+              $result['values'][0]['campaign'] = $campaign['values'][0]['title'];
+            }
+          }
+          $contact_details = civicrm_api3('Contact', 'getsingle', [
+            'sequential' => 1,
+            'id' => $status['contact_id'],
+            'return' => ["display_name"],
+          ]);
+
+          $receipts['ineligibles'][$year]['contact_ids'][$status['contact_id']]['display_name'] = $contact_details['display_name'];
+          $receipts['values'][0]['receipt_type'] = $receiptType;
+          $receipts['ineligibles'][$year]['contact_ids'][$status['contact_id']]['contributions'][$status['contribution_id']] = array_merge($status, $result['values'][0]);
           // $receipts[$issue_type][$year]['not_eligible_amount'] += $status['total_amount'];
         }
         // Global totals
@@ -115,7 +147,6 @@ class CRM_Cdntaxreceipts_Task_IssueAggregateTaxReceipts extends CRM_Contribute_F
       $receipts['totals']['total_eligibles_contrib'] = $receipts['totals']['original'] - $receipts['totals']['total_ineligibles_contrib'];
     }
     $this->_receipts = $receipts;
-
   }
 
   /**
@@ -135,20 +166,83 @@ class CRM_Cdntaxreceipts_Task_IssueAggregateTaxReceipts extends CRM_Contribute_F
     CRM_Core_Resources::singleton()->addStyleFile('org.civicrm.cdntaxreceipts', 'css/civicrm_cdntaxreceipts.css');
 
     $this->assign('receiptYears', $this->_years);
-
     // Re-calculte total amount
-    if($this->_receipts['original']) {
-      foreach($this->_receipts['original'] as $receipt_original_year => $receipts_originals) {
-        if($receipts_originals['contact_ids']) {
-          foreach($receipts_originals['contact_ids'] as $receipt_contacts) {
-            $this->_receipts['totals']['total_eligible_amount'][$receipt_original_year] += array_sum(array_column($receipt_contacts['contributions'], 'total_amount'));
+    $receiptTypes = ['original', 'duplicate'];
+    foreach($receiptTypes as $receiptType) {
+      if($this->_receipts[$receiptType]) {
+        foreach($this->_receipts[$receiptType] as $receipt_original_year => $receipts_originals) {
+          if($receipts_originals['contact_ids']) {
+            foreach($receipts_originals['contact_ids'] as $contact_id => $receipt_contacts) {
+              $contact_details = civicrm_api3('Contact', 'getsingle', [
+                'sequential' => 1,
+                'id' => $contact_id,
+                'return' => ["display_name"],
+              ]);
+
+              $this->_receipts[$receiptType][$receipt_original_year]['contact_ids'][$contact_id]['display_name'] = $contact_details['display_name'];
+              if($receiptType == 'original') {
+                $this->_receipts['totals']['total_eligible_amount'][$receipt_original_year] += array_sum(array_column($receipt_contacts['contributions'], 'total_amount'));
+              }
+              foreach($receipt_contacts['contributions'] as $contribution_id => $contribution) {
+                $result = civicrm_api3('Contribution', 'get', [
+                  'sequential' => 1,
+                  'return' => ["contribution_source", "contribution_status_id", "payment_instrument_id", "total_amount", "financial_type_id", "contribution_page_id"],
+                  'id' => $contribution['contribution_id'],
+                ]);
+                if($result['values'][0]['financial_type_id']) {
+                  $fund = civicrm_api3('FinancialType', 'get', [
+                    'sequential' => 1,
+                    'id' => $result['values'][0]['financial_type_id'],
+                  ]);
+                  if($fund['values']) {
+                    $result['values'][0]['fund'] = $fund['values'][0]['name'];
+                  }
+                }
+                if($result['values'][0]['contribution_page_id']) {
+                  $campaign = civicrm_api3('ContributionPage', 'get', [
+                    'sequential' => 1,
+                    'id' => $result['values'][0]['contribution_page_id'],
+                  ]);
+                  if($campaign['values']) {
+                    $result['values'][0]['campaign'] = $campaign['values'][0]['title'];
+                  }
+                }
+                if($receiptType !== 'original') {
+                  $result['values'][0]['eligible'] = false;
+                  if($receiptType == 'duplicate') {
+                    $result['values'][0]['eligibility_reason'] = '(Duplicate)';
+                  }
+                }
+                $receipt['values'][0]['receipt_type'] = $receiptType;
+                $this->_receipts[$receiptType][$receipt_original_year]['contact_ids'][$contact_id]['contributions'][$contribution_id] = array_merge($contribution, $result['values'][0]);
+              }
+            }
+          } else {
+            if($receiptType == 'original') {
+              $this->_receipts['totals']['total_eligible_amount'][$receipt_original_year] = 0;
+            }
           }
-        } else {
-          $this->_receipts['totals']['total_eligible_amount'][$receipt_original_year] = 0;
         }
       }
     }
+    // Add ineligibles to it as well
+    $receiptTypes[] = 'ineligibles';
+    $this->assign('receiptTypes', $receiptTypes);
+
     $this->assign('receiptList', $this->_receipts);
+
+    //Add ColumnHeaders for Table of Users Section
+    $columnHeaders = ['Received',
+      'Name',
+      'Amount',
+      'Fund',
+      'Campaign',
+      'Source',
+      'Method',
+      'Status',
+      'Eligibility',
+    ];
+    $this->assign('columnHeaders', $columnHeaders);
     // Add tax year as select box
     krsort($this->_years);
     foreach( $this->_years as $year ) {

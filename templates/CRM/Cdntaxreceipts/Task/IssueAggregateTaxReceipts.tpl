@@ -45,6 +45,12 @@
     {include file="CRM/Cdntaxreceipts/Task/PDFLetterCommon.tpl"}
   </table>
 </div>
+
+<div class="crm-block crm-content-block">
+  <h3>{ts domain='org.civicrm.cdntaxreceipts'}Table of Users{/ts}</h3>
+  {include file="CRM/Cdntaxreceipts/Task/ContributionTable.tpl"}
+</div>
+
 <div class="hidden-receipt-page">
   <p>{$form.receipt_option.original_only.html}<br />
      {$form.receipt_option.include_duplicates.html}</p>
