@@ -3,16 +3,12 @@
   <h3>Receipts Details</h3>
   <table class="crm-info-panel">
     <tr>
-      <td class="label bold-text">{ts domain='org.civicrm.cdntaxreceipts'}You have selected <strong>{$totalSelectedContributions}</strong> contributions. Of these, <strong>{$receiptList.totals.total_eligibles_contrib}</strong> are eligible originals.{/ts}</td>
-      <td></td><td></td><td></td>
-    </tr>
-  </table>
-  <table class="crm-info-panel">
-    <tr>
       <td class="label bold-text">{ts}Tax Year{/ts}</td>
       <td id="receipt_year">
         {$form.receipt_year.html}
       </td>
+      <td class="label bold-weight">{ts}Contributions{/ts}</td>
+      <td>{$totalSelectedContributions}</td>
       <td></td><td></td>
     </tr>
   </table>
@@ -20,7 +16,7 @@
     <tr>
       <td class="label bold-weight">{ts}Contacts{/ts}</td>
       <td id="total_contacts" class="label">{$receiptList.original.$defaultYear.total_contacts}</td>
-      <td class="label display-cell-padding bold-weight">{ts}Contributions{/ts}</td>
+      <td class="label display-cell-padding bold-weight">{ts}Eligible Contributions{/ts}</td>
       {math equation="(x - y)" x=$receiptList.original.$defaultYear.total_contrib y=$receiptList.original.$defaultYear.not_eligible assign="total_contributions"}
       <td id="total_contributions" class="label">{$total_contributions}</td>
       <td></td>
@@ -28,7 +24,7 @@
     <tr>
       <td class="label bold-weight">{ts}Total Amount{/ts}</td>
       <td id="total_amount">{$receiptList.totals.total_eligible_amount.$defaultYear|crmMoney}</td>
-      <td class="label display-cell-padding bold-weight">{ts}Skipped Contributions{/ts}</td>
+      <td class="label display-cell-padding bold-weight">{ts}Ineligible Contributions{/ts}</td>
       <td id="skipped_contributions" class="label">{$receiptList.original.$defaultYear.not_eligible+$receiptList.duplicate.$defaultYear.total_contrib}</td>
       <td></td>
     </tr>
