@@ -93,6 +93,15 @@
   background-color: #f2f2f2 !important;
 }
 
-.crm-info-panel #receipt_year {
-  width:33%;
+td#receipt_year {
+  width: 7% !important;
+}
+
+.crm-contribution-view-form-block .crm-info-panel td {
+  vertical-align: inherit;
+}
+
+table.table-of-users tr.duplicate-receipt-contributions td, table.table-of-users tr.ineligibles-receipt-contributions td {
+  background: #f2f2f2 !important;
+  background-color: #f2f2f2 !important;
 }
