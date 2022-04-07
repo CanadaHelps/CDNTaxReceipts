@@ -1,21 +1,25 @@
 {* Confirmation of tax receipts  *}
 <div class="crm-block crm-content-block crm-contribution-view-form-block">
   <h3>Receipts Details</h3>
-  <table class="crm-info-panel">
+  <table class="crm-stripes-rows crm-info-panel">
     <tr>
       <td class="label bold-text">{ts}Tax Year{/ts}</td>
       <td id="receipt_year">
         {$form.receipt_year.html}
       </td>
-      <td class="label bold-weight">{ts}Contributions{/ts}</td>
-      <td>{$totalSelectedContributions}</td>
-      <td></td><td></td>
+      <td class="label display-cell-padding bold-weight">{ts}Contributions{/ts}</td>
+      {math equation="(x + y)" x=$receiptList.original.$defaultYear.total_contrib y=$receiptList.duplicate.$defaultYear.total_contrib assign="count_contributions"}
+      <td id="count_contributions">{$count_contributions}</td>
     </tr>
   </table>
   <table class="crm-stripes-rows crm-info-panel border-top-td crm-stripes-tr">
     <tr>
       <td class="label bold-weight">{ts}Contacts{/ts}</td>
-      <td id="total_contacts" class="label">{$receiptList.original.$defaultYear.total_contacts}</td>
+      {assign var="total_contacts" value="`$receiptList.original.$defaultYear.total_contacts`"}
+      {if $receiptList.original.$defaultYear.total_contacts eq 0 }
+      {math equation="(x + y + z)" x=$receiptList.original.$defaultYear.total_contacts y=$receiptList.duplicate.$defaultYear.total_contacts z=$receiptList.ineligibles.$defaultYear.contact_ids|@count assign="total_contacts"}
+      {/if}
+      <td id="total_contacts" class="label">{$total_contacts}</td>
       <td class="label display-cell-padding bold-weight">{ts}Eligible Contributions{/ts}</td>
       {math equation="(x - y)" x=$receiptList.original.$defaultYear.total_contrib y=$receiptList.original.$defaultYear.not_eligible assign="total_contributions"}
       <td id="total_contributions" class="label">{$total_contributions}</td>
@@ -77,8 +81,14 @@
         var tax_year = $('option:selected', this).text();
         var total_contributions = receipts.original[tax_year].total_contrib-receipts.original[tax_year].not_eligible;
         var total_amount = receipts.totals.total_eligible_amount[tax_year];
+        var count_contributions = receipts.original[tax_year].total_contrib + receipts.duplicate[tax_year].total_contrib;
+        var total_contacts = receipts.original[tax_year].total_contacts;
+        if(total_contacts === 0) {
+          total_contacts = receipts.original[tax_year].total_contacts + receipts.duplicate[tax_year].total_contacts + Object.keys(receipts.ineligibles[2021].contact_ids).length;
+        }
         $('#total_contributions').text(total_contributions);
-        $('#total_contacts').text(receipts.original[tax_year].total_contacts);
+        $('#count_contributions').text(count_contributions);
+        $('#total_contacts').text(total_contacts);
         $('#total_amount').text("$ "+ (total_amount).toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,'));
         $('#skipped_contributions').text(receipts.original[tax_year].not_eligible+receipts.duplicate[tax_year].total_contrib);
       });
