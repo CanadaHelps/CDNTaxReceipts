@@ -112,6 +112,10 @@ class CRM_Cdntaxreceipts_Task_IssueAggregateTaxReceipts extends CRM_Contribute_F
               $result['values'][0]['campaign'] = $campaign['values'][0]['title'];
             }
           }
+          if($status['receive_date']) {
+            $status['receive_time'] = date("h:i A", strtotime($status['receive_date']));
+            $status['receive_date'] = date("F jS, Y", strtotime($status['receive_date']));
+          }
           $contact_details = civicrm_api3('Contact', 'getsingle', [
             'sequential' => 1,
             'id' => $status['contact_id'],
@@ -207,6 +211,10 @@ class CRM_Cdntaxreceipts_Task_IssueAggregateTaxReceipts extends CRM_Contribute_F
                     $result['values'][0]['campaign'] = $campaign['values'][0]['title'];
                   }
                 }
+                if($contribution['receive_date']) {
+                  $contribution['receive_time'] = date("h:i A", strtotime($contribution['receive_date']));
+                  $contribution['receive_date'] = date("F jS, Y", strtotime($contribution['receive_date']));
+                }
                 if($receiptType !== 'original') {
                   $result['values'][0]['eligible'] = false;
                   if($receiptType == 'duplicate') {
@@ -228,7 +236,6 @@ class CRM_Cdntaxreceipts_Task_IssueAggregateTaxReceipts extends CRM_Contribute_F
     // Add ineligibles to it as well
     $receiptTypes[] = 'ineligibles';
     $this->assign('receiptTypes', $receiptTypes);
-    // print_r(json_encode($this->_receipts));die;
     $this->assign('receiptList', $this->_receipts);
 
     //Add ColumnHeaders for Table of Users Section

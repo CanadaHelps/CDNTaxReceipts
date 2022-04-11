@@ -44,7 +44,7 @@
       {foreach from=$receiptList.$receiptType.$defaultYear.contact_ids item=contact}
         {foreach from=$contact.contributions item=contribution}
         <tr class="{$receiptType}-receipt-contributions contribution-id-{$contribution.contribution_id}">
-          <td>{$contribution.receive_date|date_format:"%B %e, %Y"}</td>
+          <td>{$contribution.receive_date}<br/>{$contribution.receive_time}</td>
           <td><a href="{crmURL p='dms/contact/view' q="reset=1&cid=`$contribution.contact_id`"}">{$contact.display_name}</a></td>
           <td><a href="{crmURL p='dms/contact/view/contribution' q="reset=1&cid=`$contribution.contact_id`&id=`$contribution.contribution_id`&action=view&context=search&selectedChild=contribute"}">{$contribution.total_amount|crmMoney:$row.currency}</a></td>
           <td>{$contribution.fund}</td>

@@ -101,7 +101,7 @@
               if(!contribution.campaign) {
                 contribution.campaign = '';
               }
-              if(contribution.eligible) {
+              if(contribution.eligible === true) {
                 contribution.eligible = 'Eligible';
                 contribution.eligibility_reason = '';
               } else {
@@ -110,7 +110,9 @@
                   contribution.eligibility_reason = '';
                 }
               }
-              myTable += '<tr><td>'+contribution.receive_date+'</td><td>'+contact.display_name+'</td><td>$ '+contribution.total_amount+'</td><td>'+contribution.fund+'</td><td>'+contribution.campaign+'</td><td>'+contribution.contribution_source+'</td><td>'+contribution.payment_instrument+'</td><td>'+contribution.contribution_status+'</td><td>'+contribution.eligible+'<br/>'+contribution.eligibility_reason+'</td></tr>';
+              var contactUrl = '/dms/contact/view?reset=1&cid='+contribution.contact_id;
+              var contributionUrl = '/dms/contact/view/contribution?reset=1&cid='+contribution.contact_id+'&id='+contribution.contribution_id+'&action=view&context=search&selectedChild=contribute';
+              myTable += '<tr class="'+receiptType+'-receipt-contributions contribution-id-'+contribution.contribution_id+'"><td>'+contribution.receive_date+'<br/>'+contribution.receive_time+'</td><td><a href="'+contactUrl+'">'+contact.display_name+'</a></td><td><a href="'+contributionUrl+'">$ '+contribution.total_amount+'</a></td><td>'+contribution.fund+'</td><td>'+contribution.campaign+'</td><td>'+contribution.contribution_source+'</td><td>'+contribution.payment_instrument+'</td><td>'+contribution.contribution_status+'</td><td>'+contribution.eligible+'<br/>'+contribution.eligibility_reason+'</td></tr>';
             });
           });
         });
