@@ -77,20 +77,46 @@
   <script type="text/javascript">
     CRM.$(function($) {
       var receipts = {/literal}{$receiptList|@json_encode}{literal};
+      var receiptTypes = {/literal}{$receiptTypes|@json_encode}{literal};
       $("#receipt_year").change(function(){
         var tax_year = $('option:selected', this).text();
         var total_contributions = receipts.original[tax_year].total_contrib-receipts.original[tax_year].not_eligible;
         var total_amount = receipts.totals.total_eligible_amount[tax_year];
         var count_contributions = receipts.original[tax_year].total_contrib + receipts.duplicate[tax_year].total_contrib;
         var total_contacts = receipts.original[tax_year].total_contacts;
+        var myTable = '';
         if(total_contacts === 0) {
-          total_contacts = receipts.original[tax_year].total_contacts + receipts.duplicate[tax_year].total_contacts + Object.keys(receipts.ineligibles[2021].contact_ids).length;
+          total_contacts = receipts.original[tax_year].total_contacts + receipts.duplicate[tax_year].total_contacts + Object.keys(receipts.ineligibles[tax_year].contact_ids).length;
         }
         $('#total_contributions').text(total_contributions);
         $('#count_contributions').text(count_contributions);
         $('#total_contacts').text(total_contacts);
         $('#total_amount').text("$ "+ (total_amount).toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,'));
         $('#skipped_contributions').text(receipts.original[tax_year].not_eligible+receipts.duplicate[tax_year].total_contrib);
+
+        //Append new values for table-of-users
+        $.each(receiptTypes, function(key, receiptType){
+          $.each(receipts[receiptType][tax_year].contact_ids, function(cid, contact){
+            $.each(contact.contributions, function(contrId, contribution){
+              if(!contribution.campaign) {
+                contribution.campaign = '';
+              }
+              if(contribution.eligible === true) {
+                contribution.eligible = 'Eligible';
+                contribution.eligibility_reason = '';
+              } else {
+                contribution.eligible = 'Not Eligible';
+                if(!contribution.eligibility_reason) {
+                  contribution.eligibility_reason = '';
+                }
+              }
+              var contactUrl = '/dms/contact/view?reset=1&cid='+contribution.contact_id;
+              var contributionUrl = '/dms/contact/view/contribution?reset=1&cid='+contribution.contact_id+'&id='+contribution.contribution_id+'&action=view&context=search&selectedChild=contribute';
+              myTable += '<tr class="'+receiptType+'-receipt-contributions contribution-id-'+contribution.contribution_id+'"><td>'+contribution.receive_date+'<br/>'+contribution.receive_time+'</td><td><a href="'+contactUrl+'">'+contact.display_name+'</a></td><td><a href="'+contributionUrl+'">$ '+contribution.total_amount+'</a></td><td>'+contribution.fund+'</td><td>'+contribution.campaign+'</td><td>'+contribution.contribution_source+'</td><td>'+contribution.payment_instrument+'</td><td>'+contribution.contribution_status+'</td><td>'+contribution.eligible+'<br/>'+contribution.eligibility_reason+'</td></tr>';
+            });
+          });
+        });
+        $('.table-of-users tbody').html(myTable);
       });
     });
   </script>
