@@ -31,17 +31,66 @@ class CRM_Cdntaxreceipts_Task_IssueSingleTaxReceipts extends CRM_Contribute_Form
                        'duplicate' => array('email' => 0, 'print' => 0, 'data' => 0), );
 
     // count and categorize contributions
+    $receiptList = [];
     foreach ( $this->_contributionIds as $id ) {
       if ( cdntaxreceipts_eligibleForReceipt($id) ) {
         list($issued_on, $receipt_id) = cdntaxreceipts_issued_on($id);
         $key = empty($issued_on) ? 'original' : 'duplicate';
         list( $method, $email ) = cdntaxreceipts_sendMethodForContribution($id);
         $receipts[$key][$method]++;
+      } else {
+        $key = 'ineligibles';
+      }
+      $result = civicrm_api3('Contribution', 'get', [
+        'sequential' => 1,
+        'return' => ["contribution_source", "contribution_status_id", "payment_instrument_id", "total_amount", "financial_type_id", "contribution_page_id", "receive_date"],
+        'id' => $id,
+      ]);
+      if($result['values'][0]['receive_date']) {
+        $result['values'][0]['receive_time'] = date("h:i A", strtotime($result['values'][0]['receive_date']));
+        $result['values'][0]['receive_year'] = date("Y", strtotime($result['values'][0]['receive_date']));
+        $result['values'][0]['receive_date'] = date("F jS, Y", strtotime($result['values'][0]['receive_date']));
+      }
+      if($result['values'][0]['financial_type_id']) {
+        $fund = civicrm_api3('FinancialType', 'get', [
+          'sequential' => 1,
+          'id' => $result['values'][0]['financial_type_id'],
+        ]);
+        if($fund['values']) {
+          $result['values'][0]['fund'] = $fund['values'][0]['name'];
+        }
+      }
+      if($result['values'][0]['contribution_page_id']) {
+        $campaign = civicrm_api3('ContributionPage', 'get', [
+          'sequential' => 1,
+          'id' => $result['values'][0]['contribution_page_id'],
+        ]);
+        if($campaign['values']) {
+          $result['values'][0]['campaign'] = $campaign['values'][0]['title'];
+        }
+      }
+      $result['values'][0]['eligible'] = true;
+      if($key !== 'original') {
+        $result['values'][0]['eligible'] = false;
+        if($key == 'duplicate') {
+          $result['values'][0]['eligibility_reason'] = '(Duplicate)';
+        }
+      }
+      if($result['values'][0]['contact_id']) {
+        $contact_details = civicrm_api3('Contact', 'getsingle', [
+          'sequential' => 1,
+          'id' => $result['values'][0]['contact_id'],
+          'return' => ["display_name"],
+        ]);
+      }
+      if($contact_details) {
+        $receiptList[$key]['contact_ids'][$result['values'][0]['contact_id']]['display_name'] = $contact_details['display_name'];
+        $receiptList[$key]['contact_ids'][$result['values'][0]['contact_id']]['contributions'][$result['values'][0]['id']] = $result['values'][0];
       }
     }
-
+    $this->_receiptList = $receiptList;
+    // print_r(json_encode($receiptList));die;
     $this->_receipts = $receipts;
-
   }
 
   /**
@@ -67,6 +116,8 @@ class CRM_Cdntaxreceipts_Task_IssueSingleTaxReceipts extends CRM_Contribute_Form
     $this->assign('originalTotal', $originalTotal);
     $this->assign('duplicateTotal', $duplicateTotal);
     $this->assign('receiptTotal', $receiptTotal);
+    $this->assign('receiptList', $this->_receiptList);
+    $this->assign('receipt_type', 'single');
 
     $delivery_method = Civi::settings()->get('delivery_method') ?? CDNTAX_DELIVERY_PRINT_ONLY;
     $this->assign('deliveryMethod', $delivery_method);
@@ -77,6 +128,23 @@ class CRM_Cdntaxreceipts_Task_IssueSingleTaxReceipts extends CRM_Contribute_Form
     if ($delivery_method != CDNTAX_DELIVERY_DATA_ONLY) {
       $this->add('checkbox', 'is_preview', ts('Run in preview mode?', array('domain' => 'org.civicrm.cdntaxreceipts')));
     }
+
+    //Add ColumnHeaders for Table of Users Section
+    $columnHeaders = ['Received',
+      'Name',
+      'Amount',
+      'Fund',
+      'Campaign',
+      'Source',
+      'Method',
+      'Status',
+      'Eligibility',
+    ];
+    $this->assign('columnHeaders', $columnHeaders);
+
+    // Add Receipt Types
+    $receiptTypes = ['original', 'duplicate', 'ineligibles'];
+    $this->assign('receiptTypes', $receiptTypes);
 
     //CRM-921: Add delivery Method to form
     $delivery_method = CRM_Core_BAO_Setting::getItem(CDNTAX_SETTINGS, 'delivery_method');
