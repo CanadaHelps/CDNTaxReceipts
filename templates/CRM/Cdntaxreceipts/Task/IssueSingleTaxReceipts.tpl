@@ -31,6 +31,10 @@
     {include file="CRM/Cdntaxreceipts/Task/PDFLetterCommon.tpl"}
   </table>
 </div>
+<div class="crm-block crm-content-block">
+  <h3>{ts domain='org.civicrm.cdntaxreceipts'}Table of Users{/ts}</h3>
+  {include file="CRM/Cdntaxreceipts/Task/ContributionTable.tpl"}
+</div>
 <div class="crm-block crm-content-block crm-contribution-thank-you-block">
   <h3>{ts domain='org.civicrm.cdntaxreceipts'}Delivery Preference{/ts}</h3>
   <table class="crm-info-panel">

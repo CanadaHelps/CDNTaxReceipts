@@ -41,7 +41,12 @@
     </thead>
     <tbody id='table-of-users-receipt'>
     {foreach from=$receiptTypes item=receiptType}
-      {foreach from=$receiptList.$receiptType.$defaultYear.contact_ids item=contact}
+      {if $receipt_type eq 'single'}
+      {assign var=contact_ids value=$receiptList.$receiptType.contact_ids}
+      {else}
+      {assign var=contact_ids value=$receiptList.$receiptType.$defaultYear.contact_ids}
+      {/if}
+      {foreach from=$contact_ids item=contact}
         {foreach from=$contact.contributions item=contribution}
         <tr class="{$receiptType}-receipt-contributions contribution-id-{$contribution.contribution_id}">
           <td>{$contribution.receive_date}<br/>{$contribution.receive_time}</td>
