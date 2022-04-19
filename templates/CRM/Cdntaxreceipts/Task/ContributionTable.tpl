@@ -41,13 +41,13 @@
     </thead>
     <tbody id='table-of-users-receipt'>
     {foreach from=$receiptTypes item=receiptType}
-      {if $receipt_type eq 'single'}
-      {assign var=contact_ids value=$receiptList.$receiptType.contact_ids}
-      {else}
-      {assign var=contact_ids value=$receiptList.$receiptType.$defaultYear.contact_ids}
-      {/if}
-      {foreach from=$contact_ids item=contact}
+      {foreach from=$receiptList.$receiptType.$defaultYear.contact_ids item=contact}
         {foreach from=$contact.contributions item=contribution}
+        {if $receipt_type eq 'single'}
+          {if $receiptType eq 'duplicate'}
+            {assign var="receiptType" value="duplicate-single"}
+          {/if}
+        {/if}
         <tr class="{$receiptType}-receipt-contributions contribution-id-{$contribution.contribution_id}">
           <td>{$contribution.receive_date}<br/>{$contribution.receive_time}</td>
           <td><a href="{crmURL p='dms/contact/view' q="reset=1&cid=`$contribution.contact_id`"}">{$contact.display_name}</a></td>
