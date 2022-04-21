@@ -64,8 +64,13 @@
 }
 
 #crm-main-content-wrapper table .display-cell-padding {
-  padding-left: 300px !important;
+  padding-left: 250px !important;
 }
+
+#crm-main-content-wrapper table .display-cell-padding-left {
+  padding-left: 322px !important;
+}
+
 
 .bold-weight {
   font-weight: bold !important;

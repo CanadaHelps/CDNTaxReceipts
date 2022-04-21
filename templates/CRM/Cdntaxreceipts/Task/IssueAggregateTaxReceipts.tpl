@@ -7,14 +7,14 @@
       <td id="receipt_year">
         {$form.receipt_year.html}
       </td>
-      <td class="label display-cell-padding bold-weight">{ts}Contributions{/ts}</td>
+      <td class="label display-cell-padding-left bold-weight">{ts}Contributions{/ts}</td>
       {math equation="(x + y)" x=$receiptList.original.$defaultYear.total_contrib y=$receiptList.duplicate.$defaultYear.total_contrib assign="count_contributions"}
       <td id="count_contributions">{$count_contributions}</td>
     </tr>
   </table>
   <table class="crm-stripes-rows crm-info-panel border-top-td crm-stripes-tr">
     <tr>
-      <td class="label bold-weight">{ts}Contacts{/ts}</td>
+      <td class="label bold-weight">{ts}Eligible Contacts{/ts}</td>
       {assign var="total_contacts" value="`$receiptList.original.$defaultYear.total_contacts`"}
       {if $receiptList.original.$defaultYear.total_contacts eq 0 }
       {math equation="(x + y + z)" x=$receiptList.original.$defaultYear.total_contacts y=$receiptList.duplicate.$defaultYear.total_contacts z=$receiptList.ineligibles.$defaultYear.contact_ids|@count assign="total_contacts"}
@@ -26,7 +26,7 @@
       <td></td>
     </tr>
     <tr>
-      <td class="label bold-weight">{ts}Total Amount{/ts}</td>
+      <td class="label bold-weight">{ts}Total Eligible Amount{/ts}</td>
       <td id="total_amount">{$receiptList.totals.total_eligible_amount.$defaultYear|crmMoney}</td>
       <td class="label display-cell-padding bold-weight">{ts}Ineligible Contributions{/ts}</td>
       <td id="skipped_contributions" class="label">{$receiptList.original.$defaultYear.not_eligible+$receiptList.duplicate.$defaultYear.total_contrib}</td>
