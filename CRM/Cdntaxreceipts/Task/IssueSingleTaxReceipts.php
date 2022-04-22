@@ -93,6 +93,16 @@ class CRM_Cdntaxreceipts_Task_IssueSingleTaxReceipts extends CRM_Contribute_Form
       $receiptList[$key][$result['values'][0]['receive_year']]['total_amount'] = round($receiptList[$key][$result['values'][0]['receive_year']]['total_amount'], 2);
       $receiptList[$key][$result['values'][0]['receive_year']]['total_contacts'] = count($receiptList[$key][$result['values'][0]['receive_year']]['contact_ids']);
     }
+    $receiptTypes = ['original', 'duplicate', 'ineligibles'];
+    foreach($receiptTypes as $rtype) {
+      foreach($this->_years as $year) {
+        if(empty($receiptList[$rtype][$year])) {
+          $receiptList[$rtype][$year]['total_contacts'] = 0;
+          $receiptList[$rtype][$year]['total_contrib'] = 0;
+          $receiptList[$rtype][$year]['total_amount'] = 0;
+        }
+      }
+    }
     $this->_receiptList = $receiptList;
     $this->_receipts = $receipts;
   }
@@ -301,6 +311,14 @@ class CRM_Cdntaxreceipts_Task_IssueSingleTaxReceipts extends CRM_Contribute_Form
       $contribution->id = $contributionId;
       if ( ! $contribution->find( TRUE ) ) {
         CRM_Core_Error::fatal( "CDNTaxReceipts: Could not find corresponding contribution id." );
+      }
+
+      // Only process Contributions of selected Year
+      if($contribution->receive_date) {
+        $receive_year = 'issue_'.date("Y", strtotime($contribution->receive_date));
+        if($receive_year !== $params['receipt_year']) {
+          continue;
+        }
       }
 
       // 2. If Contribution is eligible for receipting, issue the tax receipt.  Otherwise ignore.

@@ -1,24 +1,20 @@
 {* Confirmation of tax receipts  *}
 <div class="crm-block crm-content-block crm-contribution-view-form-block">
   <h3>Receipts Details</h3>
-  <table class="crm-stripes-rows crm-info-panel">
+  <table class="crm-stripes-rows crm-info-panel border-top-td crm-stripes-tr">
     <tr>
       <td class="label bold-text">{ts}Tax Year{/ts}</td>
       <td id="receipt_year">
         {$form.receipt_year.html}
       </td>
-      <td class="label display-cell-padding-left bold-weight">{ts}Contributions{/ts}</td>
+      <td class="label display-cell-padding bold-weight">{ts}Contributions{/ts}</td>
       {math equation="(x + y)" x=$receiptList.original.$defaultYear.total_contrib y=$receiptList.duplicate.$defaultYear.total_contrib assign="count_contributions"}
       <td id="count_contributions">{$count_contributions}</td>
+      <td></td>
     </tr>
-  </table>
-  <table class="crm-stripes-rows crm-info-panel border-top-td crm-stripes-tr">
     <tr>
       <td class="label bold-weight">{ts}Eligible Contacts{/ts}</td>
       {assign var="total_contacts" value="`$receiptList.original.$defaultYear.total_contacts`"}
-      {if $receiptList.original.$defaultYear.total_contacts eq 0 }
-      {math equation="(x + y + z)" x=$receiptList.original.$defaultYear.total_contacts y=$receiptList.duplicate.$defaultYear.total_contacts z=$receiptList.ineligibles.$defaultYear.contact_ids|@count assign="total_contacts"}
-      {/if}
       <td id="total_contacts" class="label">{$total_contacts}</td>
       <td class="label display-cell-padding bold-weight">{ts}Eligible Contributions{/ts}</td>
       {math equation="(x - y)" x=$receiptList.original.$defaultYear.total_contrib y=$receiptList.original.$defaultYear.not_eligible assign="total_contributions"}
@@ -27,9 +23,9 @@
     </tr>
     <tr>
       <td class="label bold-weight">{ts}Total Eligible Amount{/ts}</td>
-      <td id="total_amount">{$receiptList.totals.total_eligible_amount.$defaultYear|crmMoney}</td>
+      <td id="total_amount" class="display-cell-padding-right">{$receiptList.totals.total_eligible_amount.$defaultYear|crmMoney}</td>
       <td class="label display-cell-padding bold-weight">{ts}Ineligible Contributions{/ts}</td>
-      <td id="skipped_contributions" class="label">{$receiptList.original.$defaultYear.not_eligible+$receiptList.duplicate.$defaultYear.total_contrib}</td>
+      <td id="skipped_contributions" class="label display-cell-padding-right">{$receiptList.original.$defaultYear.not_eligible+$receiptList.duplicate.$defaultYear.total_contrib}</td>
       <td></td>
     </tr>
   </table>
@@ -85,9 +81,6 @@
         var count_contributions = receipts.original[tax_year].total_contrib + receipts.duplicate[tax_year].total_contrib;
         var total_contacts = receipts.original[tax_year].total_contacts;
         var myTable = '';
-        if(total_contacts === 0) {
-          total_contacts = receipts.original[tax_year].total_contacts + receipts.duplicate[tax_year].total_contacts + Object.keys(receipts.ineligibles[tax_year].contact_ids).length;
-        }
         $('#total_contributions').text(total_contributions);
         $('#count_contributions').text(count_contributions);
         $('#total_contacts').text(total_contacts);
@@ -112,7 +105,7 @@
               }
               var contactUrl = '/dms/contact/view?reset=1&cid='+contribution.contact_id;
               var contributionUrl = '/dms/contact/view/contribution?reset=1&cid='+contribution.contact_id+'&id='+contribution.contribution_id+'&action=view&context=search&selectedChild=contribute';
-              myTable += '<tr class="'+receiptType+'-receipt-contributions contribution-id-'+contribution.contribution_id+'"><td>'+contribution.receive_date+'<br/>'+contribution.receive_time+'</td><td><a href="'+contactUrl+'">'+contact.display_name+'</a></td><td><a href="'+contributionUrl+'">$ '+contribution.total_amount+'</a></td><td>'+contribution.fund+'</td><td>'+contribution.campaign+'</td><td>'+contribution.contribution_source+'</td><td>'+contribution.payment_instrument+'</td><td>'+contribution.contribution_status+'</td><td>'+contribution.eligible+'<br/>'+contribution.eligibility_reason+'</td></tr>';
+              myTable += '<tr class="'+receiptType+'-receipt-contributions contribution-id-'+contribution.contribution_id+'"><td>'+contribution.receive_date+'<br/>'+contribution.receive_time+'</td><td><a href="'+contactUrl+'">'+contact.display_name+'</a></td><td><a href="'+contributionUrl+'">$&nbsp;'+contribution.total_amount+'</a></td><td>'+contribution.fund+'</td><td>'+contribution.campaign+'</td><td>'+contribution.contribution_source+'</td><td>'+contribution.payment_instrument+'</td><td>'+contribution.contribution_status+'</td><td>'+contribution.eligible+'<br/>'+contribution.eligibility_reason+'</td></tr>';
             });
           });
         });

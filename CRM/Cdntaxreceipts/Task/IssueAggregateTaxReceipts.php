@@ -236,6 +236,15 @@ class CRM_Cdntaxreceipts_Task_IssueAggregateTaxReceipts extends CRM_Contribute_F
     // Add ineligibles to it as well
     $receiptTypes[] = 'ineligibles';
     $this->assign('receiptTypes', $receiptTypes);
+    foreach($receiptTypes as $rtype) {
+      foreach($this->_years as $year) {
+        if(empty($this->_receipts[$rtype][$year])) {
+          $this->_receipts[$rtype][$year]['total_contacts'] = 0;
+          $this->_receipts[$rtype][$year]['total_contrib'] = 0;
+          $this->_receipts[$rtype][$year]['total_amount'] = 0;
+        }
+      }
+    }
     $this->assign('receiptList', $this->_receipts);
     $this->assign('receipt_type', 'aggregate');
     //Add ColumnHeaders for Table of Users Section

@@ -64,13 +64,12 @@
 }
 
 #crm-main-content-wrapper table .display-cell-padding {
-  padding-left: 250px !important;
+  padding-left: 200px !important;
 }
 
-#crm-main-content-wrapper table .display-cell-padding-left {
-  padding-left: 322px !important;
+#crm-main-content-wrapper table .display-cell-padding-right {
+  padding-right: 50px !important;
 }
-
 
 .bold-weight {
   font-weight: bold !important;
@@ -93,13 +92,9 @@
   width: 10px;
 }
 
-.crm-container table.crm-stripes-tr tr:nth-child(odd) td {
+.crm-container table.crm-stripes-tr tr:nth-last-child(2n) td {
   background: #f2f2f2 !important;
   background-color: #f2f2f2 !important;
-}
-
-td#receipt_year {
-  width: 7% !important;
 }
 
 .crm-contribution-view-form-block .crm-info-panel td {
