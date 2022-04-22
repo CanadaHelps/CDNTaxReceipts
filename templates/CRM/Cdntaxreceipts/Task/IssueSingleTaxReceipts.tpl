@@ -1,24 +1,20 @@
 {* Confirmation of tax receipts  *}
 <div class="crm-block crm-content-block crm-contribution-view-form-block">
   <h3>Receipts Details</h3>
-  <table class="crm-stripes-rows crm-info-panel">
+  <table class="crm-stripes-rows crm-info-panel border-top-td crm-stripes-tr">
     <tr>
       <td class="label bold-text">{ts}Tax Year{/ts}</td>
       <td id="receipt_year">
         {$form.receipt_year.html}
       </td>
-      <td class="label display-cell-padding-left bold-weight">{ts}Contributions{/ts}</td>
+      <td class="label display-cell-padding bold-weight">{ts}Contributions{/ts}</td>
       {math equation="(x + y + z)" x=$receiptList.original.$defaultYear.total_contrib y=$receiptList.duplicate.$defaultYear.total_contrib z=$receiptList.ineligibles.$defaultYear.total_contrib assign="count_contributions"}
       <td id="count_contributions">{$count_contributions}</td>
+      <td></td>
     </tr>
-  </table>
-  <table class="crm-stripes-rows crm-info-panel border-top-td crm-stripes-tr">
     <tr>
       <td class="label bold-weight">{ts}Eligible Contacts{/ts}</td>
       {math equation="(x + y)" x=$receiptList.original.$defaultYear.total_contacts y=$receiptList.duplicate.$defaultYear.total_contacts assign="total_contacts"}
-      {if $receiptList.original.$defaultYear.total_contacts eq 0 }
-      {math equation="(x + y + z)" x=$receiptList.original.$defaultYear.total_contacts y=$receiptList.duplicate.$defaultYear.total_contacts z=$receiptList.ineligibles.$defaultYear.total_contacts assign="total_contacts"}
-      {/if}
       <td id="total_contacts" class="label">{$total_contacts}</td>
       <td class="label display-cell-padding bold-weight">{ts}Eligible Contributions{/ts}</td>
       {math equation="(x + y)" x=$receiptList.original.$defaultYear.total_contrib y=$receiptList.duplicate.$defaultYear.total_contrib assign="total_contributions"}
@@ -28,9 +24,9 @@
     <tr>
       <td class="label bold-weight">{ts}Total Eligible Amount{/ts}</td>
       {math equation="(x + y)" x=$receiptList.original.$defaultYear.total_amount y=$receiptList.duplicate.$defaultYear.total_amount assign="total_amount"}
-      <td id="total_amount">{$total_amount|crmMoney}</td>
+      <td id="total_amount" class="display-cell-padding-right">{$total_amount|crmMoney}</td>
       <td class="label display-cell-padding bold-weight">{ts}Ineligible Contributions{/ts}</td>
-      <td id="skipped_contributions" class="label">{$receiptList.ineligibles.$defaultYear.total_contrib}</td>
+      <td id="skipped_contributions" class="label display-cell-padding-right">{$receiptList.ineligibles.$defaultYear.total_contrib}</td>
       <td></td>
     </tr>
   </table>
@@ -90,15 +86,7 @@
       var receiptTypes = {/literal}{$receiptTypes|@json_encode}{literal};
       $("#receipt_year").change(function(){
         var tax_year = $('option:selected', this).text();
-        if (typeof receipts.original[tax_year] === "undefined" || receipts.original[tax_year] === null) {
-          receipts.original[tax_year] = {'total_contrib': 0, 'total_contacts': 0, 'total_amount': 0};
-        }
-        if (typeof receipts.duplicate[tax_year] === "undefined" || receipts.duplicate[tax_year] === null) {
-          receipts.duplicate[tax_year] = {'total_contrib': 0, 'total_contacts': 0, 'total_amount': 0};
-        }
-        if (typeof receipts.ineligibles[tax_year] === "undefined" || receipts.ineligibles[tax_year] === null) {
-          receipts.ineligibles[tax_year] = {'total_contrib': 0, 'total_contacts': 0, 'total_amount': 0};
-        }
+        
         var total_contributions = receipts.original[tax_year].total_contrib+receipts.duplicate[tax_year].total_contrib;
         var total_amount = receipts.original[tax_year].total_amount+receipts.duplicate[tax_year].total_amount;
         var count_contributions = receipts.original[tax_year].total_contrib + receipts.duplicate[tax_year].total_contrib + receipts.ineligibles[tax_year].total_contrib;
@@ -134,7 +122,7 @@
               if(receiptType == 'duplicate') {
                 receiptType = 'duplicate-single';
               }
-              myTable += '<tr class="'+receiptType+'-receipt-contributions contribution-id-'+contribution.contribution_id+'"><td>'+contribution.receive_date+'<br/>'+contribution.receive_time+'</td><td><a href="'+contactUrl+'">'+contact.display_name+'</a></td><td><a href="'+contributionUrl+'">$ '+contribution.total_amount+'</a></td><td>'+contribution.fund+'</td><td>'+contribution.campaign+'</td><td>'+contribution.contribution_source+'</td><td>'+contribution.payment_instrument+'</td><td>'+contribution.contribution_status+'</td><td>'+contribution.eligible+'<br/>'+contribution.eligibility_reason+'</td></tr>';
+              myTable += '<tr class="'+receiptType+'-receipt-contributions contribution-id-'+contribution.contribution_id+'"><td>'+contribution.receive_date+'<br/>'+contribution.receive_time+'</td><td><a href="'+contactUrl+'">'+contact.display_name+'</a></td><td><a href="'+contributionUrl+'">$&nbsp;'+contribution.total_amount+'</a></td><td>'+contribution.fund+'</td><td>'+contribution.campaign+'</td><td>'+contribution.contribution_source+'</td><td>'+contribution.payment_instrument+'</td><td>'+contribution.contribution_status+'</td><td>'+contribution.eligible+'<br/>'+contribution.eligibility_reason+'</td></tr>';
             });
           });
         });
