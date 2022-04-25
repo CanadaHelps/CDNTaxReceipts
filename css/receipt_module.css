@@ -64,7 +64,11 @@
 }
 
 #crm-main-content-wrapper table .display-cell-padding {
-  padding-left: 300px !important;
+  padding-left: 200px !important;
+}
+
+#crm-main-content-wrapper table .display-cell-padding-right {
+  padding-right: 50px !important;
 }
 
 .bold-weight {
@@ -88,7 +92,16 @@
   width: 10px;
 }
 
-.crm-container table.crm-stripes-tr tr:nth-child(odd) td {
+.crm-container table.crm-stripes-tr tr:nth-last-child(2n) td {
+  background: #f2f2f2 !important;
+  background-color: #f2f2f2 !important;
+}
+
+.crm-contribution-view-form-block .crm-info-panel td {
+  vertical-align: inherit;
+}
+
+table.table-of-users tr.duplicate-receipt-contributions td, table.table-of-users tr.ineligibles-receipt-contributions td {
   background: #f2f2f2 !important;
   background-color: #f2f2f2 !important;
 }
