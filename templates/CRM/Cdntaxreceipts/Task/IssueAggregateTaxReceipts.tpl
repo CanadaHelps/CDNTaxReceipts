@@ -95,17 +95,18 @@
                 contribution.campaign = '';
               }
               if(contribution.eligible === true) {
-                contribution.eligible = 'Eligible';
-                contribution.eligibility_reason = '';
+                contribution.eligible_status = 'Eligible';
+                contribution.eligibility_reason_contri = '';
               } else {
-                contribution.eligible = 'Not Eligible';
+                contribution.eligible_status = 'Not Eligible';
+                contribution.eligibility_reason_contri = contribution.eligibility_reason;
                 if(!contribution.eligibility_reason) {
-                  contribution.eligibility_reason = '';
+                  contribution.eligibility_reason_contri = '';
                 }
               }
               var contactUrl = '/dms/contact/view?reset=1&cid='+contribution.contact_id;
               var contributionUrl = '/dms/contact/view/contribution?reset=1&cid='+contribution.contact_id+'&id='+contribution.contribution_id+'&action=view&context=search&selectedChild=contribute';
-              myTable += '<tr class="'+receiptType+'-receipt-contributions contribution-id-'+contribution.contribution_id+'"><td>'+contribution.receive_date+'<br/>'+contribution.receive_time+'</td><td><a href="'+contactUrl+'">'+contact.display_name+'</a></td><td><a href="'+contributionUrl+'">$&nbsp;'+contribution.total_amount+'</a></td><td>'+contribution.fund+'</td><td>'+contribution.campaign+'</td><td>'+contribution.contribution_source+'</td><td>'+contribution.payment_instrument+'</td><td>'+contribution.contribution_status+'</td><td>'+contribution.eligible+'<br/>'+contribution.eligibility_reason+'</td></tr>';
+              myTable += '<tr class="'+receiptType+'-receipt-contributions contribution-id-'+contribution.contribution_id+'"><td>'+contribution.receive_date+'<br/>'+contribution.receive_time+'</td><td><a href="'+contactUrl+'">'+contact.display_name+'</a></td><td><a href="'+contributionUrl+'">$&nbsp;'+contribution.total_amount+'</a></td><td>'+contribution.fund+'</td><td>'+contribution.campaign+'</td><td>'+contribution.contribution_source+'</td><td>'+contribution.payment_instrument+'</td><td>'+contribution.contribution_status+'</td><td>'+contribution.eligible_status+'<br/>'+contribution.eligibility_reason_contri+'</td></tr>';
             });
           });
         });

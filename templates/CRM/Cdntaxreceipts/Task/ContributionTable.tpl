@@ -51,7 +51,7 @@
         <tr class="{$receiptType}-receipt-contributions contribution-id-{$contribution.contribution_id}">
           <td>{$contribution.receive_date}<br/>{$contribution.receive_time}</td>
           <td><a href="{crmURL p='dms/contact/view' q="reset=1&cid=`$contribution.contact_id`"}">{$contact.display_name}</a></td>
-          <td><a href="{crmURL p='dms/contact/view/contribution' q="reset=1&cid=`$contribution.contact_id`&id=`$contribution.contribution_id`&action=view&context=search&selectedChild=contribute"}">{$contribution.total_amount|crmMoney:$row.currency}</a></td>
+          <td><a href="{crmURL p='dms/contact/view/contribution' q="reset=1&cid=`$contribution.contact_id`&id=`$contribution.contribution_id`&action=view&context=search&selectedChild=contribute"}">$&nbsp;{$contribution.total_amount}</a></td>
           <td>{$contribution.fund}</td>
           <td>{$contribution.campaign}</td>
           <td>{$contribution.contribution_source}</td>
