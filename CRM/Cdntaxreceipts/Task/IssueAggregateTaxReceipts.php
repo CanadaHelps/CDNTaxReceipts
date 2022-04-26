@@ -212,6 +212,7 @@ class CRM_Cdntaxreceipts_Task_IssueAggregateTaxReceipts extends CRM_Contribute_F
                   }
                 }
                 if($contribution['receive_date']) {
+                  $contribution['receive_date_original'] = $contribution['receive_date'];
                   $contribution['receive_time'] = date("h:i A", strtotime($contribution['receive_date']));
                   $contribution['receive_date'] = date("F jS, Y", strtotime($contribution['receive_date']));
                 }
@@ -419,6 +420,11 @@ class CRM_Cdntaxreceipts_Task_IssueAggregateTaxReceipts extends CRM_Contribute_F
       }
 
       $contributions = $contribution_status['contributions'];
+      foreach($contributions as $k => $contri) {
+        if($contri['receive_date_original']) {
+          $contributions[$k]['receive_date'] = $contri['receive_date_original'];
+        }
+      }
       // $method = $contribution_status['issue_method'];
       $method = 'print';
       if($params['delivery_method']) {
