@@ -34,6 +34,7 @@ class CRM_Cdntaxreceipts_Task_IssueSingleTaxReceipts extends CRM_Contribute_Form
 
     // count and categorize contributions
     $receiptList = [];
+    $eligible_contact_ids = [];
     foreach ( $this->_contributionIds as $id ) {
       if ( cdntaxreceipts_eligibleForReceipt($id) ) {
         list($issued_on, $receipt_id) = cdntaxreceipts_issued_on($id);
@@ -92,7 +93,11 @@ class CRM_Cdntaxreceipts_Task_IssueSingleTaxReceipts extends CRM_Contribute_Form
       $receiptList[$key][$result['values'][0]['receive_year']]['total_amount'] += $result['values'][0]['total_amount'];
       $receiptList[$key][$result['values'][0]['receive_year']]['total_amount'] = round($receiptList[$key][$result['values'][0]['receive_year']]['total_amount'], 2);
       $receiptList[$key][$result['values'][0]['receive_year']]['total_contacts'] = count($receiptList[$key][$result['values'][0]['receive_year']]['contact_ids']);
+      if($key !== 'ineligibles') {
+        $eligible_contact_ids[$result['values'][0]['receive_year']][] = $result['values'][0]['contact_id'];
+      }
     }
+
     $receiptTypes = ['original', 'duplicate', 'ineligibles'];
     foreach($receiptTypes as $rtype) {
       foreach($this->_years as $year) {
@@ -100,6 +105,17 @@ class CRM_Cdntaxreceipts_Task_IssueSingleTaxReceipts extends CRM_Contribute_Form
           $receiptList[$rtype][$year]['total_contacts'] = 0;
           $receiptList[$rtype][$year]['total_contrib'] = 0;
           $receiptList[$rtype][$year]['total_amount'] = 0;
+        }
+      }
+    }
+
+    //Count Total Eligible Contacts
+    if(isset($eligible_contact_ids)) {
+      foreach($this->_years as $year) {
+        if(!empty($eligible_contact_ids[$year])) {
+          $receiptList['totals'][$year]['total_eligible_contacts'] = count(array_unique($eligible_contact_ids[$year]));
+        } else {
+          $receiptList['totals'][$year]['total_eligible_contacts'] = 0;
         }
       }
     }
