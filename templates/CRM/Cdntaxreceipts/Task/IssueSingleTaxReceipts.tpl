@@ -14,8 +14,7 @@
     </tr>
     <tr>
       <td class="label bold-weight">{ts}Eligible Contacts{/ts}</td>
-      {math equation="(x + y)" x=$receiptList.original.$defaultYear.total_contacts y=$receiptList.duplicate.$defaultYear.total_contacts assign="total_contacts"}
-      <td id="total_contacts" class="label">{$total_contacts}</td>
+      <td id="total_contacts" class="label">{$receiptList.totals.$defaultYear.total_eligible_contacts}</td>
       <td class="label display-cell-padding bold-weight">{ts}Eligible Contributions{/ts}</td>
       {math equation="(x + y)" x=$receiptList.original.$defaultYear.total_contrib y=$receiptList.duplicate.$defaultYear.total_contrib assign="total_contributions"}
       <td id="total_contributions" class="label">{$total_contributions}</td>
@@ -90,7 +89,7 @@
         var total_contributions = receipts.original[tax_year].total_contrib+receipts.duplicate[tax_year].total_contrib;
         var total_amount = receipts.original[tax_year].total_amount+receipts.duplicate[tax_year].total_amount;
         var count_contributions = receipts.original[tax_year].total_contrib + receipts.duplicate[tax_year].total_contrib + receipts.ineligibles[tax_year].total_contrib;
-        var total_contacts = receipts.original[tax_year].total_contacts+receipts.duplicate[tax_year].total_contacts;
+        var total_contacts = receipts.totals[tax_year].total_eligible_contacts;
         var myTable = '';
         if(total_contacts === 0) {
           total_contacts = receipts.original[tax_year].total_contacts + receipts.duplicate[tax_year].total_contacts + receipts.ineligibles[tax_year].total_contacts;
