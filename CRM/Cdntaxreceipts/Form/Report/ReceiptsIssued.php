@@ -4,8 +4,6 @@ use CRM_Cdntaxreceipts_ExtensionUtil as E;
 
 class CRM_Cdntaxreceipts_Form_Report_ReceiptsIssued extends CRM_Report_Form {
 
-  protected $_where = NULL;
-
   function __construct() {
 
     $this->_customGroupExtends = array('Contact', 'Individual', 'Organization');
