@@ -70,7 +70,7 @@ cj(document).ready(
   </div>
   {if call_user_func(array('CRM_Core_Permission','check'), 'issue cdn tax receipts')}
   <div class="crm-block crm-content-block crm-contribution-view-form-block">
-    <h3>{ts domain='org.civicrm.cdntaxreceipts'}Delivery Preferences{/ts}</h3>
+    <h3>{ts domain='org.civicrm.cdntaxreceipts'}Delivery Method{/ts}</h3>
     <table class="crm-info-panel">
       <tr>
         <td class="label bold-text">{$form.delivery_method.label}</td>
@@ -96,7 +96,7 @@ cj(document).ready(
   </table>
 </div>
 <div class="crm-block crm-content-block crm-contribution-view-form-block">
-  <h3>{ts domain='org.civicrm.cdntaxreceipts'}Delivery Preference{/ts}</h3>
+  <h3>{ts domain='org.civicrm.cdntaxreceipts'}Delivery Method{/ts}</h3>
   <table class="crm-info-panel">
     <tr>
       <td class="label bold-text">{$form.delivery_method.label}</td>

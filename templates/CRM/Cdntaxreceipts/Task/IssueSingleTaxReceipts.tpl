@@ -64,7 +64,7 @@
   {include file="CRM/Cdntaxreceipts/Task/ContributionTable.tpl"}
 </div>
 <div class="crm-block crm-content-block crm-contribution-thank-you-block">
-  <h3>{ts domain='org.civicrm.cdntaxreceipts'}Delivery Preference{/ts}</h3>
+  <h3>{ts domain='org.civicrm.cdntaxreceipts'}Delivery Method{/ts}</h3>
   <table class="crm-info-panel">
     <tr>
       <td class="content">{$form.receipt_option.html}</td>
@@ -85,7 +85,7 @@
       var receiptTypes = {/literal}{$receiptTypes|@json_encode}{literal};
       $("#receipt_year").change(function(){
         var tax_year = $('option:selected', this).text();
-        
+
         var total_contributions = receipts.original[tax_year].total_contrib+receipts.duplicate[tax_year].total_contrib;
         var total_amount = receipts.original[tax_year].total_amount+receipts.duplicate[tax_year].total_amount;
         var count_contributions = receipts.original[tax_year].total_contrib + receipts.duplicate[tax_year].total_contrib + receipts.ineligibles[tax_year].total_contrib;
