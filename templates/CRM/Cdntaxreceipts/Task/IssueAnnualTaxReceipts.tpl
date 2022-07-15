@@ -43,7 +43,7 @@
     and a copy of each receipt will be submitted to the tax receipt archive.{/ts}</p>
 </div>
 <div class="crm-block crm-content-block crm-contribution-view-form-block">
-  <h3>{ts domain='org.civicrm.cdntaxreceipts'}Delivery method{/ts}</h3>
+  <h3>{ts domain='org.civicrm.cdntaxreceipts'}Delivery Method{/ts}</h3>
   <table class="crm-info-panel">
     <tr>
       <td class="label bold-text">{$form.delivery_method.label}</td>
