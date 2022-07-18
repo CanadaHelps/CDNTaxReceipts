@@ -64,7 +64,7 @@
   {include file="CRM/Cdntaxreceipts/Task/ContributionTable.tpl"}
 </div>
 <div class="crm-block crm-content-block crm-contribution-thank-you-block">
-  <h3>{ts domain='org.civicrm.cdntaxreceipts'}Delivery method{/ts}</h3>
+  <h3>{ts domain='org.civicrm.cdntaxreceipts'}Delivery Method{/ts}</h3>
   <table class="crm-info-panel">
     <tr>
       <td class="content">{$form.receipt_option.html}</td>
