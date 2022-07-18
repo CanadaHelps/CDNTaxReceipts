@@ -375,7 +375,9 @@ function cdntaxreceipts_contributions_get_status_inkind($contributionIds = array
         'advantage_description' => $dao->advantage_description,
         'inkind' => false,
       );
-      if(in_array($dao->name, ['In-kind', 'In Kind'])) {
+      //CRM-1410 DMS - In-Kind Donation Receipts not displaying "Description of Property"
+      $fund_name_check = preg_replace("/[^a-zA-Z0-9]+/", "", $dao->name);
+      if ( stripos($fund_name_check,"inkind") !== false) {
         require_once 'CRM/Core/BAO/CustomField.php';
         $groupTitle = 'In Kind donation fields';
         $fieldLabel_description = 'Description of property';
