@@ -165,14 +165,15 @@ class CRM_Cdntaxreceipts_Task_PDFLetterCommon extends CRM_Contact_Form_Task_PDFL
     $domain = CRM_Core_BAO_Domain::getDomain();
     $tokenHtml = CRM_Utils_Token::replaceDomainTokens($html_message, $domain, TRUE, $messageToken);
     $tokenHtml = CRM_Utils_Token::replaceContactTokens($tokenHtml, $contact, TRUE, $messageToken);
-    $tokenHtml = CRM_Utils_Token::replaceHookTokens($tokenHtml, $contact, $categories, TRUE);
     if ($grouped) {
       $tokenHtml = CRM_Utils_Token::replaceMultipleContributionTokens($separator, $tokenHtml, $contributions, $messageToken);
     }
     else {
       // no change to normal behaviour to avoid risk of breakage
+      \Civi::log()->debug('{tokenHtml} {contribution} L174', ['tokenHtml' => $tokenHtml, 'contribution' => $contribution]);    
       $tokenHtml = CRM_Utils_Token::replaceContributionTokens($tokenHtml, $contribution, TRUE, $messageToken);
     }
+    $tokenHtml = CRM_Utils_Token::replaceHookTokens($tokenHtml, $contact, $categories, TRUE);
     if (defined('CIVICRM_MAIL_SMARTY') && CIVICRM_MAIL_SMARTY) {
       $smarty = CRM_Core_Smarty::singleton();
       // also add the tokens to the template
