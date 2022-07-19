@@ -101,7 +101,7 @@ class CRM_Cdntaxreceipts_Form_ViewTaxReceipt extends CRM_Core_Form {
       }
 
       CRM_Utils_System::setTitle('Tax Receipt');
-      $buttonLabel = ts('Re-Issue Tax Receipt', array('domain' => 'org.civicrm.cdntaxreceipts'));
+      $buttonLabel = ts('Complete', array('domain' => 'org.civicrm.cdntaxreceipts'));
       $this->assign('reissue', 1);
       $this->assign('receipt', $this->_receipt);
       $this->assign('contact_id', $this->_receipt['contact_id']);

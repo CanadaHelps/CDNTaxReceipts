@@ -11,6 +11,7 @@ class CRM_Cdntaxreceipts_Task_IssueSingleTaxReceipts extends CRM_Contribute_Form
   const MAX_RECEIPT_COUNT = 1000;
 
   private $_receipts;
+  private $_years;
 
   /**
    * build all the data structures needed to build the form
@@ -26,22 +27,100 @@ class CRM_Cdntaxreceipts_Task_IssueSingleTaxReceipts extends CRM_Contribute_Form
     }
 
     parent::preProcess();
+    $this->_years = array();
 
     $receipts = array( 'original'  => array('email' => 0, 'print' => 0, 'data' => 0),
                        'duplicate' => array('email' => 0, 'print' => 0, 'data' => 0), );
 
     // count and categorize contributions
+    $receiptList = [];
+    $eligible_contact_ids = [];
     foreach ( $this->_contributionIds as $id ) {
       if ( cdntaxreceipts_eligibleForReceipt($id) ) {
         list($issued_on, $receipt_id) = cdntaxreceipts_issued_on($id);
         $key = empty($issued_on) ? 'original' : 'duplicate';
         list( $method, $email ) = cdntaxreceipts_sendMethodForContribution($id);
         $receipts[$key][$method]++;
+      } else {
+        $key = 'ineligibles';
+      }
+      $result = civicrm_api3('Contribution', 'get', [
+        'sequential' => 1,
+        'return' => ["contribution_source", "contribution_status_id", "payment_instrument_id", "total_amount", "financial_type_id", "contribution_page_id", "receive_date"],
+        'id' => $id,
+      ]);
+      if($result['values'][0]['receive_date']) {
+        $result['values'][0]['receive_time'] = date("h:i A", strtotime($result['values'][0]['receive_date']));
+        $result['values'][0]['receive_year'] = date("Y", strtotime($result['values'][0]['receive_date']));
+        $this->_years[$result['values'][0]['receive_year']] = $result['values'][0]['receive_year'];
+        $result['values'][0]['receive_date'] = date("F jS, Y", strtotime($result['values'][0]['receive_date']));
+      }
+      if($result['values'][0]['financial_type_id']) {
+        $fund = civicrm_api3('FinancialType', 'get', [
+          'sequential' => 1,
+          'id' => $result['values'][0]['financial_type_id'],
+        ]);
+        if($fund['values']) {
+          $result['values'][0]['fund'] = $fund['values'][0]['name'];
+        }
+      }
+      if($result['values'][0]['contribution_page_id']) {
+        $campaign = civicrm_api3('ContributionPage', 'get', [
+          'sequential' => 1,
+          'id' => $result['values'][0]['contribution_page_id'],
+        ]);
+        if($campaign['values']) {
+          $result['values'][0]['campaign'] = $campaign['values'][0]['title'];
+        }
+      }
+      $result['values'][0]['eligible'] = true;
+      if($key == 'ineligibles') {
+        $result['values'][0]['eligible'] = false;
+      }
+      if($result['values'][0]['contact_id']) {
+        $contact_details = civicrm_api3('Contact', 'getsingle', [
+          'sequential' => 1,
+          'id' => $result['values'][0]['contact_id'],
+          'return' => ["display_name"],
+        ]);
+      }
+      if($contact_details) {
+        $receiptList[$key][$result['values'][0]['receive_year']]['contact_ids'][$result['values'][0]['contact_id']]['display_name'] = $contact_details['display_name'];
+        $receiptList[$key][$result['values'][0]['receive_year']]['contact_ids'][$result['values'][0]['contact_id']]['contributions'][$result['values'][0]['id']] = $result['values'][0];
+      }
+      //Count the totals
+      $receiptList[$key][$result['values'][0]['receive_year']]['total_contrib']++;
+      $receiptList[$key][$result['values'][0]['receive_year']]['total_amount'] += $result['values'][0]['total_amount'];
+      $receiptList[$key][$result['values'][0]['receive_year']]['total_amount'] = round($receiptList[$key][$result['values'][0]['receive_year']]['total_amount'], 2);
+      $receiptList[$key][$result['values'][0]['receive_year']]['total_contacts'] = count($receiptList[$key][$result['values'][0]['receive_year']]['contact_ids']);
+      if($key !== 'ineligibles') {
+        $eligible_contact_ids[$result['values'][0]['receive_year']][] = $result['values'][0]['contact_id'];
       }
     }
 
-    $this->_receipts = $receipts;
+    $receiptTypes = ['original', 'duplicate', 'ineligibles'];
+    foreach($receiptTypes as $rtype) {
+      foreach($this->_years as $year) {
+        if(empty($receiptList[$rtype][$year])) {
+          $receiptList[$rtype][$year]['total_contacts'] = 0;
+          $receiptList[$rtype][$year]['total_contrib'] = 0;
+          $receiptList[$rtype][$year]['total_amount'] = 0;
+        }
+      }
+    }
 
+    //Count Total Eligible Contacts
+    if(isset($eligible_contact_ids)) {
+      foreach($this->_years as $year) {
+        if(!empty($eligible_contact_ids[$year])) {
+          $receiptList['totals'][$year]['total_eligible_contacts'] = count(array_unique($eligible_contact_ids[$year]));
+        } else {
+          $receiptList['totals'][$year]['total_eligible_contacts'] = 0;
+        }
+      }
+    }
+    $this->_receiptList = $receiptList;
+    $this->_receipts = $receipts;
   }
 
   /**
@@ -67,6 +146,8 @@ class CRM_Cdntaxreceipts_Task_IssueSingleTaxReceipts extends CRM_Contribute_Form
     $this->assign('originalTotal', $originalTotal);
     $this->assign('duplicateTotal', $duplicateTotal);
     $this->assign('receiptTotal', $receiptTotal);
+    $this->assign('receiptList', $this->_receiptList);
+    $this->assign('receipt_type', 'single');
 
     $delivery_method = Civi::settings()->get('delivery_method') ?? CDNTAX_DELIVERY_PRINT_ONLY;
     $this->assign('deliveryMethod', $delivery_method);
@@ -77,6 +158,38 @@ class CRM_Cdntaxreceipts_Task_IssueSingleTaxReceipts extends CRM_Contribute_Form
     if ($delivery_method != CDNTAX_DELIVERY_DATA_ONLY) {
       $this->add('checkbox', 'is_preview', ts('Run in preview mode?', array('domain' => 'org.civicrm.cdntaxreceipts')));
     }
+
+    //Add ColumnHeaders for Table of Users Section
+    $columnHeaders = ['Received',
+      'Name',
+      'Amount',
+      'Fund',
+      'Campaign',
+      'Source',
+      'Method',
+      'Status',
+      'Eligibility',
+    ];
+    $this->assign('columnHeaders', $columnHeaders);
+
+    // Add Receipt Types
+    $receiptTypes = ['original', 'duplicate', 'ineligibles'];
+    $this->assign('receiptTypes', $receiptTypes);
+    // Add tax year as select box
+    krsort($this->_years);
+    foreach( $this->_years as $year ) {
+      $tax_year['issue_'.$year] = $year;
+    }
+    if($this->_years) {
+      $this->assign('defaultYear', array_values($this->_years)[0]);
+    }
+
+    $this->add('select', 'receipt_year',
+      ts('Tax Year'),
+      $tax_year,
+      FALSE,
+      array('class' => 'crm-select')
+    );
 
     //CRM-921: Add delivery Method to form
     $delivery_method = CRM_Core_BAO_Setting::getItem(CDNTAX_SETTINGS, 'delivery_method');
@@ -214,6 +327,14 @@ class CRM_Cdntaxreceipts_Task_IssueSingleTaxReceipts extends CRM_Contribute_Form
       $contribution->id = $contributionId;
       if ( ! $contribution->find( TRUE ) ) {
         CRM_Core_Error::fatal( "CDNTaxReceipts: Could not find corresponding contribution id." );
+      }
+
+      // Only process Contributions of selected Year
+      if($contribution->receive_date) {
+        $receive_year = 'issue_'.date("Y", strtotime($contribution->receive_date));
+        if($receive_year !== $params['receipt_year']) {
+          continue;
+        }
       }
 
       // 2. If Contribution is eligible for receipting, issue the tax receipt.  Otherwise ignore.
