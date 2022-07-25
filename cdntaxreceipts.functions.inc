@@ -1628,6 +1628,25 @@ function cdntaxreceipts_issueAggregateTaxReceipt($contactId, $year, $contributio
 
   if ( $is_duplicate ) {
     $receipt = cdntaxreceipts_load_receipt($receipt_id);
+    //CRM-1060 Added "In-Kind Donation" details for re-issued aggregated tax receipts 
+    $inkind_aggregate = FALSE;
+    $total_advantage_amount = 0;
+    foreach ( $receipt['contributions'] as $key=>$contribution ) {
+      $contribution_id = array($contribution['contribution_id']);
+      $inkind_details = cdntaxreceipts_contributions_get_status_inkind($contribution_id);
+      if($inkind_details){
+        $receipt['contributions'][$key]['inkind']=$inkind_details[$contribution['contribution_id']]['inkind'];
+        $receipt['contributions'][$key]['inkind_values']=$inkind_details[$contribution['contribution_id']]['inkind_values'] ?? FALSE;
+        $receipt['contributions'][$key]['advantage_amount']=$inkind_details[$contribution['contribution_id']]['non_deductible_amount'];
+        $receipt['contributions'][$key]['advantage_description']=$inkind_details[$contribution['contribution_id']]['advantage_description'];
+        if($inkind_details[$contribution['contribution_id']]['inkind']){
+          $inkind_aggregate = TRUE;
+        }
+        if($inkind_details[$contribution['contribution_id']]['non_deductible_amount']) {
+          $total_advantage_amount += $inkind_details[$contribution['contribution_id']]['non_deductible_amount']; 
+        }
+      }
+    }
     // Cancelled receipts are not sent via email
     if ($receipt['receipt_status'] == 'cancelled' && $method != 'data') {
       $method = 'print';
@@ -1637,6 +1656,8 @@ function cdntaxreceipts_issueAggregateTaxReceipt($contactId, $year, $contributio
     $receipt['issue_method'] = $method;
     $receipt['receive_date'] = $year;
     $receipt['thankyou_html'] = $thankyou_html;
+    $receipt['inkind_aggregate'] = $inkind_aggregate;
+    $receipt['total_advantage_amount'] = $total_advantage_amount;
   }
   else {
     // calculate total amount
