@@ -18,7 +18,7 @@ class CRM_Cdntaxreceipts_Task_PDFLetterCommon extends CRM_Contact_Form_Task_PDFL
    * @param CRM_Contribute_Form_Task $form
    * @param array $formValues
    */
-  public static function postProcess(&$form, $formValues = NULL) {
+  public static function postProcessForm(&$form, $formValues = NULL) {
     if (empty($formValues)) {
       $formValues = $form->controller->exportValues($form->getName());
     }
