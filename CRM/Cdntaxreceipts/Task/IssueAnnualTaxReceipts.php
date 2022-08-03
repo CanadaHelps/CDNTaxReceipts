@@ -149,7 +149,7 @@ class CRM_Cdntaxreceipts_Task_IssueAnnualTaxReceipts extends CRM_Contact_Form_Ta
       ),
     );
     //CRM-919: Integrate WYSWIG Editor on the form
-    CRM_Contribute_Form_Task_PDFLetterCommon::buildQuickForm($this);
+    CRM_Contact_Form_Task_PDFLetterCommon::buildQuickForm($this);
     if($this->elementExists('from_email_address')) {
       $this->removeElement('from_email_address');
     }
@@ -255,7 +255,7 @@ class CRM_Cdntaxreceipts_Task_IssueAnnualTaxReceipts extends CRM_Contact_Form_Ta
                   $data['values']['ViewTaxReceipt']['from_email_address'] = $from_email_address;
                   $data['values']['ViewTaxReceipt']['subject'] = $this->getElement('subject')->getValue();
                   $data['values']['ViewTaxReceipt']['html_message'] = $this->getElement('html_message')->getValue();
-                  $thankyou_html = CRM_Cdntaxreceipts_Task_PDFLetterCommon::postProcess($this, $params);
+                  $thankyou_html = CRM_Cdntaxreceipts_Task_PDFLetterCommon::postProcessForm($this, $params);
                   if($thankyou_html) {
                     if(is_array($thankyou_html)) {
                       $thankyou_html = array_values($thankyou_html)[0];
