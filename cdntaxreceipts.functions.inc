@@ -281,7 +281,7 @@ function cdntaxreceipts_generateFormattedReceipt($receipt, &$collectedPdf = NULL
 
   $pdf->setJPEGQuality('100');
 
-  $pdf->SetAutoPageBreak('', $margin=0);
+  $pdf->SetAutoPageBreak(true, $margin=0);
   $pdf_variables = array(
     "mode" => $mode,
     "mymargin_left" => $mymargin_left,
@@ -320,6 +320,10 @@ function cdntaxreceipts_generateFormattedReceipt($receipt, &$collectedPdf = NULL
   foreach ( $output_files as $f ) {
     if($pdf_variables['issue_type'] == 'aggregate') {
       $f->startPageGroup();
+    }
+    //CRM-1197 Ability to print 'Thank you' messages when selecting 'Print' as tax receipt delivery method.
+    if($pdf_variables['thankyou_html'] && $receipt['issue_method'] == 'print') {
+      _receiptThankYouTemplate($f, $pdf_variables, $receipt);
     }
     $f->AddPage();
     _cdntaxreceipts_writePage($f, $pdf_variables, $receipt);
@@ -1144,6 +1148,54 @@ function _receiptThankYouHeader($pdf, $pdf_variables, $receipt) {
   return;
 }
 
+//CRM-1197 Created individual pdf file for selected Thank you template first and imported that PDF to existing receipt as page
+function _receiptThankYouTemplate($pdf, $pdf_variables, $receipt) {
+  $tokenHtml = $pdf_variables['thankyou_html'];
+
+  //PDF Variables 
+  $mymargin_left = $pdf_variables["mymargin_left"];
+  $mymargin_top = $pdf_variables["mymargin_top"];
+  $imageLocalPath = dirname(__FILE__).'/img/CDNTaxReceipts/';
+  $fileName = 'ThankYouMessage' . (int) $_SERVER['REQUEST_TIME'] . '.pdf';
+  $pdf_filename = CRM_Core_Config::singleton()->templateCompileDir . CRM_Utils_File::makeFileName($fileName);
+  $format = array(
+          'margin_top' => 72,
+          'margin_left' => 48,
+          'metric' => 'px',
+          'document_type' => 'pdf'
+        );
+
+  //created PDF file and stored at temp location
+  file_put_contents($pdf_filename, CRM_Utils_PDF_Utils::html2pdf($tokenHtml,
+        $fileName,
+        TRUE,
+        $format)
+    );
+
+  if (file_exists($pdf_filename)) {
+        $pageCount = $pdf->setSourceFile($pdf_filename);
+          for ($i = 1; $i <= $pageCount; $i++) {
+              $tplIdx = $pdf->importPage($i);
+              $pdf->SetPrintHeader(false);
+              $pdf->SetPrintFooter(false);
+              $pdf->AddPage();
+              $pdf->useTemplate(
+                $tplIdx, $x = null, $y = null, 
+                $w = 0, $h = 0, $adjustPageSize = true
+                );
+        if ($pdf_variables['mode'] == CDNTAXRECEIPTS_MODE_PREVIEW) {
+          $pdf->Image($imageLocalPath . 'PREVIEW.png', 0, $mymargin_top + 85, '', 45, 'PNG', '', 'T', false, 300, 'C');
+        }
+        if ($pdf_variables['receipt_status'] == 'cancelled') {
+          $pdf->Image($imageLocalPath . 'CANCELLED.png', 0, $mymargin_top + 85, '', 0, 'PNG', '', 'T', false, 300, 'C');
+        }
+      }
+    //Deleting PDF file after including that as page 
+    unlink($pdf_filename);
+  }
+  return;
+}
+
 /**************************************
  * SECTION: Utility Functions
  */
@@ -1284,7 +1336,7 @@ function cdntaxreceipts_issueTaxReceipt($contribution, &$collectedPdf = NULL, $m
   }
 
   // "Attach" receipts are email (we save the file & attach to an email)
-  if ($mode == CDNTAXRECEIPTS_MODE_WORKFLOW) {
+  if ((int)$mode == CDNTAXRECEIPTS_MODE_WORKFLOW) {
     $method = 'email';
   }
 
@@ -1786,7 +1838,7 @@ function cdntaxreceipts_openCollectedPDF() {
 
     $pdf->setJPEGQuality('100');
 
-    $pdf->SetAutoPageBreak('', $margin=0);
+    $pdf->SetAutoPageBreak(true, $margin=0);
   }
 
   return $pdf;
