@@ -147,14 +147,14 @@ function cdntaxreceipts_processTaxReceipt($receipt, &$collectedPdf = NULL, $mode
         $sendTemplateParams['thankyou_email'] = TRUE;
         $sendTemplateParams['html'] = $receipt['thankyou_html'];
       }
-      list($sent, $subject, $message, $html) = CRM_Core_BAO_MessageTemplate::sendTemplate($sendTemplateParams);
+      list($sent, $subject, $message, $html) = sendTemplate($sendTemplateParams);
 
       // send a copy (with open tracking) to the donor
       if ($sent && $receipt['issue_method'] == 'email' && $mode != CDNTAXRECEIPTS_MODE_WORKFLOW) {
         $sendTemplateParams['toEmail'] = $contact['email'];
         $sendTemplateParams['tplParams']['openTracking'] = "<img src=\"" . CRM_Utils_System::baseURL() .
           "civicrm/cdntaxreceipts/open?r={$receipt['email_tracking_id']}\" width='1' height='1' alt='' border='0'>";
-        list($sent, $subject, $message, $html) = CRM_Core_BAO_MessageTemplate::sendTemplate($sendTemplateParams);
+        list($sent, $subject, $message, $html) = sendTemplate($sendTemplateParams);
       }
     }
   }
@@ -346,12 +346,12 @@ function _cdntaxreceipts_writePage(&$f, $pdf_variables, $receipt) {
   // this when testing their particular installs.
   //
 
-  $pdf_variables['thankyou_note'] = true; 
+  $pdf_variables['thankyou_note'] = true;
   $results = CRM_Utils_Hook::singleton()->invoke(3, $f, $pdf_variables, $receipt, CRM_Utils_Hook::$_nullObject, CRM_Utils_Hook::$_nullObject, CRM_Utils_Hook::$_nullObject, 'cdntaxreceipts_writeReceipt');
   _cdntaxreceipts_writeReceipt($f, $pdf_variables, $receipt);
-  $pdf_variables['thankyou_note'] = false; 
+  $pdf_variables['thankyou_note'] = false;
   // if custom rewrite is implemented
-  // don't execute _cdntaxreceipts_writeReceipt 
+  // don't execute _cdntaxreceipts_writeReceipt
   // as it will overwrite the pdf
 
   if(isset($pdf_variables) && $pdf_variables['is_custom_rewrite'] == TRUE) {
@@ -365,7 +365,7 @@ function _cdntaxreceipts_writePage(&$f, $pdf_variables, $receipt) {
       $pdf_variables['duplicate_offset'] = TRUE;
       CRM_Utils_Hook::singleton()->invoke(3, $f, $pdf_variables, $receipt, CRM_Utils_Hook::$_nullObject, CRM_Utils_Hook::$_nullObject, CRM_Utils_Hook::$_nullObject, 'cdntaxreceipts_writeReceipt');
       _cdntaxreceipts_writeReceipt($f, $pdf_variables, $receipt);
-    }   
+    }
     return;
   }
 
@@ -454,7 +454,7 @@ function _cdntaxreceipts_writeReceipt(&$pdf, &$pdf_variables, $receipt) {
   // Non-Single Receipts
   $grid2_mid_offset = 0;
   if($issue_type !== 'single') {
-    $contribution_amount = array_sum(array_column($receipt_contributions, 'contribution_amount')); 
+    $contribution_amount = array_sum(array_column($receipt_contributions, 'contribution_amount'));
     $grid2_mid_offset = 10;
   }
   // Grid Co-Ordinates
@@ -464,7 +464,7 @@ function _cdntaxreceipts_writeReceipt(&$pdf, &$pdf_variables, $receipt) {
   $grid2_x_right = 120;
   $grid2b_y_top = 55 + $duplicate_offset + $top_header_margin_offset;
   $grid3_y_top = 85 + $duplicate_offset + $top_header_margin_offset;
-  $grid4_y_top = 90 + $duplicate_offset + $top_header_margin_offset; 
+  $grid4_y_top = 90 + $duplicate_offset + $top_header_margin_offset;
   $footer_y_top = 110 + $duplicate_offset + $top_header_margin_offset;
 
   // My Margin Top
@@ -473,7 +473,7 @@ function _cdntaxreceipts_writeReceipt(&$pdf, &$pdf_variables, $receipt) {
   // Text Color
   $pdf->SetTextColor(35,35,35);
 
-  //Font Sizes 
+  //Font Sizes
   $bigFont = 14;
   $smallFont = 11;
   $footerFont = 9;
@@ -548,7 +548,7 @@ function _cdntaxreceipts_writeReceipt(&$pdf, &$pdf_variables, $receipt) {
       }
     }
   }
-  
+
 
   // Grid 2A: Left Section
   $pdf->setY(EU::getReceiptLineHeight($grid2_y_top, $line_height, 1.5));
@@ -561,7 +561,7 @@ function _cdntaxreceipts_writeReceipt(&$pdf, &$pdf_variables, $receipt) {
   $pdf->Write(10, ts("Receipt Issued: "));
   $pdf->SetFont($fontLatoLight, '', $smallFont);
   $pdf->Write(10, ts($issued_on), array('domain' => 'org.civicrm.cdntaxreceipts'));
-  
+
   // Get Location of the Charity
   $address = CRM_Core_BAO_Location::getValues(['contact_id' => CRM_Core_Config::domainID()], TRUE)['address'][1];
   $address['province'] = CRM_Core_PseudoConstant::stateProvince($address['state_province_id']);
@@ -656,7 +656,7 @@ function _cdntaxreceipts_writeReceipt(&$pdf, &$pdf_variables, $receipt) {
               $i_ddsa = 1;
               foreach($donor_detail_sub_array as $ddsa) {
                 $i_ddsa_hyphen = ($i_ddsa == $donor_detail_sub_array_count) ? '' : '-';
-                $pdf->Cell(0, 0, str_replace(' ','-',$ddsa).$i_ddsa_hyphen, 0, $line_height, 'R');  
+                $pdf->Cell(0, 0, str_replace(' ','-',$ddsa).$i_ddsa_hyphen, 0, $line_height, 'R');
                 $i_ddsa++;
               }
             } else {
@@ -670,7 +670,7 @@ function _cdntaxreceipts_writeReceipt(&$pdf, &$pdf_variables, $receipt) {
       }
     }
   }
-  
+
 
   // Check Background Image or WaterMark
   $x_detailscolumn = 120;
@@ -701,13 +701,13 @@ function _cdntaxreceipts_writeReceipt(&$pdf, &$pdf_variables, $receipt) {
       $pdf->Write(10, EU::stringLimiter($advantage_description, $string_length));
     }
   }
-  
+
   $inkindvalues_label = [
     'Description of Property Received: ',
     'Fair Market Value Appraised by: ',
     'Address of Appraiser: ',
   ];
-  
+
   if (!empty($inkind_values)) {
     $inkind_values[0] = empty($inkind_values[0]) ? 'N/A': $inkind_values[0];
     for($i=0; $i <3; $i++) {
@@ -940,7 +940,7 @@ function _addItemizedDetails(&$pdf, &$pdf_variables, $receipt) {
     if($contribution['inkind_values'] ) {
       $inkind_ctr = 0;
       foreach($contribution['inkind_values'] as $inkind_values_label => $inkind_values_aggregate) {
-        if($inkind_values_label == 'Description of Property Received' 
+        if($inkind_values_label == 'Description of Property Received'
           && (!empty($contribution['advantage_description']) || !empty($contribution['advantage_amount']))
         ) {
           $contribution_aggregate_counter_right += 0.5;
@@ -1001,7 +1001,7 @@ function _receiptThankYouHeader($pdf, $pdf_variables, $receipt) {
     'sequential' => 1,
     'msg_title' => "CDN Tax Receipts - Thank you Note",
   ]);
-  
+
   if($result['values'][0]) {
     $message_tpl = $result['values'][0];
     $newString = $message_tpl['msg_html'] ?? NULL;
@@ -1032,7 +1032,7 @@ function _receiptThankYouHeader($pdf, $pdf_variables, $receipt) {
     }
   }
 
-  //PDF Variables 
+  //PDF Variables
   $mymargin_left = $pdf_variables["mymargin_left"];
   $mymargin_top = $pdf_variables["mymargin_top"];
 
@@ -1057,14 +1057,14 @@ function _receiptThankYouHeader($pdf, $pdf_variables, $receipt) {
   $grid2_x_mid = 25;
   $grid2_x_right = 20;
   $grid3_y_top = 75 + $top_header_margin_offset;
-  $grid4_y_top = 90 + $top_header_margin_offset; 
+  $grid4_y_top = 90 + $top_header_margin_offset;
   $footer_y_top = 110 + $top_header_margin_offset;
 
 
   // Text Color
   $pdf->SetTextColor(35,35,35);
 
-  //Font Sizes 
+  //Font Sizes
   $bigFont = 14;
   $smallFont = 11;
   $smallerFont = 10;
@@ -1127,7 +1127,7 @@ function _receiptThankYouHeader($pdf, $pdf_variables, $receipt) {
     $pdf->setXY($grid2_x_mid, EU::getReceiptLineHeight($grid2_y_top, $line_height, $line_index++));
     $pdf->Write(10, $pdf_variables['address_line_3']);
   }
-  
+
 
   // Grid 3
   // THank You HTML Message
@@ -1140,7 +1140,7 @@ function _receiptThankYouHeader($pdf, $pdf_variables, $receipt) {
   //Footer
   $lineStyle = array('width' => 0.3, 'cap' => 'butt', 'join' => 'miter', 'dash' => 4, 'phase' => 40);
   $pdf->Line($mymargin_left, $footer_y_top + 18, 198, $footer_y_top + 18, $lineStyle);
-  
+
   return;
 }
 
@@ -1628,7 +1628,7 @@ function cdntaxreceipts_issueAggregateTaxReceipt($contactId, $year, $contributio
 
   if ( $is_duplicate ) {
     $receipt = cdntaxreceipts_load_receipt($receipt_id);
-    //CRM-1060 Added "In-Kind Donation" details for re-issued aggregated tax receipts 
+    //CRM-1060 Added "In-Kind Donation" details for re-issued aggregated tax receipts
     $inkind_aggregate = FALSE;
     $total_advantage_amount = 0;
     foreach ( $receipt['contributions'] as $key=>$contribution ) {
@@ -1643,7 +1643,7 @@ function cdntaxreceipts_issueAggregateTaxReceipt($contactId, $year, $contributio
           $inkind_aggregate = TRUE;
         }
         if($inkind_details[$contribution['contribution_id']]['non_deductible_amount']) {
-          $total_advantage_amount += $inkind_details[$contribution['contribution_id']]['non_deductible_amount']; 
+          $total_advantage_amount += $inkind_details[$contribution['contribution_id']]['non_deductible_amount'];
         }
       }
     }
@@ -1682,7 +1682,7 @@ function cdntaxreceipts_issueAggregateTaxReceipt($contactId, $year, $contributio
       }
       $totalReceipt += $eligibleAmount;
       if($c['non_deductible_amount']) {
-        $total_advantage_amount += $c['non_deductible_amount']; 
+        $total_advantage_amount += $c['non_deductible_amount'];
       }
     }
 
@@ -2019,7 +2019,15 @@ function sendTemplate($params) {
     $mailContent['subject'] = $params['subject'];
   }
 
-  $mailContent = CRM_Core_BAO_MessageTemplate::renderMessageTemplate($mailContent, (bool) $params['disableSmarty'], $params['contactId'] ?? NULL, $params['tplParams']);
+  $mailContent = CRM_Core_BAO_MessageTemplate::renderTemplate([
+    'messageTemplate' => [
+      'msg_text' => $mailContent['text'],
+      'msg_html' => $mailContent['html'],
+      'msg_subject' => $mailContent['subject'],
+    ],
+    'contactId' => $params['contactId'] ?? NULL,
+    'disableSmarty' => $params['disableSmarty'],
+  ]);
 
   // send the template, honouring the target user’s preferences (if any)
   $sent = FALSE;
@@ -2098,7 +2106,7 @@ function sendTemplate($params) {
 }
 
 function loadTemplate(string $workflowName, bool $isTest, int $messageTemplateID = NULL, $groupName = NULL): array {
-    
+
   $messageTemplate = civicrm_api3('MessageTemplate', 'get', [
     'sequential' => 1,
     'workflow_name' => $workflowName,
