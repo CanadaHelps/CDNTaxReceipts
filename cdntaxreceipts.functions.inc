@@ -114,6 +114,7 @@ function cdntaxreceipts_processTaxReceipt($receipt, &$collectedPdf = NULL, $mode
         'orgName' => $org_name,
         'contact' => $contact,
         'receipt' => $receipt,
+        'openTracking' => '',
       );
 
       $sendTemplateParams = array(

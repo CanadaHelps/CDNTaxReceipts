@@ -76,10 +76,7 @@ class CRM_Cdntaxreceipts_Form_ViewTaxReceipt extends CRM_Core_Form {
     // may need to offer a PDF file for download, if returning from form submission.
     // this sets up the form with proper JS to download the file, it doesn't actually send the file.
     // see ?download=1 for sending the file.
-    $pdfDownload = CRM_Utils_Array::value('file', $_GET);
-    if ($pdfDownload == 1) {
-      $this->_pdfFile = 1;
-    }
+    $this->_pdfFile = (bool)($_GET['file'] ?? FALSE);
 
   }
 
@@ -145,10 +142,7 @@ class CRM_Cdntaxreceipts_Form_ViewTaxReceipt extends CRM_Core_Form {
       $this->assign('receiptEmail', $this->_sendTarget);
     }
 
-    if ( isset($this->_pdfFile) ) {
-      $this->assign('pdf_file', $this->_pdfFile);
-    }
-
+    $this->assign('pdf_file', $this->_pdfFile);
   }
 
   /**
