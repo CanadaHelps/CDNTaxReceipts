@@ -41,9 +41,12 @@ class CRM_Cdntaxreceipts_Form_Settings extends CRM_Core_Form {
     // Set image defaults
     $images = array('receipt_logo', 'receipt_signature', 'receipt_watermark', 'receipt_pdftemplate');
     foreach ($images as $image) {
+      $this->assign($image, NULL);
+      $this->assign($image.'_class', FALSE);
       if (!empty($defaults[$image])) {
         $this->assign($image, $defaults[$image]);
         if (!file_exists(CRM_Core_Config::singleton()->customFileUploadDir . $defaults[$image])) {
+          // @todo: why is this variable called _class?
           $this->assign($image.'_class', TRUE);
         }
       }
