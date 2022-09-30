@@ -789,11 +789,8 @@ function cdntaxreceipts_issueTaxReceipt($contribution, &$collectedPdf = NULL, $m
     'email_tracking_id' => md5(uniqid(rand(), TRUE)),
     'advantage_description' => CRM_Utils_Array::value('advantage_description', $advantage, NULL),
     'advantage_amount' => $contribution->non_deductible_amount,
+    'source' => _cdntaxreceipts_get_contribution_source($contribution),
   );
-
-  if ( $contribution->source != '' ) {
-    $receipt['source'] = 'Source: ' . $contribution->source;
-  }
 
   $receipt['contributions'] = array(
     array(
@@ -1416,4 +1413,59 @@ function _cdntaxreceipts_custom_field_exists($custom_group_id, $field_label) {
   );
   $result = civicrm_api('custom_field', 'get', $params);
   return ($result['count'] != 0);
+}
+
+/**
+ * Get the issuing city, but bounce if not set.
+ * @return string
+ */
+function _cdntaxreceipts_get_location(): string {
+  $city = \Civi::settings()->get('receipt_location_issued');
+  if (empty($city)) {
+    CRM_Core_Error::statusBounce(
+      ts('Location Issued is not set. Please set it under Administer - CiviContribute - CDN Tax Receipts.', array('domain' => 'org.civicrm.cdntaxreceipts')),
+      CRM_Utils_System::url('civicrm/cdntaxreceipts/settings', 'reset=1')
+    );
+  }
+  return $city;
+}
+
+/**
+ * On upgrade, it may not always be possible to set a new setting to a sane
+ * value, or some similar issue. So on relevant pages we should call this to
+ * run some checks and statusBounce if not good to go.
+ */
+function _cdntaxreceipts_check_requirements(): void {
+  // At the moment this is all we do...
+  _cdntaxreceipts_get_location();
+}
+
+/**
+ * Based on configuration, either return the source field, a custom field,
+ * or nothing. Fancier customization can be done in
+ * hook_cdntaxreceipts_alter_receipt.
+ * @param CRM_Core_DAO_Contribution $contribution
+ * @return string
+ */
+function _cdntaxreceipts_get_contribution_source($contribution): string {
+  $setting = \Civi::settings()->get('cdntaxreceipts_source_field') ?? '';
+  if ($setting === '') {
+    return '';
+  }
+  $source = '';
+
+  // @todo do we want to allow smarty and/or html
+  $tokenProcessor = new \Civi\Token\TokenProcessor(\Civi::dispatcher(), ['smarty' => FALSE, 'schema' => ['contactId', 'contributionId']]);
+  $tokenProcessor->addMessage('source', $setting, 'text/plain');
+  $tokenProcessor->addRow(['contactId' => $contribution->contact_id, 'contributionId' => $contribution->id]);
+  $tokenProcessor->evaluate();
+  foreach ($tokenProcessor->getRows() as $row) {
+    $source = $row->render('source');
+  }
+  if ($source === '') {
+    return '';
+  }
+  $source_label = \Civi::settings()->get('cdntaxreceipts_source_label_' . CRM_Core_I18n::getLocale()) ?? '';
+  // Note this requires putting the spacing into the setting, but I don't see how else to make translation-friendly, e.g. English is "Source: " but French puts a space before the colon.
+  return $source_label . $source;
 }

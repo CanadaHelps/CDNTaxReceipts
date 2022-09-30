@@ -134,11 +134,19 @@ class CRM_Cdntaxreceipts_Form_Settings extends CRM_Core_Form {
       $this->addElement('file', 'receipt_pdftemplate', ts('PDF Template', array('domain' => 'org.civicrm.cdntaxreceipts')), 'size=30 maxlength=60');
       $this->addUploadElement('receipt_pdftemplate');
       $this->addRule( 'receipt_pdftemplate', ts('File size should be less than %1 MBytes (%2 bytes)', array(1 => $uploadSize, 2 => $uploadFileSize)), 'maxfilesize', $uploadFileSize, array('domain' => 'org.civicrm.cdntaxreceipts') );
+
+      $tokenProcessor = new \Civi\Token\TokenProcessor(Civi::dispatcher(), ['schema' => ['contactId', 'contributionId']]);
+      $source_field_tokens = $tokenProcessor->listTokens();
+      $this->assign('tokens', CRM_Utils_Token::formatTokensForDisplay($source_field_tokens));
+      $this->addElement('text', 'source_field', ts('Source Field Value', array('domain' => 'org.civicrm.cdntaxreceipts')));
+      $this->addElement('text', 'source_label', ts('Source Field Label (%1)', array(1 => CRM_Core_I18n::getLocale(), 'domain' => 'org.civicrm.cdntaxreceipts')));
     }
     else if ( $mode == 'defaults' ) {
       $defaults = array(
         'receipt_prefix' => Civi::settings()->get('receipt_prefix'),
         'receipt_authorized_signature_text' => Civi::settings()->get('receipt_authorized_signature_text'),
+        'source_field' => Civi::settings()->get('cdntaxreceipts_source_field') ?? '',
+        'source_label' => Civi::settings()->get('cdntaxreceipts_source_label_' . CRM_Core_I18n::getLocale()) ?? '',
       );
       return $defaults;
     }
@@ -146,6 +154,8 @@ class CRM_Cdntaxreceipts_Form_Settings extends CRM_Core_Form {
       $values = $this->exportValues();
       Civi::settings()->set('receipt_prefix', $values['receipt_prefix']);
       Civi::settings()->set('receipt_authorized_signature_text', $values['receipt_authorized_signature_text']);
+      Civi::settings()->set('cdntaxreceipts_source_field', $values['source_field']);
+      Civi::settings()->set('cdntaxreceipts_source_label_' . CRM_Core_I18n::getLocale(), $values['source_label']);
 
       foreach ( array('receipt_logo', 'receipt_signature', 'receipt_watermark', 'receipt_pdftemplate') as $key ) {
         $upload_file = $this->getSubmitValue($key);

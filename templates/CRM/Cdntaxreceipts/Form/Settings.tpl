@@ -97,6 +97,16 @@
 	      {else}<p class="label">Current {$form.receipt_pdftemplate.label}: {$receipt_pdftemplate}<span class="cdntaxreceipts-imagedelete"><a href="{crmURL p='civicrm/cdntaxreceipts/imagedelete' q='type=receipt_pdftemplate'}">{ts}Delete{/ts}</a></span></p>{/if}
 	  {/if}</td>
       </tr>
+      <tr>
+        <td class="label">{$form.source_field.label}</td>
+        <td class="content">{$form.source_field.html|crmAddClass:huge}&nbsp;<input class="crm-token-selector big" data-field="source_field" />
+          <p class="description">{ts domain='org.civicrm.cdntaxreceipts'}Either replace with a token string or blank out to hide the field.{/ts}</td>
+      </tr>
+      <tr>
+        <td class="label">{$form.source_label.label}</td>
+        <td class="content">{$form.source_label.html}
+          <p class="description">{ts domain='org.civicrm.cdntaxreceipts'}Label to use for the Source field. Include a space at the end to provide spacing between the label and the value.{/ts}</td>
+      </tr>
     </tbody>
   </table>
 
@@ -156,3 +166,6 @@
 </div>
 
 </div>
+{* the InsertTokens needs this for some reason *}
+<div id="editMessageDetails"></div>
+{include file='CRM/Mailing/Form/InsertTokens.tpl'}
