@@ -57,7 +57,9 @@ cj(document).ready(
     This action cannot be undone. The tax receipt will be logged for auditing purposes,
     and a copy of the receipt will be submitted to the tax receipt archive.{/ts}</p>
     {if $method eq 'email'}
-      <p>{ts domain='org.civicrm.cdntaxreceipts' 1=$receiptEmail}The receipt will be sent <strong>by email</strong> to the contributor (%1).{/ts}</p>
+      <p>{ts domain='org.civicrm.cdntaxreceipts' 1=$receiptEmail}The receipt will be sent <strong>by email</strong> to the contributor (%1).{/ts}<br />
+      {$form.printOverride.html}{ts domain='org.civicrm.cdntaxreceipts' 1=$receiptEmail}Download PDF instead.{/ts}
+      </p>
     {elseif $method eq 'print'}
       <p class='status-warning'>{ts domain='org.civicrm.cdntaxreceipts'}Please <strong>download and print</strong> the receipt that
       is generated. You will need to send a printed copy to the contributor.{/ts}</p>
@@ -74,7 +76,9 @@ cj(document).ready(
       <p>{ts domain='org.civicrm.cdntaxreceipts' 1=$buttonLabel}Click '%1' to re-issue a tax receipt for this contribution. The tax receipt will be marked 'Duplicate' with the same receipt number and amount as the original copy.{/ts}</p>
     {/if}
     {if $method eq 'email'}
-      <p>{ts domain='org.civicrm.cdntaxreceipts' 1=$receiptEmail}The receipt will be sent <strong>by email</strong> to the contributor (%1).{/ts}</p>
+      <p>{ts domain='org.civicrm.cdntaxreceipts' 1=$receiptEmail}The receipt will be sent <strong>by email</strong> to the contributor (%1).{/ts}<br />
+      {$form.printOverride.html}{ts domain='org.civicrm.cdntaxreceipts'}Download PDF instead.{/ts}
+      </p>
     {elseif $method eq 'print'}
       <p class='status-warning'>{ts domain='org.civicrm.cdntaxreceipts'}Please <strong>download and print</strong> the receipt that
       is generated. You will need to send a printed copy to the contributor.{/ts}</p>

@@ -18,7 +18,7 @@ class IssueTest extends CdntaxreceiptsBase {
     $this->contact = $this->createContact();
   }
 
-  public function testIssueTaxReceipt() {
+  public function testIssueTaxReceipt(bool $printOverride = FALSE) {
     $contribution = civicrm_api3('Contribution', 'create', [
       'contact_id' => $this->contact['id'],
       'financial_type_id' => 'Donation',
@@ -38,6 +38,12 @@ class IssueTest extends CdntaxreceiptsBase {
     // don't wait for it then it's not like it can't find it to press, it's that
     // pressing it does nothing. Sometimes we need to press twice.
     $this->assertSession()->waitForElementVisible('css', '.crm-button_qf_ViewTaxReceipt_next');
+
+    if ($printOverride) {
+      $this->assertSession()->waitForElementVisible('css', '#printOverride');
+      $this->getSession()->getPage()->checkField('printOverride');
+    }
+
     $this->getSession()->getPage()->pressButton('_qf_ViewTaxReceipt_next-bottom');
     $this->getSession()->getPage()->pressButton('_qf_ViewTaxReceipt_next-bottom');
     $this->assertSession()->pageTextContains("C-0000000{$contribution['id']}");
@@ -65,6 +71,16 @@ class IssueTest extends CdntaxreceiptsBase {
     $this->testIssueTaxReceipt();
     $this->assertSession()->pageTextContains('The receipt will be sent by email to the contributor (anthony.anderson@example.org).');
     $this->assertSession()->pageTextContains('Tax Receipt has been emailed to the contributor.');
+  }
+
+  /**
+   * This is identical to testIssueTaxReceipt() but we use select print override.
+   * We don't verify the PDF here.
+   */
+  public function testIssueTaxReceiptPrintOverride() {
+    $this->setDeliveryMethod(CDNTAX_DELIVERY_PRINT_EMAIL);
+    $this->testIssueTaxReceipt(TRUE);
+    $this->assertNotNull($this->getSession()->getPage()->find('css', '.crm-info-panel tbody tr td:contains("Print")'));
   }
 
 }

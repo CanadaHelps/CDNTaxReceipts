@@ -129,6 +129,7 @@ class CRM_Cdntaxreceipts_Form_ViewTaxReceipt extends CRM_Core_Form {
           'type' => 'submit',
           'name' => ts('Cancel Tax Receipt', array('domain' => 'org.civicrm.cdntaxreceipts')),
           'isDefault' => FALSE,
+          'icon' => 'fa-ban',
         );
       }
     }
@@ -140,6 +141,7 @@ class CRM_Cdntaxreceipts_Form_ViewTaxReceipt extends CRM_Core_Form {
 
     if ( $this->_method == 'email' ) {
       $this->assign('receiptEmail', $this->_sendTarget);
+      $this->add('advcheckbox','printOverride');
     }
 
     $this->assign('pdf_file', $this->_pdfFile);
@@ -202,8 +204,11 @@ class CRM_Cdntaxreceipts_Form_ViewTaxReceipt extends CRM_Core_Form {
         CRM_Core_Session::setStatus($statusMsg, '', 'error');
       }
       else {
+        $submittedValues = $this->controller->exportValues($this->_name);
 
-        list($result, $method, $pdf) = cdntaxreceipts_issueTaxReceipt( $contribution );
+        $collectedPdf = NULL;
+        $printOverride = isset($submittedValues['printOverride']) ? $submittedValues['printOverride'] : NULL;
+        list($result, $method, $pdf) = cdntaxreceipts_issueTaxReceipt( $contribution, $collectedPdf, CDNTAXRECEIPTS_MODE_BACKOFFICE, $printOverride );
 
         if ($result == TRUE) {
           if ($method == 'email') {

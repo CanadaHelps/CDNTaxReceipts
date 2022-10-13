@@ -677,7 +677,7 @@ function cdntaxreceipts_configure_inkind_fields() {
  * Issues a tax receipt for a single contribution.
  * Detects if the receipt is a duplicate and reacts appropriately.
  */
-function cdntaxreceipts_issueTaxReceipt($contribution, &$collectedPdf = NULL, $mode = CDNTAXRECEIPTS_MODE_BACKOFFICE) {
+function cdntaxreceipts_issueTaxReceipt($contribution, &$collectedPdf = NULL, $mode = CDNTAXRECEIPTS_MODE_BACKOFFICE, $printOverride = NULL) {
 
   // This function basically needs to set up a $receipt[] array and pass it to
   // processTaxReceipt() which does the hard work
@@ -717,7 +717,7 @@ function cdntaxreceipts_issueTaxReceipt($contribution, &$collectedPdf = NULL, $m
   }
 
   // determine the send method
-  list($method, $email) = cdntaxreceipts_sendMethodForContact($contribution->contact_id);
+  list($method, $email) = cdntaxreceipts_sendMethodForContact($contribution->contact_id, $printOverride);
 
   // Cancelled receipts are not sent via email
   if ($is_duplicate && $receipt['receipt_status'] == 'cancelled' && $method != 'data') {
@@ -1114,13 +1114,13 @@ function cdntaxreceipts_issueAggregateTaxReceipt($contactId, $year, $contributio
 /* determines the send method for the specified contact
  * returns array, [0] = 'email' or 'print', [1] = email address or NULL
  */
-function cdntaxreceipts_sendMethodForContact( $contactId ) {
+function cdntaxreceipts_sendMethodForContact( $contactId, $printOverride = NULL ) {
 
   $delivery_method = Civi::settings()->get('delivery_method') ?? CDNTAX_DELIVERY_PRINT_ONLY;
   if ($delivery_method == CDNTAX_DELIVERY_DATA_ONLY) {
     return array('data', NULL);
   }
-  else if ($delivery_method == CDNTAX_DELIVERY_PRINT_ONLY) {
+  else if (($delivery_method == CDNTAX_DELIVERY_PRINT_ONLY) || $printOverride) {
     return array('print', NULL);
   }
 
