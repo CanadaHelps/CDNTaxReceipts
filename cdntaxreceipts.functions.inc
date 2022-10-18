@@ -582,17 +582,19 @@ function _cdntaxreceipts_writeReceipt(&$pdf, $pdf_variables) {
  */
 function cdntaxreceipts_configure_inkind_fields() {
   // check if the In-kind contribution type exists.  if not, create it.
-  $inkind_financial_type = \Civi\Api4\FinancialType::get(FALSE)->addSelect('id')->addWhere('name', '=', 'In-kind')->execute()->first();
-  if (empty($inkind_financial_type)) {
+  // Using `name` isn't reliable for financial types because people can change
+  // it, so we have our own setting.
+  $contrib_type_id = \Civi::settings()->get('cdntaxreceipts_inkind');
+  if (!$contrib_type_id) {
     $inkind_financial_type = \Civi\Api4\FinancialType::create(FALSE)
       ->addValue('name', 'In-kind')
       ->addValue('is_deductible', TRUE)
       ->addValue('is_reserved', FALSE)
       ->addValue('is_active', TRUE)
       ->execute()->first();
+    $contrib_type_id = $inkind_financial_type['id'];
+    \Civi::settings()->set('cdntaxreceipts_inkind', $contrib_type_id);
   }
-
-  $contrib_type_id = $inkind_financial_type['id'];
 
   // check if the custom group exists.  if not, create it.
   $params = array(
@@ -721,7 +723,8 @@ function cdntaxreceipts_issueTaxReceipt($contribution, &$collectedPdf = NULL, $m
 
   $inkind_values = array();
   // check if this is an 'In-kind" contribution.
-  if ( $contributiontype->name == 'In-kind' || $contributiontype->name == "In Kind") {
+  // @todo [ML] The 'In Kind' is only for backwards compat. We should add a SystemCheck to detect incorrect configs
+  if ($contributiontype->id == \Civi::settings()->get('cdntaxreceipts_inkind') || $contributiontype->name == "In Kind") {
     // in this case get the custom field values:
     require_once 'CRM/Core/BAO/CustomField.php';
     $groupTitle = 'In Kind donation fields';

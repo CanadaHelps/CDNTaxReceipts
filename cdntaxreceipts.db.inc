@@ -53,6 +53,10 @@ function cdntaxreceipts_annual_issued_on($contactId, $year) {
 
 function cdntaxreceipts_contributions_not_receipted($contactId, $year) {
 
+  // In-kind are excluded because in order to print the related fields on the
+  // receipt it needs to be receipted on its own and can't be grouped.
+  $financial_type_id = \Civi::settings()->get('cdntaxreceipts_inkind') ?? 0;
+  $sqlParams = array(1 => array($financial_type_id, 'Integer'));
   $sql = "SELECT contrib.id as contribution_id, contrib.total_amount,
         ifnull(contrib.non_deductible_amount, 0) as non_deductible_amount, contrib.receive_date
     FROM civicrm_contribution contrib
@@ -60,11 +64,12 @@ function cdntaxreceipts_contributions_not_receipted($contactId, $year) {
             ON contrib.financial_type_id = contrib_type.id
     LEFT  JOIN cdntaxreceipts_log_contributions cdntax_c
             ON contrib.id = cdntax_c.contribution_id
-    WHERE cdntax_c.receipt_id IS NULL AND contrib_type.name <> 'In-kind' AND contrib_type.name <> 'In Kind'
-      AND contrib.contact_id = $contactId AND YEAR(contrib.receive_date) = $year
+    WHERE cdntax_c.receipt_id IS NULL "
+    . (empty($financial_type_id) ? '' : " AND (contrib_type.id <> %1 AND contrib_type.name <> 'In Kind') ")
+    . " AND contrib.contact_id = $contactId AND YEAR(contrib.receive_date) = $year
     ORDER BY contrib.id";
 
-  $dao = CRM_Core_DAO::executeQuery($sql);
+  $dao = CRM_Core_DAO::executeQuery($sql, $sqlParams);
   $contributions = array();
 
   // Rather than loading each CRM_Contribute_DAO_Contribution object, we'll just
@@ -257,6 +262,8 @@ function cdntaxreceipts_contributions_get_status($contributionIds = array()) {
   $ids = implode(',', $contributionIds);
 
   if (!empty($contributionIds)) {
+    $financial_type_id = \Civi::settings()->get('cdntaxreceipts_inkind') ?? 0;
+    $sqlParams = array(1 => array($financial_type_id, 'Integer'));
     $sql = "
     SELECT
         contrib.id as contribution_id
@@ -271,9 +278,10 @@ function cdntaxreceipts_contributions_get_status($contributionIds = array()) {
             ON contrib.financial_type_id = contrib_type.id
     LEFT  JOIN cdntaxreceipts_log_contributions cdntax_c
             ON contrib.id = cdntax_c.contribution_id
-    WHERE contrib_type.name <> 'In-kind' AND contrib.id IN($ids) AND contrib_type.name <> 'In Kind'";
+    WHERE contrib.id IN ($ids) "
+    . (empty($financial_type_id) ? '' : " AND contrib_type.id <> %1 AND contrib_type.name <> 'In Kind'");
 
-    $dao = CRM_Core_DAO::executeQuery($sql);
+    $dao = CRM_Core_DAO::executeQuery($sql, $sqlParams);
 
     while ($dao->fetch()) {
       $id = $dao->contribution_id;
