@@ -171,6 +171,7 @@ class CRM_Cdntaxreceipts_Task_IssueAggregateTaxReceipts extends CRM_Contribute_F
 
     $this->assign('receiptYears', $this->_years);
     // Re-calculte total amount
+    $inkind_counter = 0;
     $receiptTypes = ['original', 'duplicate'];
     foreach($receiptTypes as $receiptType) {
       if($this->_receipts[$receiptType]) {
@@ -200,6 +201,11 @@ class CRM_Cdntaxreceipts_Task_IssueAggregateTaxReceipts extends CRM_Contribute_F
                   ]);
                   if($fund['values']) {
                     $result['values'][0]['fund'] = $fund['values'][0]['name'];
+                    //CRM-1470 Conter to identify the number of eligible In Kind receipts
+                    $fund_name_check = preg_replace("/[^a-zA-Z0-9]+/", "", $fund['values'][0]['name']);
+                    if ( stripos($fund_name_check,"inkind") !== false && $receiptType == 'original') {
+                      $inkind_counter++ ;
+                    }
                   }
                 }
                 if($result['values'][0]['contribution_page_id']) {
@@ -233,6 +239,10 @@ class CRM_Cdntaxreceipts_Task_IssueAggregateTaxReceipts extends CRM_Contribute_F
           }
         }
       }
+    }
+    //CRM-1470 Warning on the top right mentioning number of In Kind donations selected 
+    if ($inkind_counter > 0) {
+      CRM_Core_Session::setStatus(ts("You have selected $inkind_counter \"In Kind\" donations. The CRA requires a separate receipt for each non-cash donation. An individual tax receipt will be issued for each In Kind donation, in addition to any combined tax receipts for eligible cash gifts."), ts('In Kind Receipts'), 'alert');
     }
     // Add ineligibles to it as well
     $receiptTypes[] = 'ineligibles';
@@ -436,6 +446,16 @@ class CRM_Cdntaxreceipts_Task_IssueAggregateTaxReceipts extends CRM_Contribute_F
           }
         }
       }
+      //CRM-1470 Create separate In Kind contributions array and unset from combined tax receipt contributions array 
+      $contributionsInKind = array();
+      foreach($contributions as $contri_key => $contrivalue)
+      {
+        $fund_name_check = preg_replace("/[^a-zA-Z0-9]+/", "", $contrivalue['fund']);
+        if ( stripos($fund_name_check,"inkind") !== false) {
+          $contributionsInKind[$contri_key] = $contrivalue;
+          unset($contributions[$contri_key]);
+        }
+      }
       if ( empty($issuedOn) && count($contributions) > 0 ) {
         //CRM-920: Thank-you Email Tool
         if($this->getElement('thankyou_email')->getValue()) {
@@ -491,6 +511,69 @@ class CRM_Cdntaxreceipts_Task_IssueAggregateTaxReceipts extends CRM_Contribute_F
         }
         elseif ( $method == 'data' ) {
           $dataCount++;
+        }
+      }
+      //CRM-1470 Generate individual In Kind contributions receipts 
+      $originalOnly = TRUE;
+      if ($params['receipt_option']) {
+        $originalOnly = FALSE;
+      }
+      foreach ($contributionsInKind as $inkind_key => $inkind_value)
+      {
+        $contribution = new CRM_Contribute_DAO_Contribution();
+        $contribution->id = $inkind_value['contribution_id'];
+        if ( ! $contribution->find( TRUE ) ) {
+          CRM_Core_Error::fatal( "CDNTaxReceipts: Could not find corresponding contribution id." );
+        }
+        if ( cdntaxreceipts_eligibleForReceipt($contribution->id) ) {
+          list($issued_on, $receipt_id) = cdntaxreceipts_issued_on($contribution->id);
+          if ( empty($issued_on) || ! $originalOnly ) {
+            //CRM-918: Thank-you Email Tool
+            if($this->getElement('thankyou_email')->getValue()) {
+              if($this->getElement('html_message')->getValue()) {
+                if(isset($params['template'])) {
+                  if($params['template'] !== 'default') {
+                    $this->_contributionIds = [$contribution->id];
+                    $from_email_address = current(CRM_Core_BAO_Domain::getNameAndEmail(FALSE, TRUE));
+                    if($from_email_address) {
+                      $data = &$this->controller->container();
+                      $data['values']['ViewTaxReceipt']['from_email_address'] = $from_email_address;
+                      $data['values']['ViewTaxReceipt']['subject'] = $this->getElement('subject')->getValue();
+                      $data['values']['ViewTaxReceipt']['html_message'] = $this->getElement('html_message')->getValue();
+                      $thankyou_html = CRM_Cdntaxreceipts_Task_PDFLetterCommon::postProcessForm($this, $params);
+                      if($thankyou_html) {
+                        if(is_array($thankyou_html)) {
+                          $contribution->thankyou_html = array_values($thankyou_html)[0];
+                        } else {
+                          $contribution->thankyou_html = $thankyou_html;
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+            list( $ret, $method ) = cdntaxreceipts_issueTaxReceipt( $contribution, $receiptsForPrintingPDF, $previewMode );
+            if( $ret !== 0 ) {
+              //CRM-918: Mark Contribution as thanked if checked
+              if($this->getElement('thankyou_date')->getValue()) {
+                $contribution->thankyou_date = date('Y-m-d H:i:s', CRM_Utils_Time::time());
+                $contribution->save();
+              }
+            }
+            if ( $ret == 0 ) {
+              $failCount++;
+            }
+            elseif ( $method == 'email' ) {
+              $emailCount++;
+            }
+            elseif ( $method == 'print' ) {
+              $printCount++;
+            }
+            elseif ( $method == 'data' ) {
+              $dataCount++;
+            }
+          }
         }
       }
     }
