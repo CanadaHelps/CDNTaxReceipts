@@ -70,7 +70,12 @@ function cdntaxreceipts_processTaxReceipt($receipt, &$collectedPdf = NULL, $mode
       return array(FALSE,'',NULL);
     }
     $next_id = cdntaxreceipts_log_next_id();
-    $receipt['receipt_no'] = Civi::settings()->get('receipt_prefix') . str_pad($next_id, 8, 0, STR_PAD_LEFT);
+    //CRM-1340 When previewing tax receipts, the tax receipt number should be a static placeholder
+    if ($mode == CDNTAXRECEIPTS_MODE_PREVIEW) {
+      $receipt['receipt_no'] = Civi::settings()->get('receipt_prefix') .'XXXXXXXX';
+    }else{
+      $receipt['receipt_no'] = Civi::settings()->get('receipt_prefix') . str_pad($next_id, 8, 0, STR_PAD_LEFT);
+    }
   }
   // allow modules to alter any details
   // invoke hook_cdntaxreceipts_alter_receipt(&$receipt)
