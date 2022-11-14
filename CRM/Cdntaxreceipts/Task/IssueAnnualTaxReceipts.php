@@ -154,9 +154,10 @@ class CRM_Cdntaxreceipts_Task_IssueAnnualTaxReceipts extends CRM_Contact_Form_Ta
       $this->removeElement('from_email_address');
     }
     $from_email_address = current(CRM_Core_BAO_Domain::getNameAndEmail(FALSE, TRUE));
-    $this->add('text', 'from_email_address', ts('From Email Address'), $from_email_address, TRUE);
-    $this->add('text', 'email_options', ts('Print and Email Options'), 'email', FALSE);
-    $this->add('text', 'group_by_separator', ts('Group By Seperator'), 'comma', FALSE);
+    //CRM-1596 "From Email Address" value being passed as attributes
+    $this->add('text', 'from_email_address', ts('From Email Address'), array('value' => $from_email_address), TRUE);
+    $this->add('text', 'email_options', ts('Print and Email Options'), array('value' => 'email'), FALSE);
+    $this->add('text', 'group_by_separator', ts('Group By Seperator'), array('value' => 'comma'), FALSE);
     $defaults = [
       'margin_left' => 0.75,
       'margin_right' => 0.75,
