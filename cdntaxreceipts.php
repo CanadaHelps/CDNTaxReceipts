@@ -28,6 +28,24 @@ function cdntaxreceipts_civicrm_buildForm( $formName, &$form ) {
          $('#'+attr_name).css('color','transparent');
          const file = this.files[0];
          if (file){
+          //CRM-1456 No Logo or Signature displaying on Tax Receipts despite Images being uploaded
+          var fileType = file['type'];
+          var extensionTypes = [];
+          extensionTypes['image/png'] = ['png'];
+          extensionTypes['image/jpeg'] = ['jpg','jpeg','jfif','pjpeg','pjp'];
+          var options = [];
+          options.unique = true;
+          options.expires = 10000;
+          if(fileType in extensionTypes)
+          {
+            var fileExtensionName = fileType.split('/').pop().toLowerCase();
+            if ($.inArray(fileExtensionName, extensionTypes[fileType]) < 0) {
+              CRM.alert(\"Image extension doesn't match with file type\", 'Incompatible Image','error' ,options);
+            }
+          }else 
+          {
+            CRM.alert(\"This image type is not supported\", 'Invalid Image','error' ,options);
+          }
           var fileName = [file.name.split('.').shift(),file.name.split('.').pop().toLowerCase()].join('.');
           let reader = new FileReader();
           reader.onload = function(event){
