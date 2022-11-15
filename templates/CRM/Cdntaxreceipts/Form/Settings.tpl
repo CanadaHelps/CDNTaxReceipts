@@ -71,6 +71,7 @@
         <td class="content">{$form.receipt_logo.html}
           <p class="description">{ts domain='org.civicrm.cdntaxreceipts'}Logo size: 280x120 pixels; File types allowed: .jpg .png.{/ts}</p>
           <img id="ReceiptLogoPreview" src="#" class="preview_image" alt="receipt_logo_preview" />
+          <p id="receipt_logo-error-message"></p>
 	  {if $receipt_logo}
 	      {if $receipt_logo_class}<span class="crm-error">The file {$receipt_logo} was not found</span>
 	      {else}<p class="label">Current {$form.receipt_logo.label}: {$receipt_logo}</p>{/if}
@@ -81,6 +82,7 @@
         <td class="content">{$form.receipt_signature.html}
           <p class="description">{ts domain='org.civicrm.cdntaxreceipts'}Signature size: 141x58 pixels; File types allowed: .jpg .png.{/ts}</p>
           <img id="ReceiptSignaturePreview" src="#" class="preview_image" alt="receipt_signatur_preview" />
+          <p id="receipt_signature-error-message"></p>
 	  {if $receipt_signature}
 	      {if $receipt_signature_class}<span class="crm-error">The file {$receipt_signature} was not found</span>
 	      {else}<p class="label">Current {$form.receipt_signature.label}: {$receipt_signature}</p>{/if}
