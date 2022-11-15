@@ -856,7 +856,10 @@ function cdntaxreceipts_eligibleForReceipt( $contributionId ) {
 
   // CRM-738: Make receipt accessible for 'refunded' & 'cancelled' Contributions as well
   // Removing the condition $contributionStatus == '1' from below
-  if ( $contribution->is_test == 0 && $deductibleAmount > 0 && $hookOk ) {
+  // is_dev makes it easier to test online donation receipts on dev sites
+  $is_dev = Civi::settings()->get('environment') == 'Development';
+
+  if (($is_dev || $contribution->is_test == 0) && $deductibleAmount > 0 && $hookOk) {
     $cache[$contributionId] = TRUE;
   }
   else {
