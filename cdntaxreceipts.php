@@ -491,14 +491,12 @@ function cdntaxreceipts_civicrm_alterMailParams(&$params, $context) {
     );
 
     if ($ret) {
-      $last_in_path = strrpos($pdf_file, '/');
-      $clean_name = substr($pdf_file, $last_in_path);
-      $attachment = array(
+      $attachment = [
         'fullPath' => $pdf_file,
         'mime_type' => 'application/pdf',
-        'cleanName' => $clean_name,
-      );
-      $params['attachments'] = array($attachment);
+        'cleanName' => basename($pdf_file),
+      ];
+      $params['attachments'] = [$attachment];
     }
 
   }
