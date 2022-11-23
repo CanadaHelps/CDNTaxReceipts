@@ -33,18 +33,16 @@ function cdntaxreceipts_civicrm_buildForm( $formName, &$form ) {
           var extensionTypes = [];
           extensionTypes['image/png'] = ['png'];
           extensionTypes['image/jpeg'] = ['jpg','jpeg','jfif','pjpeg','pjp'];
-          var options = [];
-          options.unique = true;
-          options.expires = 10000;
+          $('#'+attr_name+'-error-message').text(' ');
           if(fileType in extensionTypes)
           {
             var fileExtensionName = fileType.split('/').pop().toLowerCase();
             if ($.inArray(fileExtensionName, extensionTypes[fileType]) < 0) {
-              CRM.alert(\"Image extension doesn't match with file type\", 'Incompatible Image','error' ,options);
+              $('#'+attr_name+'-error-message').text(\"Image extension doesn't match with file type\").css({'background-color' : '#cf3458','color' : '#fff','width': '260px'});
             }
           }else 
           {
-            CRM.alert(\"This image type is not supported\", 'Invalid Image','error' ,options);
+            $('#'+attr_name+'-error-message').text(\"This image type is not supported\").css({'background-color' : '#cf3458','color' : '#fff','width': '200px'});
           }
           var fileName = [file.name.split('.').shift(),file.name.split('.').pop().toLowerCase()].join('.');
           let reader = new FileReader();
