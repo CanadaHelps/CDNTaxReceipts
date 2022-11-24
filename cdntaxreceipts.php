@@ -273,7 +273,7 @@ function cdntaxreceipts_civicrm_postProcess( $formName, &$form ) {
             $noticeDisplayName = $display_name;
           }
           $displayData = ' <a href="'.$contactlink.'">'.$noticeDisplayName.'</a>';
-          $status = ts("There's already an annual tax receipt  issued for %1 for year %2", array(1=>$displayData,2=>$receiptYear, 'domain' => 'org.civicrm.cdntaxreceipts'));
+          $status = ts("An annual tax receipt for %2 contributions by %1 has been already been issued, and cannot be re-issued.", array(1=>$displayData,2=>$receiptYear, 'domain' => 'org.civicrm.cdntaxreceipts'));
           CRM_Core_Session::setStatus($status, '', 'info');
         }
       }
