@@ -239,6 +239,46 @@ function cdntaxreceipts_civicrm_post($op, $objectName, $objectId, &$objectRef) {
  */
 
 function cdntaxreceipts_civicrm_postProcess( $formName, &$form ) {
+  //CRM-1203 User should be notified that an annual tax receipt has been already issued for a contact
+  if (is_a( $form, 'CRM_Cdntaxreceipts_Task_IssueAnnualTaxReceipts')) {
+    $submitValue = $form->getVar('_submitValues');
+    if(isset($submitValue['receipt_year']))
+    {
+      $receipt_year = $submitValue['receipt_year'];
+      if (!empty($receipt_year)) {
+        $receiptYear  = substr($receipt_year, strlen('issue_')); // e.g. issue_2012
+      }
+      $contactIDS = $form->getVar('_contactIds');
+      if(count($contactIDS) == 1 && !empty($receiptYear))
+      {
+        $contactId = $contactIDS[0];
+        list( $issuedOn, $receiptId ) = cdntaxreceipts_annual_issued_on($contactId, $receiptYear);
+        $contributions = cdntaxreceipts_contributions_not_receipted($contactId, $receiptYear);
+        if ( !empty($issuedOn) && count($contributions) > 0 ) {
+          $contact = civicrm_api3('Contact', 'get', [
+            'sequential' => 1,
+            'return' => ['first_name','last_name','display_name'],
+            'id' => $contactId,
+          ]);
+          if($contact['values']) {
+            $display_name = $contact['values'][0]['display_name'];
+            $first_name = $contact['values'][0]['first_name'];
+            $last_name = $contact['values'][0]['last_name'];
+          }
+          $contactlink = CRM_Utils_System::url('dms/contact/view', "reset=1&cid=$contactId");
+          if(empty($display_name))
+          {
+            $noticeDisplayName = $first_name.''.$last_name;
+          }else{
+            $noticeDisplayName = $display_name;
+          }
+          $displayData = ' <a href="'.$contactlink.'">'.$noticeDisplayName.'</a>';
+          $status = ts("There's already an annual tax receipt  issued for %1 for year %2", array(1=>$displayData,2=>$receiptYear, 'domain' => 'org.civicrm.cdntaxreceipts'));
+          CRM_Core_Session::setStatus($status, '', 'info');
+        }
+      }
+    }
+  }
   if (is_a( $form, 'CRM_Cdntaxreceipts_Form_Settings')) {
     //CRM-1235 DMS - After Signature/Logo is uploaded in Receipt Settings, page continues to display "No File Chosen"
     $receipt_logo = Civi::settings()->get('receipt_logo');
@@ -574,4 +614,3 @@ function cdntaxreceipts_civicrm_alterMailParams(&$params, $context) {
   }
 
 }
-
