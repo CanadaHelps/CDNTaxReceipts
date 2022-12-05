@@ -170,6 +170,7 @@ class CRM_Cdntaxreceipts_Task_PDFLetterCommon extends CRM_Contact_Form_Task_PDFL
     }
     else {
       // no change to normal behaviour to avoid risk of breakage
+      \Civi::log()->debug('{tokenHtml} {contribution} L174', ['tokenHtml' => $tokenHtml, 'contribution' => $contribution]);    
       $tokenHtml = CRM_Utils_Token::replaceContributionTokens($tokenHtml, $contribution, TRUE, $messageToken);
     }
     $tokenHtml = CRM_Utils_Token::replaceHookTokens($tokenHtml, $contact, $categories, TRUE);
