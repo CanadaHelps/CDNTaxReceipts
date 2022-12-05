@@ -1834,6 +1834,8 @@ function cdntaxreceipts_openCollectedPDF() {
     require_once 'tcpdf/tcpdf.php';
 
     $pdf = new PDF(PDF_PAGE_ORIENTATION, PDF_UNIT, 'LETTER', TRUE, 'UTF-8', FALSE);
+    //CRM-1640: Update PDF security and make it non-editable
+    $pdf->SetProtection(array('modify', 'copy', 'annot-forms', 'fill-forms', 'extract', 'assemble', 'print-high'), '', null, 0, null);
     $pdf->Open();
 
     $pdf->SetAuthor(Civi::settings()->get('org_name'));
