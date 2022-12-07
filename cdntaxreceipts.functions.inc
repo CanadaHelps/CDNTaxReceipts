@@ -276,7 +276,7 @@ function cdntaxreceipts_generateFormattedReceipt($receipt, &$collectedPdf = NULL
   }
   $pdf = new PDF(PDF_PAGE_ORIENTATION, PDF_UNIT, 'LETTER', TRUE, 'UTF-8', FALSE);
   //CRM-1640: Update PDF security and make it non-editable
-  $pdf->SetProtection(array('modify', 'copy', 'annot-forms', 'fill-forms', 'extract', 'assemble', 'print-high'), '', null, 0, null);
+  $pdf->SetProtection(array('modify', 'copy', 'annot-forms', 'fill-forms', 'assemble', 'print-high'), '', null, 1, null);
   $pdf->Open();
 
   $pdf->SetAuthor(Civi::settings()->get('org_name'));
@@ -1835,7 +1835,7 @@ function cdntaxreceipts_openCollectedPDF() {
 
     $pdf = new PDF(PDF_PAGE_ORIENTATION, PDF_UNIT, 'LETTER', TRUE, 'UTF-8', FALSE);
     //CRM-1640: Update PDF security and make it non-editable
-    $pdf->SetProtection(array('modify', 'copy', 'annot-forms', 'fill-forms', 'extract', 'assemble', 'print-high'), '', null, 0, null);
+    $pdf->SetProtection(array('modify', 'copy', 'annot-forms', 'fill-forms', 'assemble', 'print-high'), '', null, 1, null);
     $pdf->Open();
 
     $pdf->SetAuthor(Civi::settings()->get('org_name'));
