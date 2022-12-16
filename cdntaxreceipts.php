@@ -9,6 +9,35 @@ define('CDNTAXRECEIPTS_MODE_PREVIEW', 2);
 define('CDNTAXRECEIPTS_MODE_WORKFLOW', 3);
 
 function cdntaxreceipts_civicrm_buildForm( $formName, &$form ) {
+  if($formName == 'CRM_Cdntaxreceipts_Task_IssueSingleTaxReceipts') {
+    //CRM-1168 Incorrect pop-up message appears when a tax receipt is issued after previewing it
+    $contributionIDS = json_encode($form->getVar('_contributionIds'));
+    CRM_Core_Resources::singleton()->addScript(
+      "CRM.$(function($) {
+        $('#_qf_IssueSingleTaxReceipts_submit').click(function(e) {
+          var receiptYear = $('#receipt_year').value;
+          var receiptOption = $('#receipt_option').prop('checked');
+          var contribution = $contributionIDS;
+          var formdata = $('#IssueSingleTaxReceipts').serialize();
+          var url = CRM.url('civicrm/ajax/makePreviewWork');
+          var params = {year: receiptYear, receiptOption:receiptOption,contribution:contribution,formdata:formdata};
+        
+          $.ajaxSetup({async: false});
+          $.post(url, params, function(data) {
+          if (data && data.getCount !== undefined) {
+            if(data.getCount == 0)
+            {
+              CRM.alert(data.getCount+' tax receipt(s) have been previewed.  No receipts have been issued.', '', 'success');
+              e.preventDefault();
+            }else{
+              CRM.alert(data.getCount+' tax receipt(s) have been previewed.  No receipts have been issued.', '', 'success');
+            }
+          }
+          }, 'json');
+        });
+      });
+    ");
+  }
   if (is_a( $form, 'CRM_Cdntaxreceipts_Form_Settings')) {
     //CRM-1235 DMS - After Signature/Logo is uploaded in Receipt Settings, page continues to display "No File Chosen" 
     $receipt_logo = Civi::settings()->get('receipt_logo');
@@ -169,6 +198,13 @@ function cdntaxreceipts_civicrm_buildForm( $formName, &$form ) {
       }
     }
   }
+}
+
+function cdntaxreceipts_civicrm_alterMenu(&$items) {
+  $items['civicrm/ajax/makePreviewWork'] = array(
+     'page_callback' => 'CRM_Canadahelps_ExtensionUtils::singleTaxReceiptPreview',
+     'access_arguments' => array('access CiviCRM'),
+   );
 }
 
 /**
