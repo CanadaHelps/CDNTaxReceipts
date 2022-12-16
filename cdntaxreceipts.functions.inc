@@ -2088,6 +2088,7 @@ function sendTemplate($params) {
     ],
     'contactId' => $params['contactId'] ?? NULL,
     'disableSmarty' => $params['disableSmarty'],
+    'tplParams' => $params['tplParams']
   ]);
 
   // send the template, honouring the target user’s preferences (if any)
