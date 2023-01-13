@@ -75,11 +75,7 @@ class CRM_Cdntaxreceipts_Task_IssueAnnualTaxReceipts extends CRM_Contact_Form_Ta
     foreach ( $this->_years as $year ) {
       $receiptTotal += $receipts[$year]['total'];
     }
-    foreach($this->_years as $receipt_year) {
-      if($receipts[$receipt_year]['contrib'] > 0) {
-        $receipt_years[] = $receipt_year;
-      }
-    }
+    $receipt_years = $this->_years;
     $this->assign('receiptCount', $receipts);
     $this->assign('receiptTotal', $receiptTotal);
     $this->assign('receiptYears', $receipt_years);
