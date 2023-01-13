@@ -30,9 +30,9 @@ class CdntaxreceiptsBase extends CiviCrmTestBase {
 
     $this->configureTaxReceiptSettings();
 
-    // Temporarily turn off version_check for 5.45 since it pops up a
+    // Temporarily turn off version_check for 5.51 since it pops up a
     // box about a security release which the tests interpret as an error box.
-    if (!\CRM_Core_BAO_Domain::isDBVersionAtLeast('5.46.alpha1')) {
+    if (!\CRM_Core_BAO_Domain::isDBVersionAtLeast('5.56.2')) {
       $versioncheck = civicrm_api3('Job', 'get', ['api_action' => 'version_check', 'return' => ['id']]);
       foreach ($versioncheck['values'] as $vcheck) {
         civicrm_api3('Job', 'create', ['id' => $vcheck['id'], 'is_active' => 0]);
