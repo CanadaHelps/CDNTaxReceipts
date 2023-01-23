@@ -450,12 +450,13 @@ function cdntaxreceipts_civicrm_alterMailParams(&$params, $context) {
     return;
   }
 
-  $msg_template_types = array('contribution_online_receipt', 'contribution_offline_receipt');
+  $msg_template_types = array('contribution_online_receipt', 'contribution_offline_receipt', 'membership_online_receipt', 'membership_offline_receipt');
 
   // Both of these are replaced by the same value of 'workflow' in 5.47
   $groupName = isset($params['groupName']) ? $params['groupName'] : (isset($params['workflow']) ? $params['workflow'] : '');
   $valueName = isset($params['valueName']) ? $params['valueName'] : (isset($params['workflow']) ? $params['workflow'] : '');
-  if (($groupName == 'msg_tpl_workflow_contribution' || $groupName == 'contribution_online_receipt' || $groupName == 'contribution_offline_receipt')
+
+  if (($groupName == 'msg_tpl_workflow_contribution' || $groupName == 'contribution_online_receipt' || $groupName == 'contribution_offline_receipt' || $groupName == 'membership_online_receipt')
       && in_array($valueName, $msg_template_types)) {
 
     // get the related contribution id for this message

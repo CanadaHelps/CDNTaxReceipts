@@ -895,6 +895,7 @@ function cdntaxreceipts_eligibleAmount( $contributionId ) {
 
   // 1. calculate deductible amount
   $deductibleAmount = 0;
+  $nonDeductibleAmount = 0;
 
   // compute by line item in 4.5+ if there are line items
   // (if the contribution was done pre-upgrade, it might not have line items)
@@ -907,6 +908,7 @@ function cdntaxreceipts_eligibleAmount( $contributionId ) {
       $financialType =  _cdntaxreceipts_get_type_for_line_item($line_item);
       if ( $financialType->is_deductible ) {
         $deductibleAmount += $line_item->line_total;
+        $nonDeductibleAmount += $line_total->non_deductible_amount;
       }
     }
   }
@@ -915,11 +917,12 @@ function cdntaxreceipts_eligibleAmount( $contributionId ) {
     $financialType =  _cdntaxreceipts_get_type_for_contribution($contribution);
     if ( $financialType->is_deductible ) {
       $deductibleAmount = $contribution->total_amount;
+      $nonDeductibleAmount = $contribution->non_deductible_amount;
     }
   }
 
   // account for manually-entered non_deductible_amount
-  $deductibleAmount = $deductibleAmount - $contribution->non_deductible_amount;
+  $deductibleAmount = $deductibleAmount - $nonDeductibleAmount;
   if ( $deductibleAmount < 0 ) {
     $deductibleAmount = 0;
   }
