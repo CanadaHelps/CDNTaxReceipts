@@ -516,9 +516,15 @@ function _cdntaxreceipts_writeReceipt(&$pdf, &$pdf_variables, $receipt) {
     if ( empty($receipt_logo) ) {
       $receipt_logo = $pdf_img_files_path . 'your-logo.png';
     }
+    $logo_mime_type = mime_content_type($receipt_logo);
+    $logo_image_type = 'PNG';
+    if($logo_mime_type) {
+      $logo_image_type = str_replace('image/', '', $logo_mime_type);
+    }
+
     // Max Height : 30, Max Width : 45
     list($w, $h) = EU::setImageDimension($receipt_logo, 30, 45);
-    $pdf->Image($receipt_logo, 10, 10 + $duplicate_offset + $top_header_margin_offset, $w, $h, 'PNG', '', 'T', false, 300, 'R');
+    $pdf->Image($receipt_logo, 10, 10 + $duplicate_offset + $top_header_margin_offset, $w, $h, $logo_image_type, '', 'T', false, 300, 'R');
 
 
     // Grid 1: Left Section
@@ -751,10 +757,15 @@ function _cdntaxreceipts_writeReceipt(&$pdf, &$pdf_variables, $receipt) {
     if (empty($sig_image)) {
       $sig_image = $pdf_img_files_path . 'authorized-signature.png';
     }
+    $signature_mime_type = mime_content_type($sig_image);
+    $signature_image_type = 'PNG';
+    if($signature_mime_type) {
+      $signature_image_type = str_replace('image/', '', $signature_mime_type);
+    }
 
     // Max Height : 25, Max Width : 35
     list($w, $h) = EU::setImageDimension($sig_image, 25, 35);
-    $pdf->Image($sig_image, 0, EU::getReceiptLineHeight($grid4_y_top, $line_height, 1.25), $w, $h, 'PNG', '', 'T', false, 300, 'R', false, false, 0, false, false, false);
+    $pdf->Image($sig_image, 0, EU::getReceiptLineHeight($grid4_y_top, $line_height, 1.25), $w, $h, $signature_image_type, '', 'T', false, 300, 'R', false, false, 0, false, false, false);
   }
 
   // Footer Section
@@ -835,9 +846,14 @@ function _addItemizedDetails(&$pdf, &$pdf_variables, $receipt) {
   if ( empty($receipt_logo) ) {
     $receipt_logo = $pdf_img_files_path . 'your-logo.png';
   }
+  $logo_mime_type = mime_content_type($receipt_logo);
+  $logo_image_type = 'PNG';
+  if($logo_mime_type) {
+    $logo_image_type = str_replace('image/', '', $logo_mime_type);
+  }
   // Max Height : 30, Max Width : 45
   list($w, $h) = EU::setImageDimension($receipt_logo, 30, 45);
-  $pdf->Image($receipt_logo, 10, 10 + $top_header_margin_offset, $w, $h, 'PNG', '', 'T', false, 300, 'R');
+  $pdf->Image($receipt_logo, 10, 10 + $top_header_margin_offset, $w, $h, $logo_image_type, '', 'T', false, 300, 'R');
 
 
   // In-Kind Section
@@ -875,9 +891,14 @@ function _addItemizedDetails(&$pdf, &$pdf_variables, $receipt) {
       if ( empty($receipt_logo) ) {
         $receipt_logo = $pdf_img_files_path . 'your-logo.png';
       }
+      $logo_mime_type = mime_content_type($receipt_logo);
+      $logo_image_type = 'PNG';
+      if($logo_mime_type) {
+        $logo_image_type = str_replace('image/', '', $logo_mime_type);
+      }
       // Max Height : 30, Max Width : 45
       list($w, $h) = EU::setImageDimension($receipt_logo, 30, 45);
-      $pdf->Image($receipt_logo, 10, 10 + $top_header_margin_offset, $w, $h, 'PNG', '', 'T', false, 300, 'R');
+      $pdf->Image($receipt_logo, 10, 10 + $top_header_margin_offset, $w, $h, $logo_image_type, '', 'T', false, 300, 'R');
 
       // In-Kind Section
       $pdf->SetFont($fontLatoRegular, '', $bigFont);
@@ -1086,9 +1107,14 @@ function _receiptThankYouHeader($pdf, $pdf_variables, $receipt) {
   if ( empty($receipt_logo) ) {
     $receipt_logo = $pdf_img_files_path . 'your-logo.png';
   }
+  $logo_mime_type = mime_content_type($receipt_logo);
+  $logo_image_type = 'PNG';
+  if($logo_mime_type) {
+    $logo_image_type = str_replace('image/', '', $logo_mime_type);
+  }
   // Max Height : 30, Max Width : 45
   list($w, $h) = EU::setImageDimension($receipt_logo, 30, 45);
-  $pdf->Image($receipt_logo, 10, 10 + $top_header_margin_offset, $w, $h, 'PNG', '', 'T', false, 300, 'R');
+  $pdf->Image($receipt_logo, 10, 10 + $top_header_margin_offset, $w, $h, $logo_image_type, '', 'T', false, 300, 'R');
 
 
   // Grid 1: Left Section
