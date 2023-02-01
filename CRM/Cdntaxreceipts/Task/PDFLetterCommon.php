@@ -174,6 +174,8 @@ class CRM_Cdntaxreceipts_Task_PDFLetterCommon extends CRM_Contact_Form_Task_PDFL
       $tokenHtml = CRM_Utils_Token::replaceContributionTokens($tokenHtml, $contribution, TRUE, $messageToken);
     }
     $tokenHtml = CRM_Utils_Token::replaceHookTokens($tokenHtml, $contact, $categories, TRUE);
+    //CRM-1672 Added replaceGreetingTokens to successfully replace contact greeting tokens ('email_greeting','postal_greeting','addressee')
+    CRM_Utils_Token::replaceGreetingTokens($tokenHtml, $contact, $contact['contact_id']);
     if (defined('CIVICRM_MAIL_SMARTY') && CIVICRM_MAIL_SMARTY) {
       $smarty = CRM_Core_Smarty::singleton();
       // also add the tokens to the template
