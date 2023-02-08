@@ -401,13 +401,13 @@ function cdntaxreceipts_civicrm_searchTasks($objectType, &$tasks ) {
     }
     if (!$single_in_list) {
       $tasks[] = array (
-        'title' => ts('Issue Tax Receipts (Separate Receipt for Each Contribution)', array('domain' => 'org.civicrm.cdntaxreceipts')),
+        'title' => ts('Issue Separate Tax Receipts', array('domain' => 'org.civicrm.cdntaxreceipts')),
         'class' => 'CRM_Cdntaxreceipts_Task_IssueSingleTaxReceipts',
         'result' => TRUE);
     }
     if (!$aggregate_in_list) {
       $tasks[] = array (
-        'title' => ts('Issue Tax Receipts (Combined Receipt with Total Contributed)'),
+        'title' => ts('Issue Aggregated Tax Receipts'),
         'class' => 'CRM_Cdntaxreceipts_Task_IssueAggregateTaxReceipts',
         'result' => TRUE);
     }
