@@ -184,6 +184,8 @@ class CRM_Cdntaxreceipts_Form_Report_ReceiptsIssued extends CRM_Report_Form {
             $select[] = "{$field['dbAlias']} as {$alias}";
             $this->_columnHeaders["{$tableName}_{$fieldName}"]['type'] = CRM_Utils_Array::value('type', $field);
             $this->_columnHeaders["{$tableName}_{$fieldName}"]['title'] = $field['title'];
+            // @todo The right fix is probably in core in Table.tpl
+            $this->_columnHeaders["{$tableName}_{$fieldName}"]['group_by'] = NULL;
             $this->_selectAliases[] = $alias;
           }
         }
@@ -461,6 +463,7 @@ class CRM_Cdntaxreceipts_Form_Report_ReceiptsIssued extends CRM_Report_Form {
     $statistics['counts']['count'] = array(
       'title' => ts('Number Issued', array('domain' => 'org.civicrm.cdntaxreceipts')),
       'value' => $count,
+      'type' => CRM_Utils_Type::T_INT,
     );
     $statistics['counts']['avg'] = array(
       'title' => ts('Average Amount Issued', array('domain' => 'org.civicrm.cdntaxreceipts')),
