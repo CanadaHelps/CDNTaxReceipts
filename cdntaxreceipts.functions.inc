@@ -1062,6 +1062,8 @@ function _receiptThankYouHeader($pdf, $pdf_variables, $receipt) {
     if(!empty($contactTokenValues)) {
       $tokenHtml = CRM_Utils_Token::replaceHookTokens($tokenHtml, $contactValues, $categories, TRUE);
     }
+    //CRM-1672 Added replaceGreetingTokens to successfully replace contact greeting tokens ('email_greeting','postal_greeting','addressee')
+    CRM_Utils_Token::replaceGreetingTokens($tokenHtml, $contact, $receipt['contact_id']);
   }
 
   //PDF Variables
