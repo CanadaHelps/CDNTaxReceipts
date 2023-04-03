@@ -173,6 +173,20 @@ function cdntaxreceipts_processTaxReceipt($receipt, &$collectedPdf = NULL, $mode
   // log the receipt
   if (!$receipt['is_duplicate'] && $sent && $mode != CDNTAXRECEIPTS_MODE_PREVIEW) {
     cdntaxreceipts_log($receipt);
+    //CRM-1270
+    if($receipt['issued_on']) {
+      foreach($receipt['contributions'] as $contribution) {
+        $convert_date = date('Y-m-d H:i:s',$receipt['issued_on']);
+        $results = civicrm_api4('Contribution', 'update', [
+          'values' => [
+            'receipt_date' => $convert_date,
+          ],
+          'where' => [
+            ['id', '=', $contribution['contribution_id']],
+          ],
+        ]);
+      }
+    }
     //CRM-1057: Update Receipt number and flag is_receipted custom field
     if($receipt['receipt_no']) {
       foreach($receipt['contributions'] as $contribution) {
