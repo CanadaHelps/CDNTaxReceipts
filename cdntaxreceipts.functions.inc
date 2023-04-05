@@ -971,6 +971,7 @@ function cdntaxreceipts_issueAnnualTaxReceipt( $contactId, $year, &$collectedPdf
     $receiptContributions = array();
     $totalReceipt = 0;
     foreach ( $contributions as $c ) {
+      _cdntaxreceipts_check_lineitems($c['contribution_id']);
       $eligibleAmount = cdntaxreceipts_eligibleAmount($c['contribution_id']);
       $receiptContributions[] = array(
         'contribution_id' => $c['contribution_id'],
@@ -1460,4 +1461,36 @@ function _cdntaxreceipts_get_contribution_source($contribution): string {
   $source_label = \Civi::settings()->get('cdntaxreceipts_source_label_' . CRM_Core_I18n::getLocale()) ?? '';
   // Note this requires putting the spacing into the setting, but I don't see how else to make translation-friendly, e.g. English is "Source: " but French puts a space before the colon.
   return $source_label . $source;
+}
+
+/**
+ * Check the line items match the total.
+ * @todo Do we need to check the corresponding recurring if it exists?
+ */
+function _cdntaxreceipts_check_lineitems($contribution_id) {
+  $contribution = civicrm_api3('Contribution', 'getsingle', [
+    'id' => $contribution_id,
+    'return' => ['total_amount', 'contact_id'],
+  ]);
+
+  // This is the technique we use elsewhere to get line items, so keep it
+  // consistent, although I don't think we need the check for pre v4.5.
+  $line_item = new CRM_Price_DAO_LineItem();
+  $line_item->contribution_id = $contribution_id;
+  $line_item->find();
+
+  $line_item_totals = 0;
+  while ($line_item->fetch()) {
+    $line_item_totals += $line_item->line_total;
+  }
+
+  if ($contribution['total_amount'] != $line_item_totals) {
+    CRM_Core_Error::statusBounce(
+      ts('The total for contribution id <a %1>%2</a> does not match the line items. Please correct the contribution first.', [
+        'domain' => 'org.civicrm.cdntaxreceipts',
+        1 => 'href="' . CRM_Utils_System::url('civicrm/contact/view/contribution', 'reset=1&id=' . $contribution_id . '&cid=' . $contribution['contact_id'] . '&action=view&context=contribution&selectedChild=contribute') . '" target="_blank"',
+        2 => $contribution_id,
+      ])
+    );
+  }
 }

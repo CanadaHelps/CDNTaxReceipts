@@ -69,6 +69,7 @@ class CRM_Cdntaxreceipts_Task_IssueAggregateTaxReceipts extends CRM_Contribute_F
 
     // Count and categorize contributions
     foreach ($this->_contributionIds as $id) {
+      _cdntaxreceipts_check_lineitems($id);
       $status = isset($this->_contributions_status[$id]) ? $this->_contributions_status[$id] : NULL;
       if (is_array($status)) {
         $year = $status['receive_year'];

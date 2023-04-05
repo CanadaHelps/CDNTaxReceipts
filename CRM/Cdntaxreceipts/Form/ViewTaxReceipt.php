@@ -37,6 +37,8 @@ class CRM_Cdntaxreceipts_Form_ViewTaxReceipt extends CRM_Core_Form {
       $contactId = $this->get('contact_id');
     }
 
+    _cdntaxreceipts_check_lineitems($contributionId);
+
     // might be callback to retrieve the downloadable PDF file
     $download = CRM_Utils_Array::value('download', $_GET);
     if ( $download == 1 ) {

@@ -32,6 +32,7 @@ class CRM_Cdntaxreceipts_Task_IssueSingleTaxReceipts extends CRM_Contribute_Form
 
     // count and categorize contributions
     foreach ( $this->_contributionIds as $id ) {
+      _cdntaxreceipts_check_lineitems($id);
       if ( cdntaxreceipts_eligibleForReceipt($id) ) {
         list($issued_on, $receipt_id) = cdntaxreceipts_issued_on($id);
         $key = empty($issued_on) ? 'original' : 'duplicate';
