@@ -4,6 +4,7 @@
  * This class provides the common functionality for creating PDF letter for
  * one or a group of contact ids.
  */
+use Civi\Token\TokenProcessor;
 class CRM_Cdntaxreceipts_Task_PDFLetterCommon extends CRM_Contact_Form_Task_PDFLetterCommon {
 
   /**
@@ -161,28 +162,85 @@ class CRM_Cdntaxreceipts_Task_PDFLetterCommon extends CRM_Contact_Form_Task_PDFL
    * @throws \CRM_Core_Exception
    */
   public static function resolveTokens(string $html_message, $contact, $contribution, $messageToken, $grouped, $separator, $contributions): string {
-    $categories = self::getTokenCategories();
-    $domain = CRM_Core_BAO_Domain::getDomain();
-    $tokenHtml = CRM_Utils_Token::replaceDomainTokens($html_message, $domain, TRUE, $messageToken);
-    $tokenHtml = CRM_Utils_Token::replaceContactTokens($tokenHtml, $contact, TRUE, $messageToken);
+    //CRM-1792 Refactored resolveTokens for replacing traditional token replacement method to token processor
+    $tokenContext = [
+      'smarty' => (defined('CIVICRM_MAIL_SMARTY') && CIVICRM_MAIL_SMARTY),
+      'contactId' => $contact['contact_id'],
+      'schema' => ['contributionId'],
+    ];
     if ($grouped) {
-      $tokenHtml = CRM_Utils_Token::replaceMultipleContributionTokens($separator, $tokenHtml, $contributions, $messageToken);
-    }
-    else {
-      // no change to normal behaviour to avoid risk of breakage
-      \Civi::log()->debug('{tokenHtml} {contribution} L174', ['tokenHtml' => $tokenHtml, 'contribution' => $contribution]);    
-      $tokenHtml = CRM_Utils_Token::replaceContributionTokens($tokenHtml, $contribution, TRUE, $messageToken);
-    }
-    $tokenHtml = CRM_Utils_Token::replaceHookTokens($tokenHtml, $contact, $categories, TRUE);
-    //CRM-1672 Added replaceGreetingTokens to successfully replace contact greeting tokens ('email_greeting','postal_greeting','addressee')
-    CRM_Utils_Token::replaceGreetingTokens($tokenHtml, $contact, $contact['contact_id']);
-    if (defined('CIVICRM_MAIL_SMARTY') && CIVICRM_MAIL_SMARTY) {
-      $smarty = CRM_Core_Smarty::singleton();
-      // also add the tokens to the template
-      $smarty->assign_by_ref('contact', $contact);
-      $tokenHtml = $smarty->fetch("string:$tokenHtml");
-    }
-    return $tokenHtml;
+        // First replace the contribution tokens. These are pretty ... special.
+        // if the text looks like `<td>{contribution.currency} {contribution.total_amount}</td>'
+        // and there are 2 rows with a currency separator of
+        // you wind up with a string like
+        // '<td>USD</td><td>USD></td> <td>$50</td><td>$89</td>
+        // see https://docs.civicrm.org/user/en/latest/contributions/manual-receipts-and-thank-yous/#grouped-contribution-thank-you-letters
+        $tokenProcessor = new TokenProcessor(\Civi::dispatcher(), $tokenContext);
+        $contributionTokens = CRM_Utils_Token::getTokens($html_message)['contribution'] ?? [];
+        foreach ($contributionTokens as $token) {
+          $tokenProcessor->addMessage($token, '{contribution.' . $token . '}', 'text/html');
+        }
+        
+        foreach ($contributions as $contribution) {
+          $tokenProcessor->addRow([
+            'contributionId' => $contribution['id'],
+            'contribution' => $contribution,
+          ]);
+        }
+        $tokenProcessor->evaluate();
+        $resolvedTokens = [];
+        foreach ($contributionTokens as $token) {
+          foreach ($tokenProcessor->getRows() as $row) {
+            $resolvedTokens[$token][$row->context['contributionId']] = $row->render($token);
+          }
+          switch ($token) {
+              case 'total_amount':
+                $resolvedTokens = self::tokenGroupSum('total_amount',$resolvedTokens);
+                break;
+              case 'contribution_status_id:label':
+                break;
+              case 'source':
+                  break;
+              case 'net_amount':
+                $resolvedTokens = self::tokenGroupSum('net_amount',$resolvedTokens);
+                  break;
+              case 'fee_amount':
+                $resolvedTokens = self::tokenGroupSum('fee_amount',$resolvedTokens);
+                  break;
+              case 'non_deductible_amount':
+                $resolvedTokens = self::tokenGroupSum('non_deductible_amount',$resolvedTokens);
+                  break;
+              default:
+              $setElement = array_key_first($resolvedTokens[$token]);
+              foreach ($resolvedTokens[$token] as $key => $tokenVal) {
+                  if($key !== $setElement){
+                    unset($resolvedTokens[$token][$key]);
+                  }
+                }
+            }
+          $html_message = str_replace('{contribution.' . $token . '}', implode($separator, $resolvedTokens[$token]), $html_message);
+        }
+      }
+    $tokenContext['contributionId'] = $contribution['contribution_id'];
+    $html_message = CRM_Core_TokenSmarty::render(['html' => $html_message], $tokenContext)['html'];
+    return $html_message;
+  }
+
+  public static function tokenGroupSum($token, $resolvedTokens) {
+    $currencySymbol = CRM_Core_BAO_Country::defaultCurrencySymbol();
+    $totalArray = [];
+    $setElement = array_key_first($resolvedTokens[$token]);
+      foreach ($resolvedTokens[$token] as $key=>$tokenVal) {
+        $totalArray[] =  str_replace($currencySymbol, "",$tokenVal);
+      }
+      $finalValue = $currencySymbol.' '.number_format(array_sum($totalArray), 2, '.','');
+      $resolvedTokens[$token][$setElement] = $finalValue;
+      foreach ($resolvedTokens[$token] as $key=>$tokenVal) {
+        if($key !== $setElement){
+          unset($resolvedTokens[$token][$key]);
+        }
+      }
+    return $resolvedTokens;
   }
 
   /**
