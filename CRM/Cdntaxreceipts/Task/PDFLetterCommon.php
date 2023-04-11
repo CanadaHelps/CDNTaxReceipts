@@ -204,6 +204,9 @@ class CRM_Cdntaxreceipts_Task_PDFLetterCommon extends CRM_Contact_Form_Task_PDFL
               case 'net_amount':
                 $resolvedTokens = self::tokenGroupSum('net_amount',$resolvedTokens);
                 break;
+              case 'fee_amount':
+                $resolvedTokens = self::tokenGroupSum('fee_amount',$resolvedTokens);
+                break;
               case 'non_deductible_amount':
                 $resolvedTokens = self::tokenGroupSum('non_deductible_amount',$resolvedTokens);
                 break;
