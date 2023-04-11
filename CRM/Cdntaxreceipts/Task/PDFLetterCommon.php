@@ -200,16 +200,13 @@ class CRM_Cdntaxreceipts_Task_PDFLetterCommon extends CRM_Contact_Form_Task_PDFL
               case 'contribution_status_id:label':
                 break;
               case 'source':
-                  break;
+                break;
               case 'net_amount':
                 $resolvedTokens = self::tokenGroupSum('net_amount',$resolvedTokens);
-                  break;
-              case 'fee_amount':
-                $resolvedTokens = self::tokenGroupSum('fee_amount',$resolvedTokens);
-                  break;
+                break;
               case 'non_deductible_amount':
                 $resolvedTokens = self::tokenGroupSum('non_deductible_amount',$resolvedTokens);
-                  break;
+                break;
               default:
               $setElement = array_key_first($resolvedTokens[$token]);
               foreach ($resolvedTokens[$token] as $key => $tokenVal) {
@@ -231,9 +228,9 @@ class CRM_Cdntaxreceipts_Task_PDFLetterCommon extends CRM_Contact_Form_Task_PDFL
     $totalArray = [];
     $setElement = array_key_first($resolvedTokens[$token]);
       foreach ($resolvedTokens[$token] as $key=>$tokenVal) {
-        $totalArray[] =  str_replace($currencySymbol, "",$tokenVal);
+        $totalArray[] =  str_replace(',', "",str_replace($currencySymbol, "",$tokenVal));
       }
-      $finalValue = $currencySymbol.' '.number_format(array_sum($totalArray), 2, '.','');
+      $finalValue = $currencySymbol.' '.number_format(array_sum($totalArray), 2, '.',',');
       $resolvedTokens[$token][$setElement] = $finalValue;
       foreach ($resolvedTokens[$token] as $key=>$tokenVal) {
         if($key !== $setElement){
