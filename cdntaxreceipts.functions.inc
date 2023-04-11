@@ -1035,28 +1035,24 @@ function _receiptThankYouHeader($pdf, $pdf_variables, $receipt) {
       'sequential' => 1,
       'id' => $receipt['contact_id'],
     ]);
-    $returnProperties = ['display_name'];
-    $contactTokenValues = CRM_Utils_Token::getTokenDetails(['contact_id' => $receipt['contact_id']],
-      $returnProperties,
-      true,
-      true,
-      NULL,
-      $messageToken
-    );
-    $contactValues = $contact['values'][0];
-    if(!empty($contactTokenValues)) {
-      $contactValues = array_merge($contactValues, $contactTokenValues[0][$receipt['contact_id']]);
+    
+    //CRM-1792 Replacing deprecated way of token processing with new token Processor
+    $groupedContributions = [];
+    $grouped = FALSE;
+    $realSeparator = ', ';
+    $separator = '****~~~~';
+    if(count($pdf_variables['receipt_contributions'])>1)
+    {
+      $grouped = TRUE;
+      foreach ($pdf_variables['receipt_contributions'] as $contriKey=>$contribution) {
+          $pdf_variables['receipt_contributions'][$contriKey]['id'] = $contribution['contribution_id'];
+        }
+      $groupedContributions = $pdf_variables['receipt_contributions'];
+    }else{
+      $contribution = $pdf_variables['receipt_contributions'][0]; 
     }
-    $categories = CRM_Cdntaxreceipts_Task_PDFLetterCommon::getTokenCategories();
-    $tokenHtml = CRM_Utils_Token::replaceContactTokens($newString, $contact, TRUE, $messageToken);
-    $domain = CRM_Core_BAO_Domain::getDomain();
-    $tokenHtml = CRM_Utils_Token::replaceDomainTokens($tokenHtml, $domain, TRUE, $messageToken);
-    $tokenHtml = CRM_Utils_Token::replaceContributionTokens($tokenHtml, $pdf_variables, TRUE, $messageToken);
-    if(!empty($contactTokenValues)) {
-      $tokenHtml = CRM_Utils_Token::replaceHookTokens($tokenHtml, $contactValues, $categories, TRUE);
-    }
-    //CRM-1672 Added replaceGreetingTokens to successfully replace contact greeting tokens ('email_greeting','postal_greeting','addressee')
-    CRM_Utils_Token::replaceGreetingTokens($tokenHtml, $contact, $receipt['contact_id']);
+    //in case of grouped contribution, resolveTokens returns html string with grouped contribution value seperated by $seperator $4****~~~~$3 and $realSeparator replace that value with comma ', ' in html
+    $tokenHtml = str_replace($separator, $realSeparator, CRM_Cdntaxreceipts_Task_PDFLetterCommon::resolveTokens($newString, $contact, $contribution, $messageToken, $grouped, $separator, $groupedContributions));
   }
 
   //PDF Variables
