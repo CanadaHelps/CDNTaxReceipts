@@ -195,20 +195,14 @@ class CRM_Cdntaxreceipts_Task_PDFLetterCommon extends CRM_Contact_Form_Task_PDFL
           }
           switch ($token) {
               case 'total_amount':
-                $resolvedTokens = self::tokenGroupSum('total_amount',$resolvedTokens);
+              case 'net_amount':
+              case 'fee_amount':
+              case 'non_deductible_amount':
+                $resolvedTokens = self::tokenGroupSum($token,$resolvedTokens);
                 break;
               case 'contribution_status_id:label':
                 break;
               case 'source':
-                break;
-              case 'net_amount':
-                $resolvedTokens = self::tokenGroupSum('net_amount',$resolvedTokens);
-                break;
-              case 'fee_amount':
-                $resolvedTokens = self::tokenGroupSum('fee_amount',$resolvedTokens);
-                break;
-              case 'non_deductible_amount':
-                $resolvedTokens = self::tokenGroupSum('non_deductible_amount',$resolvedTokens);
                 break;
               default:
               $setElement = array_key_first($resolvedTokens[$token]);
@@ -225,7 +219,7 @@ class CRM_Cdntaxreceipts_Task_PDFLetterCommon extends CRM_Contact_Form_Task_PDFL
     $html_message = CRM_Core_TokenSmarty::render(['html' => $html_message], $tokenContext)['html'];
     return $html_message;
   }
-
+  // This function performs sum of grouped contribution token values for tokens such as 'total_amount','net_amount','fee_amount','non_deductible_amount';
   public static function tokenGroupSum($token, $resolvedTokens) {
     $currencySymbol = CRM_Core_BAO_Country::defaultCurrencySymbol();
     $totalArray = [];

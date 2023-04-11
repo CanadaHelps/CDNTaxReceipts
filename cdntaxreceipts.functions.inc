@@ -1051,6 +1051,7 @@ function _receiptThankYouHeader($pdf, $pdf_variables, $receipt) {
     }else{
       $contribution = $pdf_variables['receipt_contributions'][0]; 
     }
+    //in case of grouped contribution, resolveTokens returns html string with grouped contribution value seperated by $seperator $4****~~~~$3 and $realSeparator replace that value with comma ', ' in html
     $tokenHtml = str_replace($separator, $realSeparator, CRM_Cdntaxreceipts_Task_PDFLetterCommon::resolveTokens($newString, $contact, $contribution, $messageToken, $grouped, $separator, $groupedContributions));
   }
 
