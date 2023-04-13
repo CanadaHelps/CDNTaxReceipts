@@ -357,6 +357,9 @@ AND COLUMN_NAME = 'receipt_status'");
       'is_reserved' => 0,
     );
     civicrm_api3('MessageTemplate', 'create', $params);
+    $params['is_default'] = 0;
+    $params['is_reserved'] = 1;
+    civicrm_api3('MessageTemplate', 'create', $params);
 
     $params = array(
       'msg_title' => 'CDN Tax Receipts - Email Annual/Aggregate Receipt',
@@ -367,6 +370,9 @@ AND COLUMN_NAME = 'receipt_status'");
       'is_default' => 1,
       'is_reserved' => 0,
     );
+    civicrm_api3('MessageTemplate', 'create', $params);
+    $params['is_default'] = 0;
+    $params['is_reserved'] = 1;
     civicrm_api3('MessageTemplate', 'create', $params);
 
     return TRUE;
