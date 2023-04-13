@@ -711,7 +711,7 @@ function cdntaxreceipts_issueTaxReceipt($contribution, &$collectedPdf = NULL, $m
   }
 
   // "Attach" receipts are email (we save the file & attach to an email)
-  if ($mode == CDNTAXRECEIPTS_MODE_WORKFLOW) {
+  if ($mode == CDNTAXRECEIPTS_MODE_WORKFLOW || $mode == CDNTAXRECEIPTS_MODE_API) {
     $method = 'email';
   }
 

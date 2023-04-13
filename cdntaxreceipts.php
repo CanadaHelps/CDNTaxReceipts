@@ -9,6 +9,7 @@ use CRM_Cdntaxreceipts_ExtensionUtil as E;
 define('CDNTAXRECEIPTS_MODE_BACKOFFICE', 1);
 define('CDNTAXRECEIPTS_MODE_PREVIEW', 2);
 define('CDNTAXRECEIPTS_MODE_WORKFLOW', 3);
+define('CDNTAXRECEIPTS_MODE_API', 4);
 
 function cdntaxreceipts_civicrm_buildForm( $formName, &$form ) {
   if (is_a( $form, 'CRM_Contribute_Form_ContributionView')) {
@@ -234,7 +235,14 @@ function cdntaxreceipts_civicrm_permission( &$permissions ) {
 
 
 /**
- * Implementation of hook_civicrm_config
+ * API should use the CDN Tax Receipts permission.
+ */
+function cdntaxreceipts_civicrm_alterAPIPermissions($entity, $action, &$params, &$permissions) {
+  $permissions['cdntaxreceipts']['generate'] = ['issue cdn tax receipts'];
+}
+
+/**
+ * Implements hook_civicrm_config().
  */
 function cdntaxreceipts_civicrm_config(&$config) {
   _cdntaxreceipts_civix_civicrm_config($config);
