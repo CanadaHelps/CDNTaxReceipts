@@ -470,6 +470,10 @@ class CRM_Cdntaxreceipts_Task_IssueAggregateTaxReceipts extends CRM_Contribute_F
                   $data['values']['ViewTaxReceipt']['from_email_address'] = $from_email_address;
                   $data['values']['ViewTaxReceipt']['subject'] = $this->getElement('subject')->getValue();
                   $data['values']['ViewTaxReceipt']['html_message'] = $this->getElement('html_message')->getValue();
+                  //CRM-1792 Adding 'group_by' parameter for token processor to process grouped contributions
+                  if(count($contributions) > 1) {
+                    $params['group_by'] = 'contact_id';
+                  }
                   $thankyou_html = CRM_Cdntaxreceipts_Task_PDFLetterCommon::postProcessForm($this, $params);
                   if($thankyou_html) {
                     if(is_array($thankyou_html)) {
