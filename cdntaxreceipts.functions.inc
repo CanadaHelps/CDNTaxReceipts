@@ -1056,7 +1056,8 @@ function _receiptThankYouHeader($pdf, $pdf_variables, $receipt) {
       'sequential' => 1,
       'id' => $receipt['contact_id'],
     ]);
-    
+    //CRM-1865 Fixed contact object for token processing
+    $contact = $contact['values'][0];
     //CRM-1792 Replacing deprecated way of token processing with new token Processor
     $groupedContributions = [];
     $grouped = FALSE;
