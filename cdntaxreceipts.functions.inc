@@ -1050,7 +1050,8 @@ function _receiptThankYouHeader($pdf, $pdf_variables, $receipt) {
 
   if($result['values'][0]) {
     $message_tpl = $result['values'][0];
-    $newString = $message_tpl['msg_html'] ?? NULL;
+    //CRM-1868 If "CDN Tax Receipts - Thank you Note" template is blank, assign string to $newString
+    $newString = $message_tpl['msg_html'] ?? '';
     $messageToken = CRM_Utils_Token::getTokens($newString);
     $contact =  civicrm_api3('Contact', 'get', [
       'sequential' => 1,
