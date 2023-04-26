@@ -691,7 +691,7 @@ function cdntaxreceipts_issueTaxReceipt($contribution, &$collectedPdf = NULL, $m
     else if ( $receipt['issue_type'] == 'aggregate' ) {
       $contactId = $receipt['contact_id'];
       $year = substr($receipt['contributions'][0]['receive_date'], 0, 4);
-      list($method, $email) = cdntaxreceipts_sendMethodForContact($contactId);
+      list($method, $email) = cdntaxreceipts_sendMethodForContact($contactId, $printOverride);
       return cdntaxreceipts_issueAggregateTaxReceipt($contactId, $year, $receipt['contributions'],
         $method, $collectedPdf, $mode);
     }
