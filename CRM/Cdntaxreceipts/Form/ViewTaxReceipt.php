@@ -185,10 +185,12 @@ class CRM_Cdntaxreceipts_Form_ViewTaxReceipt extends CRM_Core_Form {
       // Get the Tax Receipt that has already been issued previously for this Contribution
       list($issued_on, $receipt_id) = cdntaxreceipts_issued_on($contribution->id);
 
-      $result = cdntaxreceipts_cancel($receipt_id);
+      $cancelResult = cdntaxreceipts_cancel($receipt_id);
 
-      if ($result == TRUE) {
+      if ($cancelResult == TRUE) {
         $statusMsg = ts('Tax Receipt has been cancelled.', array('domain' => 'org.civicrm.cdntaxreceipts'));
+        $collectedPdf = NULL;
+        list($result, $method, $pdf) = cdntaxreceipts_issueTaxReceipt( $contribution, $collectedPdf, CDNTAXRECEIPTS_MODE_BACKOFFICE, TRUE );
       }
       else {
         $statusMsg = ts('Encountered an error. Tax receipt has not been cancelled.', array('domain' => 'org.civicrm.cdntaxreceipts'));
@@ -232,12 +234,12 @@ class CRM_Cdntaxreceipts_Form_ViewTaxReceipt extends CRM_Core_Form {
       }
       // refresh the form, with file stored in session if we need it.
       $urlParams = array('reset=1', 'cid='.$contactId, 'id='.$contributionId);
+    }
 
-      if ( $method == 'print' && isset($pdf) ) {
-        $session = CRM_Core_Session::singleton();
-        $session->set("pdf_file_". $contributionId . "_" . $contactId, $pdf, 'cdntaxreceipts');
-        $urlParams[] = 'file=1';
-      }
+    if ( $method == 'print' && isset($pdf) ) {
+      $session = CRM_Core_Session::singleton();
+      $session->set("pdf_file_". $contributionId . "_" . $contactId, $pdf, 'cdntaxreceipts');
+      $urlParams[] = 'file=1';
     }
 
     // Forward back to our page
