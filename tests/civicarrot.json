@@ -8,8 +8,8 @@
       },
       {
         "php-versions": "7.4",
-        "drupal": "9.3.*",
-        "civicrm": "5.51.*"
+        "drupal": "9.4.*",
+        "civicrm": "5.57.*"
       }
     ]
   },
@@ -36,8 +36,8 @@
           },
           {
             "php-versions": "7.4",
-            "drupal": "~9.3.0",
-            "civicrm": "~5.51.0"
+            "drupal": "~9.4.0",
+            "civicrm": "~5.57.0"
           }
         ]
       }
