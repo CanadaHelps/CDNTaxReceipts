@@ -82,7 +82,7 @@ function cdntaxreceipts_processTaxReceipt($receipt, &$collectedPdf = NULL, $mode
   //   modules should accept a reference to the $receipt array and alter it directly if they wish
   //   one useful use case: alter the $receipt['source'] line to include custom text
   //   to alter receipt amount, use hook_cdntaxreceipts_eligibleAmount() instead
-  CRM_Utils_Hook::singleton()->invoke(1, $receipt, CRM_Utils_Hook::$_nullObject, CRM_Utils_Hook::$_nullObject, CRM_Utils_Hook::$_nullObject, CRM_Utils_Hook::$_nullObject, CRM_Utils_Hook::$_nullObject, 'cdntaxreceipts_alter_receipt');
+  CRM_Utils_Hook::singleton()->invoke(['receipt'], $receipt, CRM_Utils_Hook::$_nullObject, CRM_Utils_Hook::$_nullObject, CRM_Utils_Hook::$_nullObject, CRM_Utils_Hook::$_nullObject, CRM_Utils_Hook::$_nullObject, 'cdntaxreceipts_alter_receipt');
 
   if ($receipt['issue_method'] == 'data') {
     // generate log entry only, no PDF file needed
@@ -363,7 +363,7 @@ function _cdntaxreceipts_writePage(&$f, $pdf_variables, $receipt) {
   //
 
   $pdf_variables['thankyou_note'] = true;
-  $results = CRM_Utils_Hook::singleton()->invoke(3, $f, $pdf_variables, $receipt, CRM_Utils_Hook::$_nullObject, CRM_Utils_Hook::$_nullObject, CRM_Utils_Hook::$_nullObject, 'cdntaxreceipts_writeReceipt');
+  $results = CRM_Utils_Hook::singleton()->invoke(['f', 'pdf_variables', 'receipt'], $f, $pdf_variables, $receipt, CRM_Utils_Hook::$_nullObject, CRM_Utils_Hook::$_nullObject, CRM_Utils_Hook::$_nullObject, 'cdntaxreceipts_writeReceipt');
   _cdntaxreceipts_writeReceipt($f, $pdf_variables, $receipt);
   $pdf_variables['thankyou_note'] = false;
   // if custom rewrite is implemented
@@ -1490,7 +1490,7 @@ function cdntaxreceipts_eligibleForReceipt( $contributionId ) {
   //   module implementations should return an array containing a single item,
   //   either TRUE or FALSE. assumes TRUE until we receive a FALSE. one FALSE
   //   disqualifies the contribution for a tax receipt.
-  $results = CRM_Utils_Hook::singleton()->invoke(1, $contribution, CRM_Utils_Hook::$_nullObject, CRM_Utils_Hook::$_nullObject, CRM_Utils_Hook::$_nullObject, CRM_Utils_Hook::$_nullObject, CRM_Utils_Hook::$_nullObject, 'cdntaxreceipts_eligible');
+  $results = CRM_Utils_Hook::singleton()->invoke(['contribution'], $contribution, CRM_Utils_Hook::$_nullObject, CRM_Utils_Hook::$_nullObject, CRM_Utils_Hook::$_nullObject, CRM_Utils_Hook::$_nullObject, CRM_Utils_Hook::$_nullObject, 'cdntaxreceipts_eligible');
   $hookOk = TRUE;
 
   if (is_array($results)) {
@@ -1569,7 +1569,7 @@ function cdntaxreceipts_eligibleAmount( $contributionId ) {
   }
 
   // 2. allow modules to alter the amount. lowest amount wins.
-  $results = CRM_Utils_Hook::singleton()->invoke(1, $contribution, CRM_Utils_Hook::$_nullObject, CRM_Utils_Hook::$_nullObject, CRM_Utils_Hook::$_nullObject, CRM_Utils_Hook::$_nullObject, CRM_Utils_Hook::$_nullObject, 'cdntaxreceipts_eligibleAmount');
+  $results = CRM_Utils_Hook::singleton()->invoke(['contribution'], $contribution, CRM_Utils_Hook::$_nullObject, CRM_Utils_Hook::$_nullObject, CRM_Utils_Hook::$_nullObject, CRM_Utils_Hook::$_nullObject, CRM_Utils_Hook::$_nullObject, 'cdntaxreceipts_eligibleAmount');
 
   if (is_array($results)) {
     foreach ( $results as $result ) {
@@ -1826,7 +1826,7 @@ function cdntaxreceipts_sendMethodForContact( $contactId ) {
   //   module implementations should return an array containing a single item,
   //   either 'email' or 'print'. if we receive one or more 'print', the contact
   //   is disqualified from receiving email receipts.
-  $results = CRM_Utils_Hook::singleton()->invoke(1, $contactId, CRM_Utils_Hook::$_nullObject, CRM_Utils_Hook::$_nullObject, CRM_Utils_Hook::$_nullObject, CRM_Utils_Hook::$_nullObject, CRM_Utils_Hook::$_nullObject, 'cdntaxreceipts_method');
+  $results = CRM_Utils_Hook::singleton()->invoke(['contactId'], $contactId, CRM_Utils_Hook::$_nullObject, CRM_Utils_Hook::$_nullObject, CRM_Utils_Hook::$_nullObject, CRM_Utils_Hook::$_nullObject, CRM_Utils_Hook::$_nullObject, 'cdntaxreceipts_method');
 
   if (is_array($results)) {
     foreach ( $results as $result ) {
