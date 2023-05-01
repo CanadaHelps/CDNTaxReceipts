@@ -1286,17 +1286,11 @@ function cdntaxreceipts_configure_inkind_fields() {
 
   // check if the custom fields exist.  if not, create them.
   foreach ( array( 'Description of property', 'Appraised by', 'Address of Appraiser', 'Original cost' ) as $field ) {
-    $params = array(
-      'custom_group_id' => $custom_group_id,
-      'label' => $field,
-      'version' => 3,
-    );
-    $result = civicrm_api( 'custom_field', 'get', $params);
-
-    if ( $result['count'] == 0 ) {
+    if (!_cdntaxreceipts_custom_field_exists($custom_group_id, $field)) {
       $field_params = array(
         'custom_group_id' => $custom_group_id,
         'label' => $field,
+        'name' => CRM_Utils_String::munge($field, '_', 64),
         'data_type' => 'String',
         'html_type' => 'Text',
         'is_required' => 1,
@@ -1313,7 +1307,7 @@ function cdntaxreceipts_configure_inkind_fields() {
           ' the cost of the item donated (and the creditable amount) if either of those '.
           ' situations apply.';
       }
-      $result = civicrm_api('custom_field', 'create', $field_params);
+      civicrm_api('custom_field', 'create', $field_params);
     }
   }
 }
@@ -2249,4 +2243,31 @@ function loadTemplate(string $workflowName, bool $isTest, int $messageTemplateID
     $mailContent['html'] = preg_replace('/<body(.*)$/im', "<body\\1\n{$testText['msg_html']}", $mailContent['html']);
   }
   return $mailContent;
+}
+
+
+// BACKPORTED from 1.7.1
+
+/**
+ * Check if a custom field exists given only the `label`, but we want to
+ * check `name` first, then fall back to `label`.
+ * Being a little bit paranoid but it's not clear if it's possible that a
+ * really old install might have had the `name` generated differently than
+ * the way core currently does it, since we never used to set the `name`
+ * ourselves, so that's why we fall back to `label`.
+ *
+ * @param int $custom_group_id
+ * @param string $field_label
+ * @return bool
+ */
+function _cdntaxreceipts_custom_field_exists($custom_group_id, $field_label) {
+  $params = array(
+    'custom_group_id' => $custom_group_id,
+    'name' => CRM_Utils_String::munge($field_label, '_', 64),
+    'label' => $field_label,
+    'options' => array('or' => array(array('name', 'label'))),
+    'version' => 3,
+  );
+  $result = civicrm_api('custom_field', 'get', $params);
+  return ($result['count'] != 0);
 }
