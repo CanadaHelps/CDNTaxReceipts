@@ -153,14 +153,14 @@ function cdntaxreceipts_processTaxReceipt($receipt, &$collectedPdf = NULL, $mode
         $sendTemplateParams['thankyou_email'] = TRUE;
         $sendTemplateParams['html'] = $receipt['thankyou_html'];
       }
-      list($sent, $subject, $message, $html) = sendTemplate($sendTemplateParams);
+      list($sent, $subject, $message, $html) = ch_sendTemplate($sendTemplateParams);
 
       // send a copy (with open tracking) to the donor
       if ($sent && $receipt['issue_method'] == 'email' && $mode != CDNTAXRECEIPTS_MODE_WORKFLOW) {
         $sendTemplateParams['toEmail'] = $contact['email'];
         $sendTemplateParams['tplParams']['openTracking'] = "<img src=\"" . CRM_Utils_System::baseURL() .
           "civicrm/cdntaxreceipts/open?r={$receipt['email_tracking_id']}\" width='1' height='1' alt='' border='0'>";
-        list($sent, $subject, $message, $html) = sendTemplate($sendTemplateParams);
+        list($sent, $subject, $message, $html) = ch_sendTemplate($sendTemplateParams);
       }
     }
   }
@@ -335,7 +335,7 @@ function cdntaxreceipts_generateFormattedReceipt($receipt, &$collectedPdf = NULL
     }
     //CRM-1197 Ability to print 'Thank you' messages when selecting 'Print' as tax receipt delivery method.
     if($pdf_variables['thankyou_html'] && $receipt['issue_method'] == 'print') {
-      _receiptThankYouTemplate($f, $pdf_variables, $receipt);
+      ch_receiptThankYouTemplate($f, $pdf_variables, $receipt);
     }
     $f->AddPage();
     _cdntaxreceipts_writePage($f, $pdf_variables, $receipt);
@@ -366,6 +366,7 @@ function _cdntaxreceipts_writePage(&$f, $pdf_variables, $receipt) {
   // this when testing their particular installs.
   //
 
+  // Thank you note
   $pdf_variables['thankyou_note'] = true;
   CRM_Utils_Hook::singleton()->invoke(['f', 'pdf_variables', 'receipt'], $f, $pdf_variables, $receipt, CRM_Utils_Hook::$_nullObject, CRM_Utils_Hook::$_nullObject, CRM_Utils_Hook::$_nullObject, 'cdntaxreceipts_writeReceipt');
   _cdntaxreceipts_writeReceipt($f, $pdf_variables, $receipt);
@@ -402,7 +403,7 @@ function _cdntaxreceipts_writePage(&$f, $pdf_variables, $receipt) {
   // if no custom function, go with default formatting...
   if ($pdf_variables['is_duplicate']) {
     // print duplicate copy
-    _cdntaxreceipts_writeReceipt($f, $pdf_variables);
+    _cdntaxreceipts_writeReceipt($f, $pdf_variables, $receipt);
   }
   else {
     // print original AND duplicate copy
@@ -421,7 +422,7 @@ function _cdntaxreceipts_writeReceipt(&$pdf, &$pdf_variables, $receipt) {
   //Set PDF Variable to custom for complete rewrite
   $pdf_variables['is_custom_rewrite'] = true;
   if($pdf_variables['thankyou_note']) {
-    _receiptThankYouHeader($pdf, $pdf_variables, $receipt);
+    ch_receiptThankYouHeader($pdf, $pdf_variables, $receipt);
     return;
   }
 
@@ -579,11 +580,13 @@ function _cdntaxreceipts_writeReceipt(&$pdf, &$pdf_variables, $receipt) {
 
 
   // Grid 2A: Left Section
+  // Receipt #
   $pdf->setY(EU::getReceiptLineHeight($grid2_y_top, $line_height, 1.5));
   $pdf->SetFont($fontLatoRegular, '', $smallFont);
   $pdf->Write(10, ts("Receipt #: "));
   $pdf->SetFont($fontLatoLight, '', $smallFont);
   $pdf->Write(10, ts($receipt_number), array('domain' => 'org.civicrm.cdntaxreceipts'));
+  // Receipt Issue Date
   $pdf->setY(EU::getReceiptLineHeight($grid2_y_top, $line_height, 2.5));
   $pdf->SetFont($fontLatoRegular, '', $smallFont);
   $pdf->Write(10, ts("Receipt Issued: "));
@@ -619,11 +622,13 @@ function _cdntaxreceipts_writeReceipt(&$pdf, &$pdf_variables, $receipt) {
   }
 
   // Grid 2B: Left Section
+  // Received On
   $pdf->setY(EU::getReceiptLineHeight($grid2b_y_top, $line_height, 1.5));
   $pdf->SetFont($fontLatoRegular, '', $smallFont);
   $pdf->Write(10, $display_date_text);
   $pdf->SetFont($fontLatoLight, '', $smallFont);
   $pdf->Write(10, ts($display_date), array('domain' => 'org.civicrm.cdntaxreceipts'));
+  // Amount / Total Amount
   $pdf->setY(EU::getReceiptLineHeight($grid2b_y_top, $line_height, 2.5));
   $pdf->SetFont($fontLatoRegular, '', $smallFont);
   if($issue_type !== 'single') {
@@ -661,6 +666,7 @@ function _cdntaxreceipts_writeReceipt(&$pdf, &$pdf_variables, $receipt) {
   $pdf->Write(10, ts('$'.number_format($amount, 2)));
 
   // Grid 2: Right Section
+  // Donor info
   $text_limit = 45;
   $pdf->SetXY(0, EU::getReceiptLineHeight($grid2_y_top, $line_height, 2));
   $pdf->SetFont($fontLatoRegular, '', $smallFont);
@@ -854,13 +860,10 @@ function _addItemizedDetails(&$pdf, &$pdf_variables, $receipt) {
   if ( empty($receipt_logo) ) {
     $receipt_logo = $pdf_img_files_path . 'your-logo.png';
   }
-  $logo_mime_type = mime_content_type($receipt_logo);
-  $logo_image_type = 'PNG';
-  if($logo_mime_type) {
-    $logo_image_type = str_replace('image/', '', $logo_mime_type);
-  }
+
   // Max Height : 30, Max Width : 45
   list($w, $h) = EU::setImageDimension($receipt_logo, 30, 45);
+  $logo_image_type = _ch_get_image_type($receipt_logo);
   $pdf->Image($receipt_logo, 10, 10 + $top_header_margin_offset, $w, $h, $logo_image_type, '', 'T', false, 300, 'R');
 
 
@@ -899,13 +902,10 @@ function _addItemizedDetails(&$pdf, &$pdf_variables, $receipt) {
       if ( empty($receipt_logo) ) {
         $receipt_logo = $pdf_img_files_path . 'your-logo.png';
       }
-      $logo_mime_type = mime_content_type($receipt_logo);
-      $logo_image_type = 'PNG';
-      if($logo_mime_type) {
-        $logo_image_type = str_replace('image/', '', $logo_mime_type);
-      }
+
       // Max Height : 30, Max Width : 45
       list($w, $h) = EU::setImageDimension($receipt_logo, 30, 45);
+      $logo_image_type = _ch_get_image_type($receipt_logo);
       $pdf->Image($receipt_logo, 10, 10 + $top_header_margin_offset, $w, $h, $logo_image_type, '', 'T', false, 300, 'R');
 
       // In-Kind Section
@@ -1035,7 +1035,7 @@ function _addItemizedDetails(&$pdf, &$pdf_variables, $receipt) {
   return;
 }
 
-function _receiptThankYouHeader($pdf, $pdf_variables, $receipt) {
+function ch_receiptThankYouHeader($pdf, $pdf_variables, $receipt) {
   // Make tokens work on new Receipts
   $result = civicrm_api3('MessageTemplate', 'get', [
     'sequential' => 1,
@@ -1115,13 +1115,10 @@ function _receiptThankYouHeader($pdf, $pdf_variables, $receipt) {
   if ( empty($receipt_logo) ) {
     $receipt_logo = $pdf_img_files_path . 'your-logo.png';
   }
-  $logo_mime_type = mime_content_type($receipt_logo);
-  $logo_image_type = 'PNG';
-  if($logo_mime_type) {
-    $logo_image_type = str_replace('image/', '', $logo_mime_type);
-  }
+
   // Max Height : 30, Max Width : 45
   list($w, $h) = EU::setImageDimension($receipt_logo, 30, 45);
+  $logo_image_type = _ch_get_image_type($receipt_logo);
   $pdf->Image($receipt_logo, 10, 10 + $top_header_margin_offset, $w, $h, $logo_image_type, '', 'T', false, 300, 'R');
 
 
@@ -1190,7 +1187,7 @@ function _receiptThankYouHeader($pdf, $pdf_variables, $receipt) {
 }
 
 //CRM-1197 Created individual pdf file for selected Thank you template first and imported that PDF to existing receipt as page
-function _receiptThankYouTemplate($pdf, $pdf_variables, $receipt) {
+function ch_receiptThankYouTemplate($pdf, $pdf_variables, $receipt) {
   $tokenHtml = $pdf_variables['thankyou_html'];
 
   //PDF Variables
@@ -2074,7 +2071,7 @@ function _cdntaxreceipts_setReceiptanguage($language) {
  * Easier to attach custom email with the PDF
  * @language string $language preferred_language (i.e. en_US or fr_CA)
  */
-function sendTemplate($params) {
+function ch_sendTemplate($params) {
   $defaults = [
     // option value name of the template
     'valueName' => NULL,
@@ -2117,7 +2114,7 @@ function sendTemplate($params) {
     CRM_Core_Error::deprecatedWarning('message template id should be an integer');
     $params['messageTemplateID'] = (int) $params['messageTemplateID'];
   }
-  $mailContent = loadTemplate((string) $params['valueName'], $params['isTest'], $params['messageTemplateID'] ?? NULL, $params['groupName'] ?? '');
+  $mailContent = ch_loadTemplate((string) $params['valueName'], $params['isTest'], $params['messageTemplateID'] ?? NULL, $params['groupName'] ?? '');
 
   // Overwrite subject from form field
   if (!empty($params['subject'])) {
@@ -2211,7 +2208,7 @@ function sendTemplate($params) {
   return [$sent, $mailContent['subject'], $mailContent['text'], $mailContent['html']];
 }
 
-function loadTemplate(string $workflowName, bool $isTest, int $messageTemplateID = NULL, $groupName = NULL): array {
+function ch_loadTemplate(string $workflowName, bool $isTest, int $messageTemplateID = NULL, $groupName = NULL): array {
 
   $messageTemplate = civicrm_api3('MessageTemplate', 'get', [
     'sequential' => 1,
@@ -2355,3 +2352,11 @@ function _cdntaxreceipts_get_contribution_source($contribution): string {
   return 'Source: ' . $contribution->source;
 }
 
+
+function _ch_get_image_type($imageFilePath):string {
+  $mimeType = mime_content_type($imageFilePath);
+  $imageType = 'PNG';
+  if ($mimeType)
+    $imageType = str_replace('image/', '', $mimeType);
+  return $imageType;
+}
