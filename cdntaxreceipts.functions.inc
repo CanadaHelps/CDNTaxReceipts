@@ -225,23 +225,14 @@ function cdntaxreceipts_generateFormattedReceipt($receipt, &$collectedPdf = NULL
 
   $address_line_1 = isset($address['street_address']) ? $address['street_address'] : '';
   $parts = array();
-  foreach(array('city', 'state_province')  as $addr_part) {
+  foreach(array('city', 'state_province', 'postal_code')  as $addr_part) {
     if (isset($address[$addr_part])) {
       $parts[] = $address[$addr_part];
     }
   }
   $address_line_1b = isset($address['supplemental_address_1']) ? $address['supplemental_address_1'] : '';
-  $address_line_2 = implode(', ', $parts);
-  if(isset($address['postal_code'])) {
-    $address_country = isset($address['country']) ? $address['country'] : '';
-    if($address_country) {
-      $address_line_3 = $address['postal_code']. ', '.$address_country;
-    } else {
-      $address_line_3 = $address['postal_code'];
-    }
-  } else {
-    $address_line_3 = isset($address['country']) ? $address['country'] : '';
-  }
+  $address_line_2 = implode(' ', $parts);
+  $address_line_3 = isset($address['country']) ? $address['country'] : '';
 
   list($displayname, $email) = CRM_Contact_BAO_Contact::getContactDetails($receipt['contact_id']);
 
