@@ -16,11 +16,10 @@ require_once('FPDI/fpdi.php');
      * include a background template for every page
      */
     function Header() {
-      $pdf_template_file = Civi::settings()->get('receipt_pdftemplate');
+      $pdf_template_file = _cdntaxreceipts_get_image_filepath('receipt_pdftemplate');
       if (!empty($pdf_template_file)) {
 
         if (is_null($this->_tplIdx)) {
-          $pdf_template_file = Civi::settings()->get('receipt_pdftemplate');
           $this->setSourceFile($pdf_template_file);
           $this->_tplIdx = $this->importPage(1);
         }
@@ -512,12 +511,10 @@ function _cdntaxreceipts_writeReceipt(&$pdf, &$pdf_variables, $receipt) {
   $pdf->SetFont($fontLatoRegular, '', $bigFont);
   $pdf->Write(10, ts('Official Tax Receipt For Income Tax Purposes', array('domain' => 'org.civicrm.cdntaxreceipts')));
 
-  $pdf_template_file = Civi::settings()->get('receipt_pdftemplate');
-  if (!empty($pdf_template_file)) {
-  }
-  else {
+  $pdf_template_file = _cdntaxreceipts_get_image_filepath('receipt_pdftemplate');
+  if (empty($pdf_template_file)) {
     // Grid 1: Right Section
-    $receipt_logo = Civi::settings()->get('receipt_logo');
+    $receipt_logo = _cdntaxreceipts_get_image_filepath('receipt_logo');
     if ( empty($receipt_logo) ) {
       $receipt_logo = $pdf_img_files_path . 'your-logo.png';
     }
@@ -697,12 +694,10 @@ function _cdntaxreceipts_writeReceipt(&$pdf, &$pdf_variables, $receipt) {
   // Check Background Image or WaterMark
   $x_detailscolumn = 120;
   $y_detailscolumnstart = 22;
-  $pdf_template_file = Civi::settings()->get('receipt_pdftemplate');
-  if (!empty($pdf_template_file)) {
-  }
-  else {
-    $background_image = Civi::settings()->get('receipt_watermark');
-    if ( $background_image ) $pdf->Image(Civi::settings()->get('receipt_watermark'), $mymargin_left + $x_detailscolumn, $mymargin_top + $y_detailscolumnstart + 6, '', 40);
+  $pdf_template_file = _cdntaxreceipts_get_image_filepath('receipt_pdftemplate');
+  if (empty($pdf_template_file)) {
+    $background_image = _cdntaxreceipts_get_image_filepath('receipt_watermark');
+    if ( $background_image ) $pdf->Image($background_image, $mymargin_left + $x_detailscolumn, $mymargin_top + $y_detailscolumnstart + 6, '', 40);
   }
 
   // Grid 3: Left In-Kind Section
@@ -758,7 +753,7 @@ function _cdntaxreceipts_writeReceipt(&$pdf, &$pdf_variables, $receipt) {
     $pdf->setY($grid4_y_top);
     $pdf->SetFont($fontLatoRegular, '', $smallFont);
     $pdf->Cell(0, 0, ts('Authorized Signature', array('domain' => 'org.civicrm.cdntaxreceipts')), 0, 0, 'R');
-    $sig_image = Civi::settings()->get('receipt_signature');
+    $sig_image = _cdntaxreceipts_get_image_filepath('receipt_signature');
     if (empty($sig_image)) {
       $sig_image = $pdf_img_files_path . 'authorized-signature.png';
     }
@@ -847,7 +842,7 @@ function _addItemizedDetails(&$pdf, &$pdf_variables, $receipt) {
   }
 
   // Grid 1: Right Section
-  $receipt_logo = Civi::settings()->get('receipt_logo');
+  $receipt_logo = _cdntaxreceipts_get_image_filepath('receipt_logo');
   if ( empty($receipt_logo) ) {
     $receipt_logo = $pdf_img_files_path . 'your-logo.png';
   }
@@ -892,7 +887,7 @@ function _addItemizedDetails(&$pdf, &$pdf_variables, $receipt) {
       }
 
       // Grid 1: Right Section
-      $receipt_logo = Civi::settings()->get('receipt_logo');
+      $receipt_logo = _cdntaxreceipts_get_image_filepath('receipt_logo');
       if ( empty($receipt_logo) ) {
         $receipt_logo = $pdf_img_files_path . 'your-logo.png';
       }
@@ -1108,7 +1103,7 @@ function _receiptThankYouHeader($pdf, $pdf_variables, $receipt) {
   $footerFont = 9;
 
   // Grid 1: Right Section
-  $receipt_logo = Civi::settings()->get('receipt_logo');
+  $receipt_logo = _cdntaxreceipts_get_image_filepath('receipt_logo');
   if ( empty($receipt_logo) ) {
     $receipt_logo = $pdf_img_files_path . 'your-logo.png';
   }
@@ -2247,6 +2242,28 @@ function loadTemplate(string $workflowName, bool $isTest, int $messageTemplateID
 
 
 // BACKPORTED from 1.7.1
+/**
+ * Get file name with path of file/image field.
+ *
+ * @param string $imageSettingName
+ *
+ * @return string file path or NULL
+ */
+function _cdntaxreceipts_get_image_filepath($imageSettingName) {
+  $fileName = Civi::settings()->get($imageSettingName);
+  if ($fileName) {
+    // Backward compatibilty for full path
+    if ( strpos($fileName, "/") === 0 )
+      return $fileName;
+
+    // @todo https://lab.civicrm.org/extensions/cdntaxreceipts/-/commit/8ebaf88064323b1e20c005084caabd8846f8de25
+    $fileNameWithPath = CRM_Core_Config::singleton()->customFileUploadDir . $fileName;
+    if (file_exists($fileNameWithPath)) {
+      return $fileNameWithPath;
+    }
+  }
+  return NULL;
+}
 
 /**
  * Check if a custom field exists given only the `label`, but we want to
