@@ -8,7 +8,6 @@
  */
 
 use Drupal\Component\Assertion\Handle;
-use Drupal\TestTools\PhpUnitCompatibility\PhpUnit8\ClassWriter;
 
 /**
  * This file is going to be in the extension, but we have no idea where the
@@ -193,7 +192,12 @@ function drupal_phpunit_populate_class_loader($root) {
 // Do class loader population.
 $loader = drupal_phpunit_populate_class_loader($top_root);
 
-ClassWriter::mutateTestBase($loader);
+if (file_exists($top_root . '/web/core/tests/Drupal/TestTools/PhpUnitCompatibility/ClassWriter.php')) {
+  \Drupal\TestTools\PhpUnitCompatibility\ClassWriter::mutateTestBase($loader);
+}
+else {
+  \Drupal\TestTools\PhpUnitCompatibility\PhpUnit8\ClassWriter::mutateTestBase($loader);
+}
 
 // Set sane locale settings, to ensure consistent string, dates, times and
 // numbers handling.
