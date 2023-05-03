@@ -91,8 +91,28 @@ function cdntaxreceipts_processTaxReceipt($receipt, &$collectedPdf = NULL, $mode
     $sent = TRUE;
   }
   else {
+    // generates custom PDF file
+    // this completely replaces the following functions
+    // - cdntaxreceipts_generateFormattedReceipt
+    // - _cdntaxreceipts_writeReceipt
+    // - _cdntaxreceipts_writePage
+    // - _addItemizedDetails
+    // @todo move other customizations to CRM_Canadahelps_TaxReceipts_Receipt
+    $customReceipt = new CRM_Canadahelps_TaxReceipts_Receipt($receipt['receipt_no'], $receipt);
+    $customReceipt->setMode($mode);
+    $customReceipt->setCollectedPDF($collectedPdf);
+    $customReceipt->setUploadDir(CRM_Core_Config::singleton()->uploadDir);
+    $customReceipt->setDefaultImagesDir( dirname(__FILE__) . '/img/' );
+    $customReceipt->setFontsDir( dirname(__FILE__) . '/fonts/' );
+    $customReceipt->generatePDF();
+
+    $pdf_file = $customReceipt->getFilePath();
+    $user_friendly = $customReceipt->getFileName();
+
+    /* NOT USED
     // generate the PDF file
     list($pdf_file, $user_friendly) = cdntaxreceipts_generateFormattedReceipt($receipt, $collectedPdf, $mode);
+    */
 
     if ($mode == CDNTAXRECEIPTS_MODE_PREVIEW) {
       // no email, just PDF
@@ -218,6 +238,9 @@ function cdntaxreceipts_processTaxReceipt($receipt, &$collectedPdf = NULL, $mode
  */
 function cdntaxreceipts_generateFormattedReceipt($receipt, &$collectedPdf = NULL, $mode = NULL) {
 
+  // !!! this entire code is no longer used
+  // shoulb be reverted back to core
+
   $pdf_img_files_path = dirname(__FILE__) . '/img/';
 
   $address = cdntaxreceipts_getAddress($receipt['contact_id']);
@@ -335,7 +358,8 @@ function cdntaxreceipts_generateFormattedReceipt($receipt, &$collectedPdf = NULL
     }
     //CRM-1197 Ability to print 'Thank you' messages when selecting 'Print' as tax receipt delivery method.
     if($pdf_variables['thankyou_html'] && $receipt['issue_method'] == 'print') {
-      ch_receiptThankYouTemplate($f, $pdf_variables, $receipt);
+      // moved to CRM_Canadahelps_TaxReceipts_Receipt
+      // ch_receiptThankYouTemplate($f, $pdf_variables, $receipt);
     }
     $f->AddPage();
     _cdntaxreceipts_writePage($f, $pdf_variables, $receipt);
@@ -349,6 +373,9 @@ function cdntaxreceipts_generateFormattedReceipt($receipt, &$collectedPdf = NULL
 }
 
 function _cdntaxreceipts_writePage(&$f, $pdf_variables, $receipt) {
+
+  // !!! this entire code is no longer used
+  // shoulb be reverted back to core
 
   //
   // hook_cdntaxreceipts_writeReceipt(&$pdf, $pdf_variables, $receipt)
@@ -419,10 +446,15 @@ function _cdntaxreceipts_writePage(&$f, $pdf_variables, $receipt) {
 }
 
 function _cdntaxreceipts_writeReceipt(&$pdf, &$pdf_variables, $receipt) {
+
+  // !!! this entire code is no longer used
+  // shoulb be reverted back to core
+
   //Set PDF Variable to custom for complete rewrite
   $pdf_variables['is_custom_rewrite'] = true;
   if($pdf_variables['thankyou_note']) {
-    ch_receiptThankYouHeader($pdf, $pdf_variables, $receipt);
+    // moved to CRM_Canadahelps_TaxReceipts_Receipt
+    // ch_receiptThankYouHeader($pdf, $pdf_variables, $receipt);
     return;
   }
 
@@ -800,440 +832,6 @@ function _cdntaxreceipts_writeReceipt(&$pdf, &$pdf_variables, $receipt) {
     return;
   }
 }
-
-function _addItemizedDetails(&$pdf, &$pdf_variables, $receipt) {
-  //PDF Variables
-  $mymargin_left = $pdf_variables["mymargin_left"];
-  $mymargin_top = $pdf_variables["mymargin_top"];
-  $mode = $pdf_variables["mode"];
-  $is_duplicate = $pdf_variables["is_duplicate"];
-  $pdf_img_files_path = $pdf_variables["pdf_img_files_path"];
-  $receipt_status = $pdf_variables['receipt_status'];
-
-  // Add Font
-  // convert TTF font to TCPDF format
-  $imageLocalPath = dirname(__FILE__).'/img/CDNTaxReceipts/';
-  $basePath = dirname(__FILE__).'/fonts/Lato/';
-  $fontLatoRegular = TCPDF_FONTS::addTTFfont($basePath.'Lato-Semibold.ttf', 'TrueTypeUnicode', '', 32);
-  $fontLatoLight = TCPDF_FONTS::addTTFfont($basePath.'Lato-Light.ttf', 'TrueTypeUnicode', '', 32);
-  $fontLatoBoldItalic = TCPDF_FONTS::addTTFfont($basePath.'Lato-BoldItalic.ttf', 'TrueTypeUnicode', '', 32);
-
-  // CH Set Receipt Margins
-  $top_header_margin_offset = 10;
-  $side_indentation_margin = 55;
-  $mymargin_top += $top_header_margin_offset;
-  // Line Height
-  $line_height = 5;
-
-
-  // Grid Co-Ordinates
-  $grid1_y_top = $mymargin_top + 30;
-  $grid1_x_mid = $mymargin_left + 4;
-  $grid2_y_top = $mymargin_top + 40;
-  $grid2_x_mid = $mymargin_left + 75;
-  $grid2_x_right = 20;
-  $grid3_y_top = 75 + $top_header_margin_offset;
-  $grid4_y_top = 90 + $top_header_margin_offset;
-  $footer_y_top = 240 + $top_header_margin_offset;
-
-  // Text Color
-  $pdf->SetTextColor(35,35,35);
-
-
-  //Font Sizes
-  $bigFont = 14;
-  $smallFont = 11;
-  $smallerFont = 10;
-  $footerFont = 9;
-  $inkindHeaderFont = 8;
-
-  // WaterMark center section
-  if ($mode == CDNTAXRECEIPTS_MODE_PREVIEW) {
-    $pdf->Image($imageLocalPath . 'PREVIEW.png', 0, $mymargin_top + 85, '', 45, 'PNG', '', 'T', false, 300, 'C');
-  }
-  if ($receipt_status == 'cancelled') {
-    $pdf->Image($imageLocalPath . 'CANCELLED.png', 0, $mymargin_top + 85, '', 0, 'PNG', '', 'T', false, 300, 'C');
-  }
-
-  // Grid 1: Right Section
-  $receipt_logo = _cdntaxreceipts_get_image_filepath('receipt_logo');
-  if ( empty($receipt_logo) ) {
-    $receipt_logo = $pdf_img_files_path . 'your-logo.png';
-  }
-
-  // Max Height : 30, Max Width : 45
-  list($w, $h) = EU::setImageDimension($receipt_logo, 30, 45);
-  $logo_image_type = _ch_get_image_type($receipt_logo);
-  $pdf->Image($receipt_logo, 10, 10 + $top_header_margin_offset, $w, $h, $logo_image_type, '', 'T', false, 300, 'R');
-
-
-  // In-Kind Section
-  $pdf->SetFont($fontLatoRegular, '', $bigFont);
-  $pdf->SetXY($mymargin_left, $grid1_y_top);
-  $pdf->Write(10, 'Supplemental Information', '', 0, 'L', TRUE, 0, FALSE, FALSE, 0);
-  $string_length = 30;
-  $string_length_offset = 75;
-  $contribution_aggregate_counter_left = $contribution_aggregate_counter_right = 1;
-  $contribution_values_count = 1;
-  $contribution_values_limit = 18;
-  foreach($pdf_variables['receipt_contributions'] as $contribution) {
-    if($contribution_values_count > $contribution_values_limit) {
-      // Add Footer on the Previous page
-      $pdf->SetY($footer_y_top);
-      $pdf->SetFont($fontLatoLight, '', $footerFont);
-      $pdf->Ln(2*$line_height);
-      $pdf->Cell(0, 10, 'Page '.$pdf->getPageNumGroupAlias(). ' of '.$pdf->getPageGroupAlias(), 0, false, 'R', 0, '', 0, false, 'T', 'M');
-      //Add New Page
-      $pdf->addPage();
-      $contribution_aggregate_counter_left = $contribution_aggregate_counter_right = 1;
-      $contribution_values_count = 1;
-
-      //Add Header in the new page
-      // WaterMark center section
-      if ($mode == CDNTAXRECEIPTS_MODE_PREVIEW) {
-        $pdf->Image($imageLocalPath . 'PREVIEW.png', 0, $mymargin_top + 85, '', 45, 'PNG', '', 'T', false, 300, 'C');
-      }
-      if ($receipt_status == 'cancelled') {
-        $pdf->Image($imageLocalPath . 'CANCELLED.png', 0, $mymargin_top + 85, '', 0, 'PNG', '', 'T', false, 300, 'C');
-      }
-
-      // Grid 1: Right Section
-      $receipt_logo = _cdntaxreceipts_get_image_filepath('receipt_logo');
-      if ( empty($receipt_logo) ) {
-        $receipt_logo = $pdf_img_files_path . 'your-logo.png';
-      }
-
-      // Max Height : 30, Max Width : 45
-      list($w, $h) = EU::setImageDimension($receipt_logo, 30, 45);
-      $logo_image_type = _ch_get_image_type($receipt_logo);
-      $pdf->Image($receipt_logo, 10, 10 + $top_header_margin_offset, $w, $h, $logo_image_type, '', 'T', false, 300, 'R');
-
-      // In-Kind Section
-      $pdf->SetFont($fontLatoRegular, '', $bigFont);
-      $pdf->SetXY($mymargin_left, $grid1_y_top);
-      $pdf->Write(10, '', '', 0, 'L', TRUE, 0, FALSE, FALSE, 0);
-    }
-    // Left Contribution Details Section
-    if($contribution_aggregate_counter_left == 1) {
-      $contribution_aggregate_counter_left = $contribution_aggregate_counter_right = 0.25;
-    }
-    $pdf->SetFont($fontLatoLight, '', $smallFont);
-    $pdf->Ln();
-    $pdf->SetLineStyle(array('width' => 0.75, 'cap' => 'butt', 'join' => 'miter', 'dash' => 0, 'color' => array(220, 220, 220)));
-    $pdf->SetFillColor(220,220,220);
-    $pdf->Cell(0, 0, '', 1, 1, 'L', 1, 0);
-    $pdf->setY(EU::getReceiptLineHeight($grid2_y_top+6.5, $line_height, $contribution_aggregate_counter_left++));
-    $pdf->SetFont($fontLatoRegular, '', $smallFont);
-    $pdf->Write(10, ts("Donation Received: "));
-    $pdf->SetFont($fontLatoLight, '', $smallFont);
-    $pdf->Write(10, ts(date("Y-m-d",strtotime($contribution['receive_date']))), array('domain' => 'org.civicrm.cdntaxreceipts'));
-    $contribution_aggregate_counter_left += 1.75;
-    $pdf->setY(EU::getReceiptLineHeight($grid2_y_top, $line_height, $contribution_aggregate_counter_left++));
-    $pdf->SetFont($fontLatoRegular, '', $smallFont);
-    $pdf->Write(10, ts("Donation Amount: "));
-    $pdf->SetFont($fontLatoLight, '', $smallFont);
-    $pdf->Write(10, ts('$'.number_format($contribution['contribution_amount'], 2)), array('domain' => 'org.civicrm.cdntaxreceipts'));
-    $pdf->setY(EU::getReceiptLineHeight($grid2_y_top, $line_height, $contribution_aggregate_counter_left++));
-    $pdf->SetFont($fontLatoRegular, '', $smallFont);
-    $pdf->Write(10, ts("Eligible Amount of Gift: "));
-    $pdf->SetFont($fontLatoLight, '', $smallFont);
-    $pdf->Write(10, ts('$'.number_format($contribution['receipt_amount'], 2)), array('domain' => 'org.civicrm.cdntaxreceipts'));
-
-    // Right In-kind section
-    $pdf->SetFont($fontLatoLight, '', $smallFont);
-    $pdf->setXY($grid2_x_mid, EU::getReceiptLineHeight($grid2_y_top+6.5, $line_height, $contribution_aggregate_counter_right++));
-    if($contribution['inkind']) {
-      $pdf->SetFont($fontLatoRegular, '', $inkindHeaderFont);
-      $pdf->Write(10, ts("In-kind Donation"));
-    }
-    $contribution_aggregate_counter_right += 1.75;
-    if($contribution['advantage_amount'] && $contribution['advantage_amount'] > 0) {
-      $pdf->setXY($grid2_x_mid, EU::getReceiptLineHeight($grid2_y_top, $line_height, $contribution_aggregate_counter_right++));
-      $pdf->SetFont($fontLatoRegular, '', $smallFont);
-      $pdf->Write(10, ts("Value of Advantage to: "));
-      $pdf->SetFont($fontLatoLight, '', $smallFont);
-      $pdf->Write(10, ts('$'.number_format($contribution['advantage_amount'], 2)), array('domain' => 'org.civicrm.cdntaxreceipts'));
-      $contribution_values_count++;
-    }
-    if(!empty($contribution['advantage_description'])) {
-      $pdf->setXY($grid2_x_mid, EU::getReceiptLineHeight($grid2_y_top, $line_height, $contribution_aggregate_counter_right++));
-      $pdf->SetFont($fontLatoRegular, '', $smallFont);
-      $pdf->Write(10, ts("Description of Advantage: "));
-      $pdf->SetFont($fontLatoLight, '', $smallFont);
-      if(mb_strlen($contribution['advantage_description']) > $string_length) {
-        $advantage_description_array = EU::getStringLimitArrayOffset($contribution['advantage_description'], $string_length, $string_length_offset);
-        for($i=0; $i<2; $i++) {
-          if($advantage_description_array[$i]){
-            $string_length_limit = ($i == 0) ? $string_length : $string_length_offset;
-            $pdf->Write(10, EU::stringLimiter($advantage_description_array[$i], $string_length_limit, ''), array('domain' => 'org.civicrm.cdntaxreceipts'));
-            if($i == 0) {
-              $pdf->setXY($grid2_x_mid, EU::getReceiptLineHeight($grid2_y_top, $line_height, $contribution_aggregate_counter_right++));
-            }
-          }
-        }
-        $contribution_values_count++;
-      } else {
-        $pdf->Write(10, $contribution['advantage_description'], array('domain' => 'org.civicrm.cdntaxreceipts'));
-      }
-      $contribution_values_count++;
-    }
-    if($contribution['inkind_values'] ) {
-      $inkind_ctr = 0;
-      foreach($contribution['inkind_values'] as $inkind_values_label => $inkind_values_aggregate) {
-        if($inkind_values_label == 'Description of Property Received'
-          && (!empty($contribution['advantage_description']) || !empty($contribution['advantage_amount']))
-        ) {
-          $contribution_aggregate_counter_right += 0.5;
-        }
-        if($inkind_values_aggregate) {
-          $pdf->setXY($grid2_x_mid, EU::getReceiptLineHeight($grid2_y_top, $line_height, $contribution_aggregate_counter_right++));
-          $pdf->SetFont($fontLatoRegular, '', $smallFont);
-          $pdf->Write(10, $inkind_values_label.": ");
-          $pdf->SetFont($fontLatoLight, '', $smallFont);
-          if(mb_strlen($inkind_values_aggregate) > $string_length) {
-            $inkind_values_aggregate_array = EU::getStringLimitArrayOffset($inkind_values_aggregate, $string_length, $string_length_offset);
-            for($i=0; $i<2; $i++) {
-              if($inkind_values_aggregate_array[$i]){
-                $string_length_limit = ($i == 0) ? $string_length : $string_length_offset;
-                $pdf->Write(10, EU::stringLimiter($inkind_values_aggregate_array[$i], $string_length_limit, ''), array('domain' => 'org.civicrm.cdntaxreceipts'));
-                if($i == 0) {
-                  $pdf->setXY($grid2_x_mid, EU::getReceiptLineHeight($grid2_y_top, $line_height, $contribution_aggregate_counter_right++));
-                }
-              }
-            }
-            $contribution_values_count++;
-          } else {
-            $pdf->Write(10, $inkind_values_aggregate, array('domain' => 'org.civicrm.cdntaxreceipts'));
-          }
-          $contribution_values_count++;
-          $inkind_ctr++;
-        }
-      }
-      if($inkind_ctr == 1) {
-        $contribution_values_count++;
-        $contribution_aggregate_counter_right += 1;
-      }
-    } else {
-      if((empty($contribution['advantage_amount']) || $contribution['advantage_amount'] == 0) && empty($contribution['advantage_description'])) {
-        $contribution_values_count += 2;
-        $contribution_aggregate_counter_right += 1;
-      } else {
-        $contribution_aggregate_counter_right -= 1;
-      }
-      $pdf->setXY($grid2_x_mid, EU::getReceiptLineHeight($grid2_y_top, $line_height, $contribution_aggregate_counter_right++));
-    }
-
-    $contribution_aggregate_counter_left = $contribution_aggregate_counter_right;
-    $pdf->setY(EU::getReceiptLineHeight($grid2_y_top, $line_height, $contribution_aggregate_counter_left-0.25));
-  }
-
-  // Footer Section
-  $pdf->SetY($footer_y_top);
-  $pdf->SetFont($fontLatoLight, '', $footerFont);
-  $pdf->Ln(2*$line_height);
-  $pdf->Cell(0, 10, 'Page '.$pdf->getPageNumGroupAlias(). ' of '.$pdf->getPageGroupAlias(), 0, false, 'R', 0, '', 0, false, 'T', 'M');
-  return;
-}
-
-function ch_receiptThankYouHeader($pdf, $pdf_variables, $receipt) {
-  // Make tokens work on new Receipts
-  $result = civicrm_api3('MessageTemplate', 'get', [
-    'sequential' => 1,
-    'msg_title' => "CDN Tax Receipts - Thank you Note",
-  ]);
-
-  if($result['values'][0]) {
-    $message_tpl = $result['values'][0];
-    //CRM-1868 If "CDN Tax Receipts - Thank you Note" template is blank, assign string to $newString
-    $newString = $message_tpl['msg_html'] ?? '';
-    $messageToken = CRM_Utils_Token::getTokens($newString);
-    $contact =  civicrm_api3('Contact', 'get', [
-      'sequential' => 1,
-      'id' => $receipt['contact_id'],
-    ]);
-    //CRM-1865 Fixed contact object for token processing
-    $contact = $contact['values'][0];
-    //CRM-1792 Replacing deprecated way of token processing with new token Processor
-    $groupedContributions = [];
-    $grouped = FALSE;
-    $realSeparator = ', ';
-    $separator = '****~~~~';
-    if(count($pdf_variables['receipt_contributions'])>1)
-    {
-      $grouped = TRUE;
-      foreach ($pdf_variables['receipt_contributions'] as $contriKey=>$contribution) {
-          $pdf_variables['receipt_contributions'][$contriKey]['id'] = $contribution['contribution_id'];
-        }
-      $groupedContributions = $pdf_variables['receipt_contributions'];
-    }else{
-      $contribution = $pdf_variables['receipt_contributions'][0];
-    }
-    //in case of grouped contribution, resolveTokens returns html string with grouped contribution value seperated by $seperator $4****~~~~$3 and $realSeparator replace that value with comma ', ' in html
-    $tokenHtml = str_replace($separator, $realSeparator, CRM_Cdntaxreceipts_Task_PDFLetterCommon::resolveTokens($newString, $contact, $contribution, $messageToken, $grouped, $separator, $groupedContributions));
-  }
-
-  //PDF Variables
-  $mymargin_left = $pdf_variables["mymargin_left"];
-  $mymargin_top = $pdf_variables["mymargin_top"];
-
-  // Add Font
-  // convert TTF font to TCPDF format
-  $imageLocalPath = dirname(__FILE__).'/img/CDNTaxReceipts/';
-  $basePath = dirname(__FILE__).'/fonts/Lato/';
-  $fontLatoRegular = TCPDF_FONTS::addTTFfont($basePath.'Lato-Semibold.ttf', 'TrueTypeUnicode', '', 32);
-  $fontLatoLight = TCPDF_FONTS::addTTFfont($basePath.'Lato-Light.ttf', 'TrueTypeUnicode', '', 32);
-
-  // CH Set Receipt Margins
-  $top_header_margin_offset = 10;
-  $side_indentation_margin = 55;
-  $mymargin_top += $top_header_margin_offset;
-  // Line Height
-  $line_height = 4;
-
-
-  // Grid Co-Ordinates
-  $grid1_x_mid = $mymargin_left + 4;
-  $grid2_y_top = 42 + $top_header_margin_offset;
-  $grid2_x_mid = 25;
-  $grid2_x_right = 20;
-  $grid3_y_top = 75 + $top_header_margin_offset;
-  $grid4_y_top = 90 + $top_header_margin_offset;
-  $footer_y_top = 110 + $top_header_margin_offset;
-
-
-  // Text Color
-  $pdf->SetTextColor(35,35,35);
-
-  //Font Sizes
-  $bigFont = 14;
-  $smallFont = 11;
-  $smallerFont = 10;
-  $footerFont = 9;
-
-  // Grid 1: Right Section
-  $receipt_logo = _cdntaxreceipts_get_image_filepath('receipt_logo');
-  if ( empty($receipt_logo) ) {
-    $receipt_logo = $pdf_img_files_path . 'your-logo.png';
-  }
-
-  // Max Height : 30, Max Width : 45
-  list($w, $h) = EU::setImageDimension($receipt_logo, 30, 45);
-  $logo_image_type = _ch_get_image_type($receipt_logo);
-  $pdf->Image($receipt_logo, 10, 10 + $top_header_margin_offset, $w, $h, $logo_image_type, '', 'T', false, 300, 'R');
-
-
-  // Grid 1: Left Section
-  $grid_1_counter = 1;
-  $org_text_limit = 50;
-  $org_name = Civi::settings()->get('org_name');
-  $pdf->SetFont($fontLatoRegular, '', $smallerFont);
-  $pdf->SetXY($grid1_x_mid, $mymargin_top);
-  $org_name_array = EU::getStringLimitArray($org_name, $org_text_limit);
-  for($i=0; $i<2; $i++) {
-    if($org_name_array[$i]){
-      if(mb_strlen($org_name_array[$i]) > $org_text_limit) {
-        $pdf->Write(10, strtoupper(EU::stringLimiter($org_name_array[$i], $org_text_limit, '')), '', 0, 'L', TRUE, 0, FALSE, FALSE, 0);
-      } else {
-        $pdf->Write(10, strtoupper($org_name_array[$i]), '', 0, 'L', TRUE, 0, FALSE, FALSE, 0);
-      }
-      $pdf->SetXY($grid1_x_mid, EU::getReceiptLineHeight($mymargin_top, $line_height, $grid_1_counter++));
-    }
-  }
-  $pdf->SetFont($fontLatoLight, '', $smallerFont);
-  $pdf->Write(10, Civi::settings()->get('org_address_line1'), '', 0, 'L', TRUE, 0, FALSE, FALSE, 0);
-  $pdf->SetXY($grid1_x_mid, EU::getReceiptLineHeight($mymargin_top, $line_height, $grid_1_counter++));
-  $pdf->Write(10, Civi::settings()->get('org_address_line2'), '', 0, 'L', TRUE, 0, FALSE, FALSE, 0);
-
-
-  // Grid 2
-  $line_index = 1;
-  $pdf->setXY($grid2_x_mid, $grid2_y_top);
-  // Grid 2: Heading
-  $pdf->SetFont($fontLatoLight, '', $smallerFont);
-  if($pdf_variables['displayname']) {
-    $pdf->Write(10, $pdf_variables['displayname']);
-  }
-  if($pdf_variables['address_line_1']) {
-    $pdf->setXY($grid2_x_mid, EU::getReceiptLineHeight($grid2_y_top, $line_height, $line_index++));
-    $pdf->Write(10, $pdf_variables['address_line_1']);
-  }
-  if($pdf_variables['address_line_1b']) {
-    $pdf->setXY($grid2_x_mid, EU::getReceiptLineHeight($grid2_y_top, $line_height, $line_index++));
-    $pdf->Write(10, $pdf_variables['address_line_1b']);
-  }
-  if($pdf_variables['address_line_2']) {
-    $pdf->setXY($grid2_x_mid, EU::getReceiptLineHeight($grid2_y_top, $line_height, $line_index++));
-    $pdf->Write(10, $pdf_variables['address_line_2']);
-  }
-  if($pdf_variables['address_line_3']) {
-    $pdf->setXY($grid2_x_mid, EU::getReceiptLineHeight($grid2_y_top, $line_height, $line_index++));
-    $pdf->Write(10, $pdf_variables['address_line_3']);
-  }
-
-
-  // Grid 3
-  // THank You HTML Message
-
-  $pdf->SetXY(0, $grid3_y_top);
-  $pdf->SetFont($fontLatoLight, '', $smallFont);
-  if($result['values'][0]) {
-    $pdf->writeHTML($tokenHtml, true, false, true, false, '');
-  }
-  //Footer
-  $lineStyle = array('width' => 0.3, 'cap' => 'butt', 'join' => 'miter', 'dash' => 4, 'phase' => 40);
-  $pdf->Line($mymargin_left, $footer_y_top + 18, 198, $footer_y_top + 18, $lineStyle);
-
-  return;
-}
-
-//CRM-1197 Created individual pdf file for selected Thank you template first and imported that PDF to existing receipt as page
-function ch_receiptThankYouTemplate($pdf, $pdf_variables, $receipt) {
-  $tokenHtml = $pdf_variables['thankyou_html'];
-
-  //PDF Variables
-  $mymargin_left = $pdf_variables["mymargin_left"];
-  $mymargin_top = $pdf_variables["mymargin_top"];
-  $imageLocalPath = dirname(__FILE__).'/img/CDNTaxReceipts/';
-  $fileName = 'ThankYouMessage' . (int) $_SERVER['REQUEST_TIME'] . '.pdf';
-  $pdf_filename = CRM_Core_Config::singleton()->templateCompileDir . CRM_Utils_File::makeFileName($fileName);
-  $format = array(
-          'margin_top' => 72,
-          'margin_left' => 48,
-          'metric' => 'px',
-          'document_type' => 'pdf'
-        );
-
-  //created PDF file and stored at temp location
-  file_put_contents($pdf_filename, CRM_Utils_PDF_Utils::html2pdf($tokenHtml,
-        $fileName,
-        TRUE,
-        $format)
-    );
-
-  if (file_exists($pdf_filename)) {
-        $pageCount = $pdf->setSourceFile($pdf_filename);
-          for ($i = 1; $i <= $pageCount; $i++) {
-              $tplIdx = $pdf->importPage($i);
-              $pdf->SetPrintHeader(false);
-              $pdf->SetPrintFooter(false);
-              $pdf->AddPage();
-              $pdf->useTemplate(
-                $tplIdx, $x = null, $y = null,
-                $w = 0, $h = 0, $adjustPageSize = true
-                );
-        if ($pdf_variables['mode'] == CDNTAXRECEIPTS_MODE_PREVIEW) {
-          $pdf->Image($imageLocalPath . 'PREVIEW.png', 0, $mymargin_top + 85, '', 45, 'PNG', '', 'T', false, 300, 'C');
-        }
-        if ($pdf_variables['receipt_status'] == 'cancelled') {
-          $pdf->Image($imageLocalPath . 'CANCELLED.png', 0, $mymargin_top + 85, '', 0, 'PNG', '', 'T', false, 300, 'C');
-        }
-      }
-    //Deleting PDF file after including that as page
-    unlink($pdf_filename);
-  }
-  return;
-}
-
 
 
 /**************************************
@@ -2350,13 +1948,4 @@ function _cdntaxreceipts_check_requirements(): void {
  */
 function _cdntaxreceipts_get_contribution_source($contribution): string {
   return 'Source: ' . $contribution->source;
-}
-
-
-function _ch_get_image_type($imageFilePath):string {
-  $mimeType = mime_content_type($imageFilePath);
-  $imageType = 'PNG';
-  if ($mimeType)
-    $imageType = str_replace('image/', '', $mimeType);
-  return $imageType;
 }
