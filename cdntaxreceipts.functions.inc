@@ -1,6 +1,5 @@
 <?php
 
-use CRM_Cdntaxreceipts_ExtensionUtil as E;
 use CRM_Canadahelps_ExtensionUtils as EU;
 
 require_once 'tcpdf/tcpdf.php';
@@ -106,6 +105,8 @@ function cdntaxreceipts_processTaxReceipt($receipt, &$collectedPdf = NULL, $mode
     $customReceipt->setFontsDir( dirname(__FILE__) . '/fonts/' );
     $customReceipt->generatePDF();
 
+    // @todo check for errors during PDF generation / empty -> do not proceed if so
+    // @todo CRM-1897
     $pdf_file = $customReceipt->getFilePath();
     $user_friendly = $customReceipt->getFileName();
 
@@ -118,6 +119,10 @@ function cdntaxreceipts_processTaxReceipt($receipt, &$collectedPdf = NULL, $mode
       // no email, just PDF
       $sent = TRUE;
     }
+
+    // @todo move this section to CRM_Canadahelps_TaxReceipts_Receipt
+    // -> sendToDonor
+    // -> archiveReceipt
     else {
       // generate an email to the tax archive and possibly to the donor
       $org_name = Civi::settings()->get('org_name');
@@ -194,6 +199,8 @@ function cdntaxreceipts_processTaxReceipt($receipt, &$collectedPdf = NULL, $mode
   // log the receipt
   if (!$receipt['is_duplicate'] && $sent && $mode != CDNTAXRECEIPTS_MODE_PREVIEW) {
     cdntaxreceipts_log($receipt);
+    // @todo move this section to CRM_Canadahelps_TaxReceipts_Receipt
+    // -> updateContributionWithReceiptInfo
     //CRM-1270
     if($receipt['issued_on']) {
       foreach($receipt['contributions'] as $contribution) {

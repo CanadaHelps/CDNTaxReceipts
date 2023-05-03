@@ -4,13 +4,23 @@ require_once 'cdntaxreceipts.civix.php';
 require_once 'cdntaxreceipts.functions.inc';
 require_once 'cdntaxreceipts.db.inc';
 
+use CRM_Cdntaxreceipts_ExtensionUtil as E;
+
 define('CDNTAXRECEIPTS_MODE_BACKOFFICE', 1);
 define('CDNTAXRECEIPTS_MODE_PREVIEW', 2);
 define('CDNTAXRECEIPTS_MODE_WORKFLOW', 3);
 
-function cdntaxreceipts_civicrm_buildForm( $formName, &$form ) {
-  if($formName == 'CRM_Cdntaxreceipts_Task_IssueSingleTaxReceipts') {
-    //CRM-1168 Incorrect pop-up message appears when a tax receipt is issued after previewing it
+/**
+ * Implements hook_civicrm_buildForm().
+ */
+function cdntaxreceipts_civicrm_buildForm($formName, &$form) {
+
+  //CRM-1168 Incorrect pop-up message appears when a tax receipt is issued after previewing it
+  // Displays notification message right after clicking on "Preview"
+  // postProcess for preview was disabled and replaced with logic below
+  // civicrm/ajax/makePreviewWork (added via cdntaxreceipts_civicrm_alterMenu) calls CRM_Canadahelps_ExtensionUtils::singleTaxReceiptPreview
+  // @todo code can be moved to main extension
+  if ($formName == 'CRM_Cdntaxreceipts_Task_IssueSingleTaxReceipts') {
     $contributionIDS = json_encode($form->getVar('_contributionIds'));
     CRM_Core_Resources::singleton()->addScript(
       "CRM.$(function($) {
@@ -21,7 +31,7 @@ function cdntaxreceipts_civicrm_buildForm( $formName, &$form ) {
           var formdata = $('#IssueSingleTaxReceipts').serialize();
           var url = CRM.url('civicrm/ajax/makePreviewWork');
           var params = {year: receiptYear, receiptOption:receiptOption,contribution:contribution,formdata:formdata};
-        
+
           $.ajaxSetup({async: false});
           $.post(url, params, function(data) {
           if (data && data.getCount !== undefined) {
@@ -38,13 +48,17 @@ function cdntaxreceipts_civicrm_buildForm( $formName, &$form ) {
       });
     ");
   }
+
+  //CRM-1235 DMS - After Signature/Logo is uploaded in Receipt Settings, page continues to display "No File Chosen"
+  // @todo CRM-1860	Broken image icons appear in Receipt Settings page for new charities
+  // @todo move css to /sass/taxreceipts.scss
+  // @todo code can be moved to main extension
   if (is_a( $form, 'CRM_Cdntaxreceipts_Form_Settings')) {
-    //CRM-1235 DMS - After Signature/Logo is uploaded in Receipt Settings, page continues to display "No File Chosen" 
     $receipt_logo = Civi::settings()->get('receipt_logo');
     $receipt_logo_type = pathinfo($receipt_logo, PATHINFO_EXTENSION);
     $receipt_logo_data = file_get_contents($receipt_logo);
     $receipt_logo_url = 'data:image/' . $receipt_logo_type . ';base64,' . base64_encode($receipt_logo_data);
-   
+
     $receipt_signature = Civi::settings()->get('receipt_signature');
     $receipt_signature_type = pathinfo($receipt_signature, PATHINFO_EXTENSION);
     $receipt_signature_data = file_get_contents($receipt_signature);
@@ -69,7 +83,7 @@ function cdntaxreceipts_civicrm_buildForm( $formName, &$form ) {
             if ($.inArray(fileExtensionName, extensionTypes[fileType]) < 0) {
               $('#'+attr_name+'-error-message').text(\"Image extension doesn't match with file type\").css({'background-color' : '#cf3458','color' : '#fff','width': '260px'});
             }
-          }else 
+          }else
           {
             $('#'+attr_name+'-error-message').text(\"This image type is not supported\").css({'background-color' : '#cf3458','color' : '#fff','width': '200px'});
           }
@@ -87,6 +101,7 @@ function cdntaxreceipts_civicrm_buildForm( $formName, &$form ) {
         $( document ).ready(function() {
           var receiptLogo = '$receipt_logo_url';
           var receiptSignature = '$receipt_signature_url';
+          // @todo use class .hidden (bootstrap)
           if(!receiptLogo || receiptLogo.length > 0)
           {
             $('#ReceiptLogoPreview').attr('src', receiptLogo );
@@ -110,25 +125,16 @@ function cdntaxreceipts_civicrm_buildForm( $formName, &$form ) {
       min-height: 100px;
     }');
   }
-  if (is_a( $form, 'CRM_Contribute_Form_ContributionView')) {
+
+  if (is_a($form, 'CRM_Contribute_Form_ContributionView')) {
     // add "Issue Tax Receipt" button to the "View Contribution" page
     // if the Tax Receipt has NOT yet been issued -> display a white maple leaf icon
     // if the Tax Receipt has already been issued -> display a red maple leaf icon
-
-    CRM_Core_Resources::singleton()->addStyleFile('org.civicrm.cdntaxreceipts', 'css/civicrm_cdntaxreceipts.css');
-
     $contributionId = $form->get('id');
-    $buttons = array(
-      array(
-        'type' => 'cancel',
-        'name' => ts('Done'),
-        'spacing' => '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;',
-        'isDefault' => TRUE,
-      )
-    );
-    $subName = 'view_tax_receipt';
 
     // Advantage fields
+    // @todo CRM-1721
+    // @todo code can be moved to main extension
     $form->assign('isView', TRUE);
     cdntaxreceipts_advantage($contributionId, NULL, $defaults, TRUE);
     if (!empty($defaults['advantage_description'])) {
@@ -138,23 +144,39 @@ function cdntaxreceipts_civicrm_buildForm( $formName, &$form ) {
       'template' => 'CRM/Cdntaxreceipts/Form/AddAdvantage.tpl',
     ));
 
-    if ( isset($contributionId) && cdntaxreceipts_eligibleForReceipt($contributionId) ) {
+    if (isset($contributionId) && cdntaxreceipts_eligibleForReceipt($contributionId)) {
+      Civi::resources()->addStyleFile('org.civicrm.cdntaxreceipts', 'css/civicrm_cdntaxreceipts.css');
       list($issued_on, $receipt_id) = cdntaxreceipts_issued_on($contributionId);
       $is_original_receipt = empty($issued_on);
+      $subName = 'view_tax_receipt';
 
       if ($is_original_receipt) {
         $subName = 'issue_tax_receipt';
       }
 
-      $buttons[] = array(
-        'type'      => 'submit',
-        'subName'   => $subName,
-        'name'      => ts('Tax Receipt', array('domain' => 'org.civicrm.cdntaxreceipts')),
-        'isDefault' => FALSE
-      );
+      $buttons = [
+        [
+          'type' => 'cancel',
+          'name' => ts('Done'),
+          'spacing' => '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;',
+          'isDefault' => TRUE,
+        ],
+        [
+          'type'      => 'submit',
+          'subName'   => $subName,
+          'name'      => E::ts('Tax Receipt'),
+          'isDefault' => FALSE,
+          'icon'      => 'fa-check-square',
+        ],
+      ];
+
       $form->addButtons($buttons);
     }
   }
+
+  // Advantage fields
+  // @todo CRM-1721
+  // @todo code can be moved to main extension
   if (is_a($form, 'CRM_Contribute_Form_Contribution') && in_array($form->_action, [CRM_Core_Action::ADD, CRM_Core_Action::UPDATE])) {
     $form->add('text', 'non_deductible_amount', ts('Advantage Amount'), NULL);
     $form->add('text', 'advantage_description', ts('Advantage Description'), NULL);
@@ -168,6 +190,7 @@ function cdntaxreceipts_civicrm_buildForm( $formName, &$form ) {
     ));
   }
 
+  // @todo move css to /sass/taxreceipts.scss
   if (is_a( $form, 'CRM_Contribute_Form_Task_Result')) {
     $data = &$form->controller->container();
     if(isset($data['valid'])){
@@ -200,6 +223,7 @@ function cdntaxreceipts_civicrm_buildForm( $formName, &$form ) {
   }
 }
 
+// @todo code can be moved to main extension
 function cdntaxreceipts_civicrm_alterMenu(&$items) {
   $items['civicrm/ajax/makePreviewWork'] = array(
      'page_callback' => 'CRM_Canadahelps_ExtensionUtils::singleTaxReceiptPreview',
@@ -216,6 +240,9 @@ function cdntaxreceipts_civicrm_alterMenu(&$items) {
  * @param CRM_Core_Form $form
  * @param array $errors
  */
+// Advantage fields
+// @todo CRM-1721
+// @todo code can be moved to main extension
 function cdntaxreceipts_civicrm_validateForm($formName, &$fields, &$files, &$form, &$errors) {
 
   // Require description for advantage amount if advantage amount is filled in.
@@ -257,6 +284,9 @@ function cdntaxreceipts_civicrm_validateForm($formName, &$fields, &$files, &$for
   }
 }
 
+// Advantage fields
+// @todo CRM-1721
+// @todo code can be moved to main extension
 function cdntaxreceipts_civicrm_post($op, $objectName, $objectId, &$objectRef) {
 
   // Handle saving of description of advantage
@@ -274,8 +304,9 @@ function cdntaxreceipts_civicrm_post($op, $objectName, $objectId, &$objectRef) {
  * the button we added in cdntaxreceipts_civicrm_buildForm().
  */
 
-function cdntaxreceipts_civicrm_postProcess( $formName, &$form ) {
+function cdntaxreceipts_civicrm_postProcess($formName, &$form) {
   //CRM-1203 User should be notified that an annual tax receipt has been already issued for a contact
+  // @todo code can be moved to main extension
   if (is_a( $form, 'CRM_Cdntaxreceipts_Task_IssueAnnualTaxReceipts')) {
     $submitValue = $form->getVar('_submitValues');
     if(isset($submitValue['receipt_year']))
@@ -315,18 +346,20 @@ function cdntaxreceipts_civicrm_postProcess( $formName, &$form ) {
       }
     }
   }
+
+  // @todo code can be moved to main extension
   if (is_a( $form, 'CRM_Cdntaxreceipts_Form_Settings')) {
     //CRM-1235 DMS - After Signature/Logo is uploaded in Receipt Settings, page continues to display "No File Chosen"
     $receipt_logo = Civi::settings()->get('receipt_logo');
     $receipt_logo_type = pathinfo($receipt_logo, PATHINFO_EXTENSION);
     $receipt_logo_data = file_get_contents($receipt_logo);
     $receipt_logo_url = 'data:image/' . $receipt_logo_type . ';base64,' . base64_encode($receipt_logo_data);
-   
+
     $receipt_signature = Civi::settings()->get('receipt_signature');
     $receipt_signature_type = pathinfo($receipt_signature, PATHINFO_EXTENSION);
     $receipt_signature_data = file_get_contents($receipt_signature);
     $receipt_signature_url = 'data:image/' . $receipt_signature_type . ';base64,' . base64_encode($receipt_signature_data);
-    
+
     CRM_Core_Resources::singleton()->addScript(
       "CRM.$(function($) {
         $( document ).ready(function() {
@@ -345,74 +378,67 @@ function cdntaxreceipts_civicrm_postProcess( $formName, &$form ) {
         });
       });
     ");
-  
+
   }
-  // first check whether I really need to process this form
-  if ( ! is_a( $form, 'CRM_Contribute_Form_ContributionView' ) ) {
+  // First check whether I really need to process this form
+  if (!is_a($form, 'CRM_Contribute_Form_ContributionView')) {
     return;
   }
-  $types = array('issue_tax_receipt','view_tax_receipt');
-  $action = '';
-  foreach($types as $type) {
-    $post = '_qf_ContributionView_submit_'.$type;
-    if (isset($_POST[$post])) {
-      if ($_POST[$post] == ts('Tax Receipt', array('domain' => 'org.civicrm.cdntaxreceipts'))) {
-        $action = $post;
-      }
-    }
-  }
-  if (empty($action)) {
+
+  // Is it one of our tax receipt buttons?
+  $buttonName = $form->controller->getButtonName();
+  if ($buttonName !== '_qf_ContributionView_submit_issue_tax_receipt' && $buttonName !== '_qf_ContributionView_submit_view_tax_receipt') {
     return;
   }
 
   // the tax receipt button has been pressed.  redirect to the tax receipt 'view' screen, preserving context.
-  $contributionId = $form->get( 'id' );
-  $contactId = $form->get( 'cid' );
+  $contributionId = $form->get('id');
+  $contactId = $form->get('cid');
 
   $session = CRM_Core_Session::singleton();
   $session->pushUserContext(CRM_Utils_System::url('civicrm/contact/view/contribution',
     "reset=1&id=$contributionId&cid=$contactId&action=view&context=contribution&selectedChild=contribute"
   ));
 
-  $urlParams = array('reset=1', 'id='.$contributionId, 'cid='.$contactId);
-  CRM_Utils_System::redirect(CRM_Utils_System::url('civicrm/cdntaxreceipts/view', implode('&',$urlParams)));
+  CRM_Utils_System::redirect(CRM_Utils_System::url('civicrm/cdntaxreceipts/view', "reset=1&id=$contributionId&cid=$contactId"));
 }
 
 /**
- * Implementation of hook_civicrm_searchTasks().
+ * Implements hook_civicrm_searchTasks().
  *
  * For users with permission to issue tax receipts, give them the ability to do it
  * as a batch of search results.
  */
-
-function cdntaxreceipts_civicrm_searchTasks($objectType, &$tasks ) {
-  if ( $objectType == 'contribution' && CRM_Core_Permission::check( 'issue cdn tax receipts' ) ) {
+function cdntaxreceipts_civicrm_searchTasks($objectType, &$tasks) {
+  if ($objectType == 'contribution' && CRM_Core_Permission::check('issue cdn tax receipts')) {
     $single_in_list = FALSE;
     $aggregate_in_list = FALSE;
     foreach ($tasks as $key => $task) {
-      if($task['class'] == 'CRM_Cdntaxreceipts_Task_IssueSingleTaxReceipts') {
+      if ($task['class'] == 'CRM_Cdntaxreceipts_Task_IssueSingleTaxReceipts') {
         $single_in_list = TRUE;
       }
     }
     foreach ($tasks as $key => $task) {
-      if($task['class'] == 'CRM_Cdntaxreceipts_Task_IssueAggregateTaxReceipts') {
+      if ($task['class'] == 'CRM_Cdntaxreceipts_Task_IssueAggregateTaxReceipts') {
         $aggregate_in_list = TRUE;
       }
     }
     if (!$single_in_list) {
-      $tasks[] = array (
-        'title' => ts('Issue Separate Tax Receipts', array('domain' => 'org.civicrm.cdntaxreceipts')),
+      $tasks[] = [
+        'title' => E::ts('Issue Separate Tax Receipts'),
         'class' => 'CRM_Cdntaxreceipts_Task_IssueSingleTaxReceipts',
-        'result' => TRUE);
+        'result' => TRUE,
+      ];
     }
     if (!$aggregate_in_list) {
-      $tasks[] = array (
+      $tasks[] = [
         'title' => ts('Issue Aggregated Tax Receipts'),
         'class' => 'CRM_Cdntaxreceipts_Task_IssueAggregateTaxReceipts',
-        'result' => TRUE);
+        'result' => TRUE,
+      ];
     }
   }
-  elseif ( $objectType == 'contact' && CRM_Core_Permission::check( 'issue cdn tax receipts' ) ) {
+  elseif ($objectType == 'contact' && CRM_Core_Permission::check('issue cdn tax receipts')) {
     $annual_in_list = FALSE;
     foreach ($tasks as $key => $task) {
       if($task['class'] == 'CRM_Cdntaxreceipts_Task_IssueAnnualTaxReceipts') {
@@ -420,27 +446,28 @@ function cdntaxreceipts_civicrm_searchTasks($objectType, &$tasks ) {
       }
     }
     if (!$annual_in_list) {
-      $tasks[] = array (
-        'title' => ts('Issue Annual Tax Receipts'),
+      $tasks[] = [
+        'title' => E::ts('Issue Annual Tax Receipts'),
         'class' => 'CRM_Cdntaxreceipts_Task_IssueAnnualTaxReceipts',
-        'result' => TRUE);
+        'result' => TRUE,
+      ];
     }
   }
 }
 
 /**
- * Implementation of hook_civicrm_permission().
+ * Implements hook_civicrm_permission().
  */
 function cdntaxreceipts_civicrm_permission( &$permissions ) {
-  $prefix = ts('CiviCRM CDN Tax Receipts') . ': ';
-  $permissions += array(
-    'issue cdn tax receipts' => $prefix . ts('Issue Tax Receipts', array('domain' => 'org.civicrm.cdntaxreceipts')),
-  );
+  $prefix = E::ts('CiviCRM CDN Tax Receipts') . ': ';
+  $permissions += [
+    'issue cdn tax receipts' => $prefix . E::ts('Issue Tax Receipts'),
+  ];
 }
 
 
 /**
- * Implementation of hook_civicrm_config
+ * Implements hook_civicrm_config().
  */
 function cdntaxreceipts_civicrm_config(&$config) {
   _cdntaxreceipts_civix_civicrm_config($config);
@@ -456,7 +483,7 @@ function cdntaxreceipts_civicrm_xmlMenu(&$files) {
 }
 
 /**
- * Implementation of hook_civicrm_install
+ * Implements hook_civicrm_install().
  */
 function cdntaxreceipts_civicrm_install() {
   // copy tables civicrm_cdntaxreceipts_log and civicrm_cdntaxreceipts_log_contributions IF they already exist
@@ -472,10 +499,10 @@ function cdntaxreceipts_civicrm_uninstall() {
 }
 
 /**
- * Implementation of hook_civicrm_enable
+ * Implements hook_civicrm_enable().
  */
 function cdntaxreceipts_civicrm_enable() {
-  CRM_Core_Session::setStatus(ts('Configure the Tax Receipts extension at Administer >> CiviContribute >> CDN Tax Receipts.', array('domain' => 'org.civicrm.cdntaxreceipts')));
+  CRM_Core_Session::setStatus(E::ts('Configure the Tax Receipts extension at Administer >> CiviContribute >> CDN Tax Receipts.'));
   return _cdntaxreceipts_civix_civicrm_enable();
 }
 
@@ -520,19 +547,17 @@ function cdntaxreceipts_civicrm_managed(&$entities) {
   return _cdntaxreceipts_civix_civicrm_managed($entities);
 }
 /**
- * Implementation of hook_civicrm_managed
+ * Implements hook_civicrm_navigationMenu().
  *
  * Add entries to the navigation menu, automatically removed on uninstall
  */
-
 function cdntaxreceipts_civicrm_navigationMenu(&$params) {
-
   // Check that our item doesn't already exist
-  $cdntax_search = array('url' => 'civicrm/cdntaxreceipts/settings?reset=1');
-  $cdntax_item = array();
+  $cdntax_search = ['url' => 'civicrm/cdntaxreceipts/settings?reset=1'];
+  $cdntax_item = [];
   CRM_Core_BAO_Navigation::retrieve($cdntax_search, $cdntax_item);
 
-  if ( ! empty($cdntax_item) ) {
+  if (!empty($cdntax_item)) {
     return;
   }
 
@@ -548,8 +573,8 @@ function cdntaxreceipts_civicrm_navigationMenu(&$params) {
       $parent_key = $key;
       foreach($value['child'] as $child_key => $child_value) {
         if ('CiviContribute' == $child_value['attributes']['name']) {
-          $params[$parent_key]['child'][$child_key]['child'][$navId] = array (
-            'attributes' => array (
+          $params[$parent_key]['child'][$child_key]['child'][$navId] = [
+            'attributes' => [
               'label' => ts('CDN Tax Receipts',array('domain' => 'org.civicrm.cdntaxreceipts')),
               'name' => 'CDN Tax Receipts',
               'url' => 'civicrm/cdntaxreceipts/settings?reset=1',
@@ -559,23 +584,23 @@ function cdntaxreceipts_civicrm_navigationMenu(&$params) {
               'parentID' => $child_key,
               'navID' => $navId,
               'active' => 1
-            )
-          );
+            ],
+          ];
         }
       }
     }
   }
 }
 
-function cdntaxreceipts_civicrm_validate( $formName, &$fields, &$files, &$form ) {
+function cdntaxreceipts_civicrm_validate($formName, &$fields, &$files, &$form) {
   if ($formName == 'CRM_Cdntaxreceipts_Form_Settings') {
-    $errors = array();
-    $allowed = array('gif', 'png', 'jpg', 'pdf');
+    $errors = [];
+    $allowed = ['gif', 'png', 'jpg', 'pdf'];
     foreach ($files as $key => $value) {
       if (CRM_Utils_Array::value('name', $value)) {
         $ext = pathinfo($value['name'], PATHINFO_EXTENSION);
         if (!in_array($ext, $allowed)) {
-          $errors[$key] = ts('Please upload a valid file. Allowed extensions are (.gif, .png, .jpg, .pdf)');
+          $errors[$key] = E::ts('Please upload a valid file. Allowed extensions are (.gif, .png, .jpg, .pdf)');
         }
       }
     }
@@ -583,6 +608,9 @@ function cdntaxreceipts_civicrm_validate( $formName, &$fields, &$files, &$form )
   }
 }
 
+/**
+ * Implements hook_civicrm_alterMailParams().
+ */
 function cdntaxreceipts_civicrm_alterMailParams(&$params, $context) {
   /*
     When CiviCRM core sends receipt email using CRM_Core_BAO_MessageTemplate, this hook was invoked twice:
@@ -593,22 +621,23 @@ function cdntaxreceipts_civicrm_alterMailParams(&$params, $context) {
 
     To avoid this, only execute this hook when context is "messageTemplate"
   */
-  if( $context != 'messageTemplate'){
+  if ($context != 'messageTemplate') {
     return;
   }
 
-  $msg_template_types = array('contribution_online_receipt', 'contribution_offline_receipt');
+  $msg_template_types = ['contribution_online_receipt', 'contribution_offline_receipt'];
 
-  if (isset($params['groupName'])
-      && $params['groupName'] == 'msg_tpl_workflow_contribution'
-      && isset($params['valueName'])
-      && in_array($params['valueName'], $msg_template_types)) {
+  // Both of these are replaced by the same value of 'workflow' in 5.47
+  $groupName = isset($params['groupName']) ? $params['groupName'] : (isset($params['workflow']) ? $params['workflow'] : '');
+  $valueName = isset($params['valueName']) ? $params['valueName'] : (isset($params['workflow']) ? $params['workflow'] : '');
+  if (($groupName == 'msg_tpl_workflow_contribution' || $groupName == 'contribution_online_receipt' || $groupName == 'contribution_offline_receipt')
+      && in_array($valueName, $msg_template_types)) {
 
     // get the related contribution id for this message
     if (isset($params['tplParams']['contributionID'])) {
       $contribution_id = $params['tplParams']['contributionID'];
     }
-    else if( isset($params['contributionId'])) {
+    elseif (isset($params['contributionId'])) {
       $contribution_id = $params['contributionId'];
     }
     else {
@@ -637,17 +666,12 @@ function cdntaxreceipts_civicrm_alterMailParams(&$params, $context) {
     );
 
     if ($ret) {
-      $last_in_path = strrpos($pdf_file, '/');
-      $clean_name = substr($pdf_file, $last_in_path);
-      $attachment = array(
+      $attachment = [
         'fullPath' => $pdf_file,
         'mime_type' => 'application/pdf',
-        'cleanName' => $clean_name,
-      );
-      $params['attachments'] = array($attachment);
+        'cleanName' => basename($pdf_file),
+      ];
+      $params['attachments'] = [$attachment];
     }
-
   }
-
 }
-
