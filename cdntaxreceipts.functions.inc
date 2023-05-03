@@ -669,7 +669,7 @@ function cdntaxreceipts_configure_inkind_fields() {
     $group = array(
       'title' => 'In Kind donation fields',
       'extends' => array( 'Contribution' ),
-      'extends_entity_column_value' => [$contrib_type_id],
+      'extends_entity_column_value' => array( $contrib_type_id ),
       'collapse_display' => 0,
       'style' => 'Inline',
       'is_active' => 1,
@@ -1114,6 +1114,7 @@ function cdntaxreceipts_issueAggregateTaxReceipt($contactId, $year, $contributio
   if ( $is_duplicate ) {
     $receipt = cdntaxreceipts_load_receipt($receipt_id);
     //CRM-1060 Added "In-Kind Donation" details for re-issued aggregated tax receipts
+    // @todo refactor so that we get inkind/advantage from initial query in cdntaxreceipts_load_receipt
     $inkind_aggregate = FALSE;
     $total_advantage_amount = 0;
     foreach ( $receipt['contributions'] as $key=>$contribution ) {
@@ -1193,6 +1194,7 @@ function cdntaxreceipts_issueAggregateTaxReceipt($contactId, $year, $contributio
       'total_advantage_amount' => $total_advantage_amount,
     );
   }
+
   return cdntaxreceipts_processTaxReceipt($receipt, $collectedPdf, $mode);
 }
 
@@ -1202,7 +1204,7 @@ function cdntaxreceipts_issueAggregateTaxReceipt($contactId, $year, $contributio
  */
 function cdntaxreceipts_sendMethodForContact( $contactId ) {
 
-  $delivery_method = Civi::settings()->get('delivery_method', NULL, CDNTAX_DELIVERY_PRINT_ONLY);
+  $delivery_method = Civi::settings()->get('delivery_method') ?? CDNTAX_DELIVERY_PRINT_ONLY;
   if ($delivery_method == CDNTAX_DELIVERY_DATA_ONLY) {
     return array('data', NULL);
   }

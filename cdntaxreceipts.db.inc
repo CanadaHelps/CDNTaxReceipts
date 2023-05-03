@@ -241,7 +241,7 @@ function cdntaxreceipts_cancel($receipt_id) {
  *   'receive_year' => $dao->receive_year,
  *   'eligible' => $eligible,
  *   'receipt_id' => $dao->receipt_id,
-);
+ * );
  */
 function cdntaxreceipts_contributions_get_status($contributionIds = array()) {
   $contributions = array();
@@ -291,10 +291,29 @@ function cdntaxreceipts_contributions_get_status($contributionIds = array()) {
 }
 
 
+
 /**
+ * Replaces function cdntaxreceipts_contributions_get_status
+ * (adds details about inkind / advantage)
+ *
  * @param array $contributionIds
  * @return array $contributions with the contents below
  *
+ * $contributions[$id] = array(
+ *   'contribution_id' => $id,
+ *   'contact_id' => $dao->contact_id,
+ *   'total_amount' => $dao->total_amount,
+ *   'non_deductible_amount' => $dao->non_deductible_amount,
+ *   'receive_date' => $dao->receive_date,
+ *   'receive_year' => $dao->receive_year,
+ *   'eligible' => $eligible,
+ *   'receipt_id' => $dao->receipt_id,,
+ *   'advantage_description' => $dao->advantage_description,
+ *   'inkind' => false,
+ *   'inkind_values' => []
+ * );
+ *
+ * @todo code can be moved to main extension
  */
 function cdntaxreceipts_contributions_get_status_inkind($contributionIds = array()) {
   $contributions = array();
@@ -416,6 +435,9 @@ function cdntaxreceipts_log_next_id() {
   return $last_id + 1;
 }
 
+// Advantage fields
+// @todo CRM-1721
+// @todo code can be moved to main extension
 function cdntaxreceipts_advantage($id, $desc = NULL, &$defaults = [], $view = FALSE) {
   $advantage = new CRM_Cdntaxreceipts_DAO_CdnAdvantage;
   $advantage->contribution_id = $id;
