@@ -99,7 +99,8 @@ function cdntaxreceipts_processTaxReceipt($receipt, &$collectedPdf = NULL, $mode
     // @todo move other customizations to CRM_Canadahelps_TaxReceipts_Receipt
     $customReceipt = new CRM_Canadahelps_TaxReceipts_Receipt($receipt['receipt_no'], $receipt);
     $customReceipt->setMode($mode);
-    $customReceipt->setCollectedPDF($collectedPdf);
+    if ( $collectedPdf != NULL )
+      $customReceipt->setCollectedPDF($collectedPdf);
     $customReceipt->setUploadDir(CRM_Core_Config::singleton()->uploadDir);
     $customReceipt->setDefaultImagesDir( dirname(__FILE__) . '/img/' );
     $customReceipt->setFontsDir( dirname(__FILE__) . '/fonts/' );
@@ -831,7 +832,7 @@ function cdntaxreceipts_issueTaxReceipt($contribution, &$collectedPdf = NULL, $m
     'source' => _cdntaxreceipts_get_contribution_source($contribution),
     'advantage_description' => CRM_Utils_Array::value('advantage_description', $advantage, NULL),
     'advantage_amount' => $contribution->non_deductible_amount,
-    'thankyou_html' => $contribution->thankyou_html,
+    'thankyou_html' => isset($contribution->thankyou_html) ? $contribution->thankyou_html : '',
   );
 
   $receipt['contributions'] = array(
