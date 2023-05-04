@@ -84,6 +84,14 @@ function cdntaxreceipts_processTaxReceipt($receipt, &$collectedPdf = NULL, $mode
   //   to alter receipt amount, use hook_cdntaxreceipts_eligibleAmount() instead
   CRM_Utils_Hook::singleton()->invoke(['receipt'], $receipt, CRM_Utils_Hook::$_nullObject, CRM_Utils_Hook::$_nullObject, CRM_Utils_Hook::$_nullObject, CRM_Utils_Hook::$_nullObject, CRM_Utils_Hook::$_nullObject, 'cdntaxreceipts_alter_receipt');
 
+
+  // Re-checking if issued, as we did add quite a bit of API calls since last check
+  // If already issued, or partialled issued, we stop and return as error
+  if (!$receipt['is_duplicate']
+    && CRM_Canadahelps_TaxReceipts_Receipt::isAlreadyReceipted($receipt['contributions'])) {
+  return array(FALSE, $receipt['issue_method'], NULL); // -> this should be treated as an error
+  };
+
   if ($receipt['issue_method'] == 'data') {
     // generate log entry only, no PDF file needed
     $pdf_file = NULL;
@@ -190,9 +198,6 @@ function cdntaxreceipts_processTaxReceipt($receipt, &$collectedPdf = NULL, $mode
       }
     }
   }
-  if (!empty($lock)) {
-    $lock->release();
-  }
 
   // Switch the locale back to the original locale
   CRM_Core_I18n::singleton()->setLocale($old_locale);
@@ -227,6 +232,10 @@ function cdntaxreceipts_processTaxReceipt($receipt, &$collectedPdf = NULL, $mode
       }
     }
     // TODO: log an activity
+  }
+
+  if (!empty($lock)) {
+    $lock->release();
   }
 
   if (isset($collectedPdf) && $pdf_file) {
