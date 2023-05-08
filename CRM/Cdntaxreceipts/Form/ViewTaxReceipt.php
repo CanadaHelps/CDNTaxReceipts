@@ -108,6 +108,29 @@ class CRM_Cdntaxreceipts_Form_ViewTaxReceipt extends CRM_Core_Form {
       $this->assign('contribution_id', $this->get('contribution_id'));
       $this->assign('receipt_contributions', $receipt_contributions);
       $this->assign('isCancelled', $this->_isCancelled);
+      //CRM-1827-Update button copy for issuing a duplicate tax receipt
+      $printOption = CDNTAX_DELIVERY_PRINT_ONLY;
+      $emailOption = CDNTAX_DELIVERY_PRINT_EMAIL;
+      CRM_Core_Resources::singleton()->addScript(
+        "CRM.$(function($) {
+          $(document).ready(function(){
+            setTimeout(function waitDuration() {
+              cj('#delivery_method').trigger('change');
+            },100);
+            cj('#delivery_method').change(function(){
+              var serverval = this.value;
+              if(serverval == $emailOption)
+              {
+                cj('.crm-button_qf_ViewTaxReceipt_next').text('Email Duplicate Tax Receipt');
+              }
+              if(serverval == $printOption)
+              {
+                cj('.crm-button_qf_ViewTaxReceipt_next').text('Print Duplicate Tax Receipt');
+              }
+            });
+          });
+        });
+      ");
     }
     else {
       CRM_Utils_System::setTitle('Tax Receipt');
