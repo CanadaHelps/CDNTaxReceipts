@@ -51,6 +51,9 @@ require_once('FPDI/fpdi.php');
  */
 function cdntaxreceipts_processTaxReceipt($receipt, &$collectedPdf = NULL, $mode = NULL, $method = NULL) {
 
+  // Add session / cookie to keep track of download status
+  CRM_Canadahelps_TaxReceipts_Receipt::updateDownloadStatus("initiated");
+
   // Get contact details
   list($displayname, $email) = CRM_Contact_BAO_Contact::getContactDetails($receipt['contact_id']);
 
@@ -1301,6 +1304,7 @@ function cdntaxreceipts_sendCollectedPDF(&$pdf, $filename) {
     }
     else {
       $pdf->Output($filename, 'D');
+      CRM_Canadahelps_TaxReceipts_Receipt::updateDownloadStatus("sent");
     }
     CRM_Utils_System::civiExit();
   }

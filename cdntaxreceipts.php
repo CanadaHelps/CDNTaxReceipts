@@ -23,29 +23,10 @@ function cdntaxreceipts_civicrm_buildForm($formName, &$form) {
   if ($formName == 'CRM_Cdntaxreceipts_Task_IssueSingleTaxReceipts') {
     $contributionIDS = json_encode($form->getVar('_contributionIds'));
     CRM_Core_Resources::singleton()->addScript(
-      "CRM.$(function($) {
-        $('#_qf_IssueSingleTaxReceipts_submit').click(function(e) {
-          var receiptYear = $('#receipt_year').value;
-          var receiptOption = $('#receipt_option').prop('checked');
-          var contribution = $contributionIDS;
-          var formdata = $('#IssueSingleTaxReceipts').serialize();
-          var url = CRM.url('civicrm/ajax/makePreviewWork');
-          var params = {year: receiptYear, receiptOption:receiptOption,contribution:contribution,formdata:formdata};
-
-          $.ajaxSetup({async: false});
-          $.post(url, params, function(data) {
-          if (data && data.getCount !== undefined) {
-            if(data.getCount == 0)
-            {
-              CRM.alert(data.getCount+' tax receipt(s) have been previewed.  No receipts have been issued.', '', 'success');
-              e.preventDefault();
-            }else{
-              CRM.alert(data.getCount+' tax receipt(s) have been previewed.  No receipts have been issued.', '', 'success');
-            }
-          }
-          }, 'json');
-        });
-      });
+      "app.initForm(
+        '$formName',
+        {contribution_ids: $contributionIDS}
+      );
     ");
   }
 
