@@ -101,7 +101,7 @@ class CRM_Cdntaxreceipts_Form_ViewTaxReceipt extends CRM_Core_Form {
       }
 
       CRM_Utils_System::setTitle('Tax Receipt');
-      $buttonLabel = ts('Complete', array('domain' => 'org.civicrm.cdntaxreceipts'));
+      $buttonLabel = ts('Download Duplicate', array('domain' => 'org.civicrm.cdntaxreceipts'));
       $this->assign('reissue', 1);
       $this->assign('receipt', $this->_receipt);
       $this->assign('contact_id', $this->_receipt['contact_id']);
@@ -147,6 +147,8 @@ class CRM_Cdntaxreceipts_Form_ViewTaxReceipt extends CRM_Core_Form {
     );
 
     if (CRM_Core_Permission::check( 'issue cdn tax receipts' ) ) {
+
+      // Add Void Button
       if ($this->_reissue && !$this->_isCancelled) {
         $buttons[] = array(
           'type' => 'submit',
@@ -154,17 +156,23 @@ class CRM_Cdntaxreceipts_Form_ViewTaxReceipt extends CRM_Core_Form {
           'isDefault' => FALSE,
           'class' => 'void-receipt',
         );
-      } else {
+
+      // Add Preview Button
+      } else if (!$this->_isCancelled) {
         $buttons[] = array(
           'type' => 'submit',
           'name' => ts('Preview', array('domain' => 'org.civicrm.cdntaxreceipts')),
           'isDefault' => FALSE,
+          'class' => 'preview-receipt',
         );
       }
+
+      // Issue or Download Button
       $buttons[] = array(
         'type' => 'next',
         'name' => $buttonLabel,
         'isDefault' => TRUE,
+        'class' => 'issue-receipt',
       );
     }
     $this->addButtons($buttons);
@@ -253,8 +261,6 @@ class CRM_Cdntaxreceipts_Form_ViewTaxReceipt extends CRM_Core_Form {
       CRM_Core_Error::fatal(ts('You do not have permission to access this page', array('domain' => 'org.civicrm.cdntaxreceipts')));
     }
 
-    $params = $this->controller->exportValues($this->_name);
-
     $method = '';
 
     // load the contribution
@@ -270,20 +276,25 @@ class CRM_Cdntaxreceipts_Form_ViewTaxReceipt extends CRM_Core_Form {
 
     $buttonName = $this->controller->getButtonName();
 
-    // If we are cancelling the tax receipt
+    // If we are cancelling the tax receipt (or preview)
     if ($buttonName == '_qf_ViewTaxReceipt_submit') {
-      if(!$this->_reissue) {
+
+      // Preview
+      if (!$this->_reissue) {
         $receiptsForPrinting = cdntaxreceipts_openCollectedPDF();
         $previewMode = TRUE;
-        list($result, $method, $pdf) = cdntaxreceipts_issueTaxReceipt( $contribution,  $receiptsForPrinting, $previewMode  );
-        if($result == TRUE) {
+        list($result, $method, $pdf) = cdntaxreceipts_issueTaxReceipt( $contribution,  $receiptsForPrinting, $previewMode );
+        if ($result == TRUE) {
           cdntaxreceipts_sendCollectedPDF($receiptsForPrinting, 'Receipt-To-Print-' . (int) $_SERVER['REQUEST_TIME'] . '.pdf');
         } else {
           $statusMsg = ts('Encountered an error. Tax receipt has not been issued.', array('domain' => 'org.civicrm.cdntaxreceipts'));
           CRM_Core_Session::setStatus($statusMsg, '', 'error');
         }
+        // exits
+        return;
       }
 
+      // Void Receipt
       // Get the Tax Receipt that has already been issued previously for this Contribution
       list($issued_on, $receipt_id) = cdntaxreceipts_issued_on($contribution->id);
 
@@ -298,14 +309,16 @@ class CRM_Cdntaxreceipts_Form_ViewTaxReceipt extends CRM_Core_Form {
       CRM_Core_Session::setStatus($statusMsg, '', 'error');
       // refresh the form, with file stored in session if we need it.
       $urlParams = array('reset=1', 'cid='.$contactId, 'id='.$contributionId);
-    }
-    else {
+
+    // Issue Receipt
+    } else {
       // issue tax receipt, or report error if ineligible
       if ( ! cdntaxreceipts_eligibleForReceipt($contribution->id) ) {
         $statusMsg = ts('This contribution is not tax deductible and/or not completed. No receipt has been issued.', array('domain' => 'org.civicrm.cdntaxreceipts'));
         CRM_Core_Session::setStatus($statusMsg, '', 'error');
-      }
-      else {
+      } else {
+        $params = $this->controller->exportValues($this->_name);
+
         if($this->getElement('thankyou_email')->getValue()) {
           if($this->getElement('html_message')->getValue()) {
             if(isset($params['template'])) {

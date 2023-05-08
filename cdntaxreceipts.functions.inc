@@ -70,12 +70,7 @@ function cdntaxreceipts_processTaxReceipt($receipt, &$collectedPdf = NULL, $mode
       return array(FALSE,'',NULL);
     }
     $next_id = cdntaxreceipts_log_next_id();
-    //CRM-1340 When previewing tax receipts, the tax receipt number should be a static placeholder
-    if ($mode == CDNTAXRECEIPTS_MODE_PREVIEW) {
-      $receipt['receipt_no'] = Civi::settings()->get('receipt_prefix') .'XXXXXXXX';
-    }else{
-      $receipt['receipt_no'] = Civi::settings()->get('receipt_prefix') . str_pad($next_id, 8, 0, STR_PAD_LEFT);
-    }
+    $receipt['receipt_no'] = Civi::settings()->get('receipt_prefix') . str_pad($next_id, 8, 0, STR_PAD_LEFT);
   }
   // allow modules to alter any details
   // invoke hook_cdntaxreceipts_alter_receipt(&$receipt)
@@ -106,7 +101,7 @@ function cdntaxreceipts_processTaxReceipt($receipt, &$collectedPdf = NULL, $mode
     // - _addItemizedDetails
     // @todo move other customizations to CRM_Canadahelps_TaxReceipts_Receipt
     $customReceipt = new CRM_Canadahelps_TaxReceipts_Receipt($receipt['receipt_no'], $receipt);
-    $customReceipt->setMode($mode);
+    $customReceipt->setMode( ($mode === true || $mode == CDNTAXRECEIPTS_MODE_PREVIEW) ? CDNTAXRECEIPTS_MODE_PREVIEW : CDNTAXRECEIPTS_MODE_BACKOFFICE ); // fixing weird stuff from extension code where $mode is mixed and passed TRUE/FALSE ( > $mode == CDNTAXRECEIPTS_MODE_PREVIEW ==> true, but $mode === CDNTAXRECEIPTS_MODE_PREVIEW ==> false)
     if ( $collectedPdf != NULL )
       $customReceipt->setCollectedPDF($collectedPdf);
     $customReceipt->setUploadDir(CRM_Core_Config::singleton()->uploadDir);
@@ -116,8 +111,9 @@ function cdntaxreceipts_processTaxReceipt($receipt, &$collectedPdf = NULL, $mode
 
     // @todo check for errors during PDF generation / empty -> do not proceed if so
     // @todo CRM-1897
-    $pdf_file = $customReceipt->getFilePath();
-    $user_friendly = $customReceipt->getFileName();
+    $pdf_file               = $customReceipt->getFilePath();
+    $user_friendly          = $customReceipt->getFileName();
+    $receipt['receipt_no']  = $customReceipt->getReceiptNumber();
 
     /* NOT USED
     // generate the PDF file
@@ -203,12 +199,13 @@ function cdntaxreceipts_processTaxReceipt($receipt, &$collectedPdf = NULL, $mode
   CRM_Core_I18n::singleton()->setLocale($old_locale);
 
   // log the receipt
-  if (!$receipt['is_duplicate'] && $sent && $mode != CDNTAXRECEIPTS_MODE_PREVIEW) {
+  if (!$customReceipt->isDuplicate() && !$customReceipt->isPreview() && $sent) {
+  //if (!$receipt['is_duplicate'] && $sent && $mode != CDNTAXRECEIPTS_MODE_PREVIEW) {
     cdntaxreceipts_log($receipt);
     // @todo move this section to CRM_Canadahelps_TaxReceipts_Receipt
     // -> updateContributionWithReceiptInfo
     //CRM-1270
-    if($receipt['issued_on']) {
+    if ($receipt['issued_on']) {
       foreach($receipt['contributions'] as $contribution) {
         $convert_date = date('Y-m-d H:i:s',$receipt['issued_on']);
         $results = civicrm_api4('Contribution', 'update', [
