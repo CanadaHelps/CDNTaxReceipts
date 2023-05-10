@@ -177,14 +177,6 @@ class CRM_Cdntaxreceipts_Form_ViewTaxReceipt extends CRM_Core_Form {
           'isDefault' => FALSE,
           'class' => 'preview-receipt',
         );
-      } else if ($this->_reissue && $this->_isCancelled) {
-        //CRM-1820 Adding a button “Replace Receipt” on the bottom right
-        $buttons[] = array(
-          'type' => 'submit',
-          'name' => ts('Replace Receipt', array('domain' => 'org.civicrm.cdntaxreceipts')),
-          'isDefault' => FALSE,
-          'class' => 'void-receipt',
-        );
       }
 
       // Download Button (when already issued)
@@ -299,12 +291,18 @@ class CRM_Cdntaxreceipts_Form_ViewTaxReceipt extends CRM_Core_Form {
 
     $buttonName = $this->controller->getButtonName();
 
+    //CRM-1820 Once the receipt has been cancelled and user wants to preview or issue "Replace Receipt"
+    if ($this->_reissue && $this->_isCancelled && ($buttonName == '_qf_ViewTaxReceipt_submit' || $buttonName == '_qf_ViewTaxReceipt_next')){
+      list($receipt_number, $receipt_id) = CRM_Canadahelps_TaxReceipts_Receipt::receiptNumber($contribution->id,TRUE);
+      $contribution->cancelled_replace_receipt_number  = $receipt_number;
+      $contribution->replace_receipt  = 1;
+    }
+
     // If we are cancelling the tax receipt (or preview)
-    // CRM-1820 Added a check to prevent “Replace Receipt” function to enter in if condition as button name is same as preview button.
-    if ($buttonName == '_qf_ViewTaxReceipt_submit' && (!$this->_isCancelled)) {
+    if ($buttonName == '_qf_ViewTaxReceipt_submit') {
 
       // Preview
-      if (!$this->_reissue) {
+      if (!$this->_reissue || ($this->_reissue && $this->_isCancelled)) {
         $receiptsForPrinting = cdntaxreceipts_openCollectedPDF();
         $previewMode = TRUE;
         list($result, $method, $pdf) = cdntaxreceipts_issueTaxReceipt( $contribution,  $receiptsForPrinting, $previewMode );
@@ -366,11 +364,6 @@ class CRM_Cdntaxreceipts_Form_ViewTaxReceipt extends CRM_Core_Form {
               }
             }
           }
-        }
-        if ($buttonName == '_qf_ViewTaxReceipt_submit' && $this->_isCancelled){
-          list($receipt_number, $receipt_id) = CRM_Canadahelps_TaxReceipts_Receipt::receiptNumber($contribution->id,TRUE);
-          $contribution->cancelled_replace_receipt_number  = $receipt_number;
-          $contribution->replace_receipt  = 1;
         }
         list($result, $method, $pdf) = cdntaxreceipts_issueTaxReceipt( $contribution );
 
