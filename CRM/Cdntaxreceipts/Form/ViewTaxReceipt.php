@@ -46,6 +46,12 @@ class CRM_Cdntaxreceipts_Form_ViewTaxReceipt extends CRM_Core_Form {
 
     if (isset($receiptId)) {
       $existingReceipt = cdntaxreceipts_load_receipt($receiptId);
+      //CRM-1821 Show replaced receipt info on the Tax Receipt details page after receipt being replaced successfully
+      if ($existingReceipt['receipt_status'] == 'issued') {
+        list($receipt_number, $receipt_id) = cdntaxreceipts_receipt_number($contributionId,TRUE);
+        if(isset($receipt_number))
+        $existingReceipt['cancelled_replace_receipt'] = $receipt_number;
+      }
       $this->_receipt = $existingReceipt;
       $this->_reissue = 1;
 
