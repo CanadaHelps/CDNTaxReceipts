@@ -107,7 +107,7 @@ class CRM_Cdntaxreceipts_Form_ViewTaxReceipt extends CRM_Core_Form {
       }
 
       CRM_Utils_System::setTitle('Tax Receipt');
-      $buttonLabel = ts('Download Duplicate', array('domain' => 'org.civicrm.cdntaxreceipts'));
+      $buttonLabel = ts('Replace Receipt', array('domain' => 'org.civicrm.cdntaxreceipts'));
       $this->assign('reissue', 1);
       $this->assign('receipt', $this->_receipt);
       $this->assign('contact_id', $this->_receipt['contact_id']);
@@ -115,6 +115,7 @@ class CRM_Cdntaxreceipts_Form_ViewTaxReceipt extends CRM_Core_Form {
       $this->assign('receipt_contributions', $receipt_contributions);
       $this->assign('isCancelled', $this->_isCancelled);
       //CRM-1827-Update button copy for issuing a duplicate tax receipt
+      // @todo move to canadahelps.js
       $printOption = CDNTAX_DELIVERY_PRINT_ONLY;
       $emailOption = CDNTAX_DELIVERY_PRINT_EMAIL;
       CRM_Core_Resources::singleton()->addScript(
@@ -154,7 +155,7 @@ class CRM_Cdntaxreceipts_Form_ViewTaxReceipt extends CRM_Core_Form {
 
     if (CRM_Core_Permission::check( 'issue cdn tax receipts' ) ) {
 
-      // Add Void Button
+      // Void Button (when already issued)
       if ($this->_reissue && !$this->_isCancelled) {
         $buttons[] = array(
           'type' => 'submit',
@@ -163,8 +164,19 @@ class CRM_Cdntaxreceipts_Form_ViewTaxReceipt extends CRM_Core_Form {
           'class' => 'void-receipt',
         );
 
-      // Add Preview Button
-      } else if (!$this->_isCancelled) {
+      // Issue Button
+      } else {
+         // @todo $buttonLabel "Issue Tax Receipt" or "Replace Receipt"
+        $buttons[] = array(
+          'type' => 'next',
+          'name' => $buttonLabel,
+          'isDefault' => TRUE,
+          'class' => 'issue-receipt' . ( ($this->_isCancelled) ? ' replace-receipt' : ''),
+        );
+      }
+
+      // Add Preview Button (when void or nor yet issued)
+      if ($this->_isCancelled || !$this->_reissue) {
         $buttons[] = array(
           'type' => 'submit',
           'name' => ts('Preview', array('domain' => 'org.civicrm.cdntaxreceipts')),
@@ -173,13 +185,16 @@ class CRM_Cdntaxreceipts_Form_ViewTaxReceipt extends CRM_Core_Form {
         );
       }
 
-      // Issue or Download Button
-      $buttons[] = array(
-        'type' => 'next',
-        'name' => $buttonLabel,
-        'isDefault' => TRUE,
-        'class' => 'issue-receipt',
-      );
+      // Download Button (when already issued)
+      // @todo: changed button type to process -> need to adjust other code pieces
+      if ($this->_reissue) {
+        $buttons[] = array(
+          'type' => 'process',
+          'name' => ts('Download Receipt', array('domain' => 'org.civicrm.cdntaxreceipts')),
+          'isDefault' => TRUE,
+          'class' => 'download-receipt',
+        );
+      }
     }
     $this->addButtons($buttons);
 
