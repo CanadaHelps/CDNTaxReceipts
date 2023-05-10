@@ -302,7 +302,7 @@ class CRM_Cdntaxreceipts_Form_ViewTaxReceipt extends CRM_Core_Form {
     if ($buttonName == '_qf_ViewTaxReceipt_submit') {
 
       // Preview
-      if (!$this->_reissue || ($this->_reissue && $this->_isCancelled)) {
+      if (!$this->_reissue || $this->_isCancelled) {
         $receiptsForPrinting = cdntaxreceipts_openCollectedPDF();
         $previewMode = TRUE;
         list($result, $method, $pdf) = cdntaxreceipts_issueTaxReceipt( $contribution,  $receiptsForPrinting, $previewMode );
