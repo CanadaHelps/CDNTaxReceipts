@@ -12,10 +12,10 @@
  */
 
 function cdntaxreceipts_issued_on($contribution_id) {
-
+  //CRM-1820 Modified query to fetch the latest receipt record in case of multiple records for single contribution
   $sql = "SELECT issued_on, l.id as receipt_id FROM cdntaxreceipts_log l
     INNER JOIN cdntaxreceipts_log_contributions c ON l.id = c.receipt_id
-    WHERE is_duplicate = 0 AND contribution_id = $contribution_id";
+    WHERE is_duplicate = 0 AND contribution_id = $contribution_id ORDER BY l.issued_on DESC";
 
   $dao = CRM_Core_DAO::executeQuery($sql);
   if ( $dao->fetch() ) {
@@ -25,6 +25,46 @@ function cdntaxreceipts_issued_on($contribution_id) {
     return array(NULL, NULL);
   }
 
+}
+
+/**
+ * cdntaxreceipts_receipt_number
+ *
+ * Return unix timestamp of when the contribution was first issued
+ * This checks both 'single' and 'annual' receipts.
+ */
+function cdntaxreceipts_receipt_number($contribution_id , $is_replaced = FALSE, $multiple = FALSE) {
+
+  $sql = "SELECT l.receipt_no, l.id as receipt_id , l.receipt_status FROM cdntaxreceipts_log l
+    INNER JOIN cdntaxreceipts_log_contributions c ON l.id = c.receipt_id
+    WHERE is_duplicate = 0 AND contribution_id = $contribution_id";
+    //CRM-1820 to fetch the cancelled receipt number
+    if($is_replaced)
+    {
+      $sql .= " AND l.receipt_status = 'cancelled'";
+    }
+    $sql .= " ORDER BY l.issued_on DESC";
+    $dao = CRM_Core_DAO::executeQuery($sql);
+    if($multiple)
+    {
+      //CRM-1822: fetch all receipt records associated with that contribution 
+      $listReceipts = array();
+      while ( $dao->fetch() ) {
+        $listReceipts[$dao->receipt_status][] = array(
+          'receipt_no' => $dao->receipt_no,
+          'receipt_status' => $dao->receipt_status
+        );
+      }
+      return $listReceipts;
+    }else{
+      //CRM-1820: fetch latest single record associated with that contribution 
+      if ( $dao->fetch() ) {
+          return array($dao->receipt_no, $dao->receipt_id);
+        }
+        else {
+          return array(NULL, NULL);
+        }
+    }
 }
 
 /**
