@@ -353,7 +353,7 @@ class CRM_Cdntaxreceipts_Form_ViewTaxReceipt extends CRM_Core_Form {
           }
         }
         if ($buttonName == '_qf_ViewTaxReceipt_submit' && $this->_isCancelled){
-          list($receipt_number, $receipt_id) = cdntaxreceipts_receipt_number($contribution->id,TRUE);
+          list($receipt_number, $receipt_id) = CRM_Canadahelps_TaxReceipts_Receipt::receiptNumber($contribution->id,TRUE);
           $contribution->cancelled_replace_receipt_number  = $receipt_number;
           $contribution->replace_receipt  = 1;
         }

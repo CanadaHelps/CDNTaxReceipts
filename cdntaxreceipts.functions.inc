@@ -1071,6 +1071,7 @@ function cdntaxreceipts_issueAnnualTaxReceipt( $contactId, $year, &$collectedPdf
       'contributions' => $receiptContributions,
       'email_tracking_id' => md5(uniqid(rand(), TRUE)),
       'thankyou_html' => $thankyou_html,
+      'is_replaced' => 0,
     );
 
   }
@@ -1211,6 +1212,7 @@ function cdntaxreceipts_issueAggregateTaxReceipt($contactId, $year, $contributio
       'thankyou_html' => $thankyou_html,
       'inkind_aggregate' => $inkind_aggregate,
       'total_advantage_amount' => $total_advantage_amount,
+      'is_replaced' => 0,
     );
   }
 
