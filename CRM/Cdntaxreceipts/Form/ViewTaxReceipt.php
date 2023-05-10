@@ -50,7 +50,7 @@ class CRM_Cdntaxreceipts_Form_ViewTaxReceipt extends CRM_Core_Form {
       if ($existingReceipt['receipt_status'] == 'issued') {
         list($receipt_number, $receipt_id) = CRM_Canadahelps_TaxReceipts_Receipt::receiptNumber($contributionId,TRUE);
         if(isset($receipt_number))
-        $existingReceipt['cancelled_replace_receipt'] = $receipt_number;
+        $existingReceipt['cancelled_receipt_number'] = $receipt_number;
       }
       $this->_receipt = $existingReceipt;
       $this->_reissue = 1;
