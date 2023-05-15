@@ -64,7 +64,8 @@ function cdntaxreceipts_processTaxReceipt($receipt, &$collectedPdf = NULL, $mode
 
   // @todo Deprecate this function - see issue 103. This used to be on the settings form but has been removed. For now if it had been previously set we still use the same (broken) implementation from before.
   $serial_receipt = Civi::settings()->get('receipt_serial');
-  if ($serial_receipt && empty($receipt['is_duplicate'])) {
+  //CRM-1820 Adding a conditional check to create new receipt number for replace
+  if ($serial_receipt && (empty($receipt['is_duplicate'])||!empty($receipt['replace_receipt']))) {
     // use my experimental alternative to generating serial receipt numbers, unless this is a re-issue
     $lock = new CRM_Core_Lock('cdntaxreceipts.processTaxReceipt');
     if (!$lock->acquire()) {
@@ -85,8 +86,9 @@ function cdntaxreceipts_processTaxReceipt($receipt, &$collectedPdf = NULL, $mode
 
   // Re-checking if issued, as we did add quite a bit of API calls since last check
   // If already issued, or partialled issued, we stop and return as error
+  // CRM-1820 Bypass this condition while replace receipt
   if (!$receipt['is_duplicate']
-    && CRM_Canadahelps_TaxReceipts_Receipt::isAlreadyReceipted($receipt['contributions'])) {
+    && (CRM_Canadahelps_TaxReceipts_Receipt::isAlreadyReceipted($receipt['contributions'])&&(!$receipt['is_replaced']))) {
   return array(FALSE, $receipt['issue_method'], NULL); // -> this should be treated as an error
   };
 
@@ -202,7 +204,8 @@ function cdntaxreceipts_processTaxReceipt($receipt, &$collectedPdf = NULL, $mode
   CRM_Core_I18n::singleton()->setLocale($old_locale);
 
   // log the receipt
-  if (!$customReceipt->isDuplicate() && !$customReceipt->isPreview() && $sent) {
+  // CRM-1820 New Receipt is issued in case of replace receipt
+  if ((!$customReceipt->isDuplicate()||$customReceipt->isReplaced()) && !$customReceipt->isPreview() && $sent) {
   //if (!$receipt['is_duplicate'] && $sent && $mode != CDNTAXRECEIPTS_MODE_PREVIEW) {
     cdntaxreceipts_log($receipt);
     // @todo move this section to CRM_Canadahelps_TaxReceipts_Receipt
@@ -741,9 +744,10 @@ function cdntaxreceipts_issueTaxReceipt($contribution, &$collectedPdf = NULL, $m
   //   returns false for non existing $contribution ID
   //   returns 0 for existing but old data
   //   returns timestamp for new data
-  $is_duplicate = empty($issued_on) ? 0 : 1;
-
-
+  // CRM-1820 set is_duplicate to 0 when receipt is being replaced
+  $is_duplicate = (empty($issued_on)||isset($contribution->replace_receipt)) ? 0 : 1;
+  // CRM-1820 check replace status
+  $is_replaced =  isset($contribution->replace_receipt)? 1 : 0;
   if ( $is_duplicate ) {
     // if this was issued as part of an annual receipt, then jump over to the Annual method
     $receipt = cdntaxreceipts_load_receipt($receipt_id);
@@ -842,6 +846,7 @@ function cdntaxreceipts_issueTaxReceipt($contribution, &$collectedPdf = NULL, $m
     'advantage_description' => CRM_Utils_Array::value('advantage_description', $advantage, NULL),
     'advantage_amount' => $contribution->non_deductible_amount,
     'thankyou_html' => isset($contribution->thankyou_html) ? $contribution->thankyou_html : '',
+    'is_replaced' => $is_replaced,
   );
 
   $receipt['contributions'] = array(
@@ -854,6 +859,10 @@ function cdntaxreceipts_issueTaxReceipt($contribution, &$collectedPdf = NULL, $m
       'advantage_amount' => $contribution->non_deductible_amount,
     )
   );
+  // CRM-1820 While replacing a receipt, passing receipt number
+  if($is_replaced){
+    $receipt['cancelled_replace_receipt_number'] = $contribution->cancelled_replace_receipt_number;
+  }
 
   return cdntaxreceipts_processTaxReceipt($receipt, $collectedPdf, $mode);
 }
@@ -1062,6 +1071,7 @@ function cdntaxreceipts_issueAnnualTaxReceipt( $contactId, $year, &$collectedPdf
       'contributions' => $receiptContributions,
       'email_tracking_id' => md5(uniqid(rand(), TRUE)),
       'thankyou_html' => $thankyou_html,
+      'is_replaced' => 0,
     );
 
   }
@@ -1202,6 +1212,7 @@ function cdntaxreceipts_issueAggregateTaxReceipt($contactId, $year, $contributio
       'thankyou_html' => $thankyou_html,
       'inkind_aggregate' => $inkind_aggregate,
       'total_advantage_amount' => $total_advantage_amount,
+      'is_replaced' => 0,
     );
   }
 
