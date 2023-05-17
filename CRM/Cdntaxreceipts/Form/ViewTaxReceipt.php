@@ -39,7 +39,7 @@ class CRM_Cdntaxreceipts_Form_ViewTaxReceipt extends CRM_Core_Form {
     // might be callback to retrieve the downloadable PDF file
     $download = CRM_Utils_Array::value('download', $_GET);
     if ( $download == 1 ) {
-      $this->sendFile($contributionId, $contactId); // exits
+      self::sendFile($contributionId, $contactId); // exits
     }
 
     list($issuedOn, $receiptId) = cdntaxreceipts_issued_on($contributionId);
@@ -412,7 +412,7 @@ class CRM_Cdntaxreceipts_Form_ViewTaxReceipt extends CRM_Core_Form {
     CRM_Utils_System::redirect($url);
   }
 
-  function sendFile($contributionId, $contactId) {
+  public static function sendFile($contributionId, $contactId) {
 
     $session = CRM_Core_Session::singleton();
     $filename = $session->get("pdf_file_" . $contributionId . "_" . $contactId, 'cdntaxreceipts');
