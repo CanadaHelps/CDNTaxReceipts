@@ -12,7 +12,7 @@ class CRM_Cdntaxreceipts_Task_IssueSingleTaxReceipts extends CRM_Contribute_Form
 
   private $_receipts;
   private $_years;
-  private $_receiptList = [];
+  public $_receiptList = [];
 
   /**
    * build all the data structures needed to build the form
@@ -59,6 +59,11 @@ class CRM_Cdntaxreceipts_Task_IssueSingleTaxReceipts extends CRM_Contribute_Form
 
         // Eligible?
         $result['eligible'] = ($key != 'ineligibles');
+
+        if (!$result['eligible']) {
+          $contribObject = json_decode(json_encode($result));
+          $result['ineligible_reason'] =  canadahelps_isContributionEligibleForReceipting($contribObject);
+        }
 
         // Contact
         if ( $contact_id ) {
