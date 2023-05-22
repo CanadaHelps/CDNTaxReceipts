@@ -242,12 +242,53 @@ function cdntaxreceipts_processTaxReceipt($receipt, &$collectedPdf = NULL, $mode
   }
 
   if (isset($collectedPdf) && $pdf_file) {
-    unlink($pdf_file); // file is no longer needed
+    if(!$receipt['is_duplicate'] && ($mode === true || $mode == CDNTAXRECEIPTS_MODE_PREVIEW))
+    {
+      //Unlink preview Tax receipts reciepts
+      $customReceipt->removeTemporaryFile($pdf_file);
+    }
+    if($receipt['is_duplicate'] && $mode != CDNTAXRECEIPTS_MODE_PREVIEW && ($receipt['issue_method'] == 'email' || $receipt['issue_method'] == 'print') && $receipt['receipt_status'] != 'cancelled')
+    {
+      //Unlik generated duplicate tax receipts
+      $customReceipt->removeTemporaryFile($pdf_file);
+    }
     $pdf_file = NULL;
-  }
+    }
+    if(($receipt['is_duplicate'] &&  !isset($collectedPdf) && $receipt['issue_method'] == 'email') )
+    { 
+      //unlink Delivery method email and from single manage receipt section
+      $customReceipt->removeTemporaryFile($pdf_file);
+        $pdf_file = NULL;
+    }
 
   // if not unset, cron will clean up the PDF file later on
   return array( $sent, $receipt['issue_method'], $pdf_file );
+}
+
+/**
+ * cdnaxreceipts_manageVoidPDF()
+ * Accepts receipt ID and Contribution ID for generation of receipt array.
+ * This function is called when click 'void receipt' button.
+ */
+// CRM-1907 Manage void Tax receipt by adding 'CANCELLED' watermark 
+function cdnaxreceipts_manageVoidPDF($receipt_id,$contributionId)
+{
+  
+   $mode = NULL;
+   $receipt = cdntaxreceipts_load_receipt($receipt_id);
+   $customReceipt = new CRM_Canadahelps_TaxReceipts_Receipt($receipt['receipt_no'], $receipt);
+   $customReceipt->setMode(CDNTAXRECEIPTS_MODE_BACKOFFICE );
+   $customReceipt->setUploadDir(CRM_Core_Config::singleton()->uploadDir);
+   $customReceipt->setDefaultImagesDir( dirname(__FILE__) . '/img/' );
+   $customReceipt->setFontsDir( dirname(__FILE__) . '/fonts/' );   
+   $customReceipt->generatePDF(); // this should create the original pdf - to be confirmed
+    // Code for download void receipt right after cancelling
+   $contactID = $receipt['contact_id'] ?? NULL;
+   $contributionID = $contributionId ?? NULL;
+   $session = CRM_Core_Session::singleton();
+   $filename = $customReceipt->getFilePath();
+   $session->set("pdf_file_". $contributionID . "_" . $contactID, $filename, 'cdntaxreceipts');
+   return;
 }
 
 /**
