@@ -165,6 +165,20 @@ class CRM_Cdntaxreceipts_Task_IssueSingleTaxReceipts extends CRM_Contribute_Form
         'submitOnce' => FALSE,
       ),
     );
+    //For contributions whose receipt has already been generated ,hide 'Preview' button for them
+    if(($receiptTotal === $duplicateTotal)&&!empty($duplicateTotal) &&  empty($originalTotal))	
+    {	
+      if(isset($buttons))	
+      {	
+        foreach($buttons as $keyb=>$valueb)	
+        {	
+          if($valueb['name']=='Preview' )	
+          {	
+            unset($buttons[$keyb]);	
+          }	
+        }	
+      }	
+    }
 
     //CRM-921: Integrate WYSWIG Editor on the form
     CRM_Contact_Form_Task_PDFLetterCommon::buildQuickForm($this);
@@ -224,6 +238,10 @@ class CRM_Cdntaxreceipts_Task_IssueSingleTaxReceipts extends CRM_Contribute_Form
       $previewMode = TRUE;
     }
 
+    //CRM-1819-Disable preview function for already issued tax receipts
+    if($previewMode && !$originalOnly) {
+      $originalOnly = TRUE;
+    }
     /**
      * Drupal module include
      */
