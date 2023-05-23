@@ -395,7 +395,7 @@ class CRM_Cdntaxreceipts_Form_ViewTaxReceipt extends CRM_Core_Form {
     CRM_Utils_System::redirect($url);
   }
 
-  public static function sendFile($contributionId, $contactId) {
+  function sendFile($contributionId, $contactId) {
 
     $session = CRM_Core_Session::singleton();
     $filename = $session->get("pdf_file_" . $contributionId . "_" . $contactId, 'cdntaxreceipts');

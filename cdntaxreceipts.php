@@ -204,6 +204,14 @@ function cdntaxreceipts_civicrm_buildForm($formName, &$form) {
   }
 }
 
+// @todo code can be moved to main extension
+function cdntaxreceipts_civicrm_alterMenu(&$items) {
+  $items['civicrm/ajax/makePreviewWork'] = array(
+     'page_callback' => 'CRM_Canadahelps_ExtensionUtils::singleTaxReceiptPreview',
+     'access_arguments' => array('access CiviCRM'),
+   );
+}
+
 /**
  * Implements hook_civicrm_validateForm().
  *
