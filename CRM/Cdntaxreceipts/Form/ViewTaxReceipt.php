@@ -171,19 +171,6 @@ class CRM_Cdntaxreceipts_Form_ViewTaxReceipt extends CRM_Core_Form {
           'class' => 'download-receipt',
         );
       }
-      //CRM-1827-Update button copy for issuing a duplicate tax receipt
-      if ($this->_reissue) {
-        $printOption = CDNTAX_DELIVERY_PRINT_ONLY;
-        $emailOption = CDNTAX_DELIVERY_PRINT_EMAIL;
-        if(isset($this->_attributes['class']))
-        $formName = $this->_attributes['class'];
-        CRM_Core_Resources::singleton()->addScript(
-                   "app.initForm(
-                    '$formName',
-                    {printOption: $printOption,emailOption:$emailOption}
-                  );
-                ");
-      }
     }
     $this->addButtons($buttons);
 
