@@ -21,8 +21,13 @@ cj(document).ready(
           <td>{$receipt.issued_on|crmDate}</td>
       </tr>
       <tr>
+        {if $receipt.cancelled_receipt_number}
+          <td class="label bold-weight">{ts}Cancels and Replaces Receipt No.{/ts}</td>
+          <td class="label">{$receipt.cancelled_receipt_number}</td>
+          {else}
           <td class="label bold-weight">{ts}Issued By{/ts}</td>
-          <td>{$receipt.uname}</td>
+          <td>{$receipt.uname}</td>  
+        {/if}
           <td class="label display-cell-padding bold-weight">{ts}Method{/ts}</td>
           <td>{if $receipt.issue_method eq 'email'}{ts}Email{/ts}{elseif $receipt.issue_method eq 'print'}{ts}Print{/ts}{elseif $receipt.issue_method eq 'data'}{ts}Data{/ts}{/if}</td>
       </tr>
@@ -40,8 +45,8 @@ cj(document).ready(
       </tr>
       {if $receipt.cancelled_receipt_number}
       <tr>
-          <td class="label bold-weight">{ts}Cancels and Replaces Receipt No.{/ts}</td>
-          <td class="label">{$receipt.cancelled_receipt_number}</td>
+        <td class="label bold-weight">{ts}Issued By{/ts}</td>
+        <td>{$receipt.uname}</td>  
       </tr>
       {/if}
   </table>
