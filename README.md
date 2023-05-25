@@ -131,7 +131,7 @@ If you need to customize the amount that is tax-deductible on a receipt, use thi
 hook_cdntaxreceipts_alter_receipt()
 -----------
 
-If you need to customise the variables that are passed to the receipt e.g. display name
+If you need to customize the variables that are passed to the receipt e.g. display name
 
 ```php
 // example combining the name of a spouse in the receipt
@@ -153,7 +153,7 @@ function mymodule_cdntaxreceipts_alter_receipt(&$receipt) {
         'is_active' => 1,
         'options' => ['limit' => 1],
       ])['values'];
-      $relContact = $relationships[0]['contact_id_a'];
+      $relContact = $relationships[0]['contact_id_a'] ?? NULL;
     }
     else {
       $relContact = $relationships[0]['contact_id_b'];
@@ -162,7 +162,7 @@ function mymodule_cdntaxreceipts_alter_receipt(&$receipt) {
     $spouseRecords[] = CRM_Contact_BAO_Contact::displayName($receipt['contact_id']);
     if (!empty($relContact)) {
       $spouseRecords[] = CRM_Contact_BAO_Contact::displayName($relContact);
-      $receipt['display_name'] = implode(" and ", $spouseRecords);
+      $receipt['display_name'] = E::ts('%1 and %2', [1 => $spouseRecords[0], 2 => $spouseRecords[1]]);
     }
   }
 ```
