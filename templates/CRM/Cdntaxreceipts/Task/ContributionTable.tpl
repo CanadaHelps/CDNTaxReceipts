@@ -28,9 +28,6 @@
   <table class="selector row-highlight table-of-users">
     <thead class="sticky">
     <tr>
-      {if !$single and $context eq 'Search' }
-        <th scope="col" title="Select Rows">{$form.toggleSelect.html}</th>
-      {/if}
 
       {foreach from=$columnHeaders item=header}
         <th scope="col" class="crm-contribution-{$header}">
@@ -60,7 +57,7 @@
           {if $contribution.eligible}
             <td>Eligible</td>
           {else}
-            <td>Not Eligible <br/> {$contribution.eligibility_reason}</td>
+            <td>Not Eligible <br/> {if isset($contribution.eligibility_reason)}{$contribution.eligibility_reason}{/if}</td>
           {/if}
         </tr>
         {/foreach}

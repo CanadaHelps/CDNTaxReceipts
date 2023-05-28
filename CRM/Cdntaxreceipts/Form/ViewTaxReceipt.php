@@ -36,11 +36,6 @@ class CRM_Cdntaxreceipts_Form_ViewTaxReceipt extends CRM_Core_Form {
       $contactId = $this->get('contact_id');
     }
 
-    // might be callback to retrieve the downloadable PDF file
-    $download = CRM_Utils_Array::value('download', $_GET);
-    if ( $download == 1 ) {
-      self::sendFile($contributionId, $contactId); // exits
-    }
 
     list($issuedOn, $receiptId) = cdntaxreceipts_issued_on($contributionId);
 
@@ -68,6 +63,11 @@ class CRM_Cdntaxreceipts_Form_ViewTaxReceipt extends CRM_Core_Form {
       $this->_isCancelled = 0;
     }
 
+    // might be callback to retrieve the downloadable PDF file
+    $download = CRM_Utils_Array::value('download', $_GET);
+    if ( $download == 1 ) {
+      $this->sendFile($contributionId, $contactId); // exits
+    } 
     list($method, $email) = cdntaxreceipts_sendMethodForContact($contactId);
     if ($this->_isCancelled == 1 && $method != 'data') {
       $method = 'print';
@@ -114,30 +114,6 @@ class CRM_Cdntaxreceipts_Form_ViewTaxReceipt extends CRM_Core_Form {
       $this->assign('contribution_id', $this->get('contribution_id'));
       $this->assign('receipt_contributions', $receipt_contributions);
       $this->assign('isCancelled', $this->_isCancelled);
-      //CRM-1827-Update button copy for issuing a duplicate tax receipt
-      // @todo move to canadahelps.js
-      $printOption = CDNTAX_DELIVERY_PRINT_ONLY;
-      $emailOption = CDNTAX_DELIVERY_PRINT_EMAIL;
-      CRM_Core_Resources::singleton()->addScript(
-        "CRM.$(function($) {
-          $(document).ready(function(){
-            setTimeout(function waitDuration() {
-              cj('#delivery_method').trigger('change');
-            },100);
-            cj('#delivery_method').change(function(){
-              var serverval = this.value;
-              if(serverval == $emailOption)
-              {
-                cj('.crm-button_qf_ViewTaxReceipt_next').text('Email Duplicate Tax Receipt');
-              }
-              if(serverval == $printOption)
-              {
-                cj('.crm-button_qf_ViewTaxReceipt_next').text('Print Duplicate Tax Receipt');
-              }
-            });
-          });
-        });
-      ");
     }
     else {
       CRM_Utils_System::setTitle('Tax Receipt');
@@ -189,7 +165,7 @@ class CRM_Cdntaxreceipts_Form_ViewTaxReceipt extends CRM_Core_Form {
       // @todo: changed button type to process -> need to adjust other code pieces
       if ($this->_reissue) {
         $buttons[] = array(
-          'type' => 'process',
+          'type' => 'upload',
           'name' => ts('Download Receipt', array('domain' => 'org.civicrm.cdntaxreceipts')),
           'isDefault' => TRUE,
           'class' => 'download-receipt',
@@ -290,11 +266,11 @@ class CRM_Cdntaxreceipts_Form_ViewTaxReceipt extends CRM_Core_Form {
 
     $contribution =  new CRM_Contribute_DAO_Contribution();
     $contribution->id = $contributionId;
-
+    
     if ( ! $contribution->find( TRUE ) ) {
       CRM_Core_Error::fatal( "CDNTaxReceipts: Could not retrieve details for this contribution" );
     }
-
+   
     $buttonName = $this->controller->getButtonName();
 
     //CRM-1820 Once the receipt has been cancelled and user wants to preview or issue "Replace Receipt"
@@ -303,7 +279,7 @@ class CRM_Cdntaxreceipts_Form_ViewTaxReceipt extends CRM_Core_Form {
       $contribution->cancelled_replace_receipt_number  = $receipt_number;
       $contribution->replace_receipt  = 1;
     }
-
+    
     // If we are cancelling the tax receipt (or preview)
     if ($buttonName == '_qf_ViewTaxReceipt_submit') {
 
@@ -329,6 +305,8 @@ class CRM_Cdntaxreceipts_Form_ViewTaxReceipt extends CRM_Core_Form {
       $result = cdntaxreceipts_cancel($receipt_id);
 
       if ($result == TRUE) {
+        //CRM-1907-Generate Cancelled receipt PDF
+        cdnaxreceipts_manageVoidPDF($receipt_id,$contributionId);
         $statusMsg = ts('Tax Receipt has been cancelled.', array('domain' => 'org.civicrm.cdntaxreceipts'));
       }
       else {
@@ -337,6 +315,11 @@ class CRM_Cdntaxreceipts_Form_ViewTaxReceipt extends CRM_Core_Form {
       CRM_Core_Session::setStatus($statusMsg, '', 'error');
       // refresh the form, with file stored in session if we need it.
       $urlParams = array('reset=1', 'cid='.$contactId, 'id='.$contributionId);
+      //CRM-1907 - After cancelling recipt download automatically
+      if($result == TRUE)
+      {
+        $urlParams[] = 'file=1';
+      }
 
     // Issue Receipt
     } else {
@@ -371,6 +354,7 @@ class CRM_Cdntaxreceipts_Form_ViewTaxReceipt extends CRM_Core_Form {
             }
           }
         }
+  
         list($result, $method, $pdf) = cdntaxreceipts_issueTaxReceipt( $contribution );
 
         if ($result == TRUE) {
@@ -412,12 +396,14 @@ class CRM_Cdntaxreceipts_Form_ViewTaxReceipt extends CRM_Core_Form {
     CRM_Utils_System::redirect($url);
   }
 
-  public static function sendFile($contributionId, $contactId) {
+  function sendFile($contributionId, $contactId) {
 
     $session = CRM_Core_Session::singleton();
     $filename = $session->get("pdf_file_" . $contributionId . "_" . $contactId, 'cdntaxreceipts');
 
     if ( $filename && file_exists($filename) ) {
+      //CRM-1822 Fetching receipt status isCancelled and reissue for unlinking process.
+      $receiptStatus = CRM_Canadahelps_TaxReceipts_Receipt::isEligibleForUnlink($contributionId);
       // set up headers and stream the file
       header('Content-Description: File Transfer');
       header('Content-Type: application/octet-stream');
@@ -435,6 +421,16 @@ class CRM_Cdntaxreceipts_Form_ViewTaxReceipt extends CRM_Core_Form {
       // after displaying a security warning for the download. otherwise I would want
       // to delete the file once it has been downloaded.  hook_cron() cleans up after us
       // for now.
+      //CRM-1819 - unlinking duplicate receipt for delivery method 'Print'
+      
+      if(!$receiptStatus['_isCancelled'] && (isset($receiptStatus['_reissue'])) )
+      { $findString   = '-duplicate';
+        if (strpos($filename, $findString) !== false) {
+          $session->set('pdf_file', NULL, 'cdntaxreceipts');
+          $session->set("pdf_file_" . $contributionId . "_" . $contactId, NULL, 'cdntaxreceipts');
+          unlink($filename);
+        }
+      }
 
       // $session->set('pdf_file', NULL, 'cdntaxreceipts');
       // unlink($filename);
