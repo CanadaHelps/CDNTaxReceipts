@@ -35,8 +35,7 @@ function cdntaxreceipts_civicrm_buildForm($formName, &$form) {
   // @todo move css to /sass/taxreceipts.scss
   // @todo code can be moved to main extension
   if (is_a( $form, 'CRM_Cdntaxreceipts_Form_Settings')) {
-    $config = CRM_Core_Config::singleton( );
-    $formName = $form->getVar('_attributes')['class'];
+    $config = CRM_Core_Config::singleton();
     //CRM-1860 If receipt logo is not set pass empty value
     $receipt_logo = Civi::settings()->get('receipt_logo');
     $receipt_logo_url = '';
