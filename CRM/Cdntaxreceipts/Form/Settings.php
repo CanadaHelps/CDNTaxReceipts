@@ -234,5 +234,7 @@ class CRM_Cdntaxreceipts_Form_Settings extends CRM_Core_Form {
 
     $statusMsg = ts('Your settings have been saved.', array('domain' => 'org.civicrm.cdntaxreceipts'));
     CRM_Core_Session::setStatus( $statusMsg, '', 'success' );
+    //CRM-1860 Refresh page after successful receipt settings
+    CRM_Utils_System::redirect($_SERVER['HTTP_REFERER']);
   }
 }
