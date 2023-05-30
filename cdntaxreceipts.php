@@ -35,78 +35,41 @@ function cdntaxreceipts_civicrm_buildForm($formName, &$form) {
   // @todo move css to /sass/taxreceipts.scss
   // @todo code can be moved to main extension
   if (is_a( $form, 'CRM_Cdntaxreceipts_Form_Settings')) {
+    $config = CRM_Core_Config::singleton();
+    //CRM-1860 If receipt logo is not set pass empty value
     $receipt_logo = Civi::settings()->get('receipt_logo');
-    $receipt_logo_type = pathinfo($receipt_logo, PATHINFO_EXTENSION);
-    $receipt_logo_data = file_get_contents($receipt_logo);
-    $receipt_logo_url = 'data:image/' . $receipt_logo_type . ';base64,' . base64_encode($receipt_logo_data);
-
+    $receipt_logo_url = '';
+    if(!empty($receipt_logo))
+    {
+      $receipt_logo_type = pathinfo($receipt_logo, PATHINFO_EXTENSION);
+      // If existing value has relative path in it keep it as is otherwise prepand upload directory path 
+      $receiptPath = $receipt_logo;
+      if(strpos("$receipt_logo", "$config->customFileUploadDir") === false){
+        $receiptPath = $config->customFileUploadDir.$receipt_logo;
+      }
+      $receipt_logo_data = file_get_contents($receiptPath);
+      $receipt_logo_url = 'data:image/' . $receipt_logo_type . ';base64,' . base64_encode($receipt_logo_data);
+    }
+    //CRM-1860 If receipt signature is not set pass empty value
     $receipt_signature = Civi::settings()->get('receipt_signature');
-    $receipt_signature_type = pathinfo($receipt_signature, PATHINFO_EXTENSION);
-    $receipt_signature_data = file_get_contents($receipt_signature);
-    $receipt_signature_url = 'data:image/' . $receipt_signature_type . ';base64,' . base64_encode($receipt_signature_data);
-     CRM_Core_Resources::singleton()->addScript(
-      "CRM.$(function($) {
-        $( '.crm-form-file' ).change(function() {
-         var attr_name = this.id;
-         $('#'+attr_name).next('.previewImageName').remove();
-         $('#'+attr_name).css('color','transparent');
-         const file = this.files[0];
-         if (file){
-          //CRM-1456 No Logo or Signature displaying on Tax Receipts despite Images being uploaded
-          var fileType = file['type'];
-          var extensionTypes = [];
-          extensionTypes['image/png'] = ['png'];
-          extensionTypes['image/jpeg'] = ['jpg','jpeg','jfif','pjpeg','pjp'];
-          $('#'+attr_name+'-error-message').text(' ');
-          if(fileType in extensionTypes)
-          {
-            var fileExtensionName = fileType.split('/').pop().toLowerCase();
-            if ($.inArray(fileExtensionName, extensionTypes[fileType]) < 0) {
-              $('#'+attr_name+'-error-message').text(\"Image extension doesn't match with file type\").css({'background-color' : '#cf3458','color' : '#fff','width': '260px'});
-            }
-          }else
-          {
-            $('#'+attr_name+'-error-message').text(\"This image type is not supported\").css({'background-color' : '#cf3458','color' : '#fff','width': '200px'});
-          }
-          var fileName = [file.name.split('.').shift(),file.name.split('.').pop().toLowerCase()].join('.');
-          let reader = new FileReader();
-          reader.onload = function(event){
-           var ImagePreviewObj = $('#'+attr_name).parent().find('img').attr('id');
-            $('#'+ImagePreviewObj).attr('src', event.target.result);
-            $('#'+ImagePreviewObj).parent().find('span').hide();
-            $('<p>'+fileName+'</p>').addClass('previewImageName').insertAfter($('#'+attr_name));
-          }
-          reader.readAsDataURL(file);
-         }
-        });
-        $( document ).ready(function() {
-          var receiptLogo = '$receipt_logo_url';
-          var receiptSignature = '$receipt_signature_url';
-          // @todo use class .hidden (bootstrap)
-          if(!receiptLogo || receiptLogo.length > 0)
-          {
-            $('#ReceiptLogoPreview').attr('src', receiptLogo );
-            $('#receipt_logo').css('color','transparent');
-            $('#receipt_logo').attr('title', ' ' );
-          }
-          if(!receiptSignature || receiptSignature.length > 0)
-          {
-            $('#ReceiptSignaturePreview').attr('src', receiptSignature);
-            $('#receipt_signature').css('color','transparent');
-            $('#receipt_signature').attr('title', ' ' );
-          }
-        });
-      });
+    $receipt_signature_url= '';
+    if(!empty($receipt_signature)){
+      $receipt_signature_type = pathinfo($receipt_signature, PATHINFO_EXTENSION);
+      $receiptPath = $receipt_signature;
+      if(strpos("$receipt_signature", "$config->customFileUploadDir") === false){
+        $receiptPath = $config->customFileUploadDir.$receipt_signature;
+      }
+      $receipt_signature_data = file_get_contents($config->customFileUploadDir.$receipt_signature);
+      $receipt_signature_url = 'data:image/' . $receipt_signature_type . ';base64,' . base64_encode($receipt_signature_data);
+    }
+    //CRM-1860 passing receiptLogo and receiptSignature value to javascript
+    CRM_Core_Resources::singleton()->addScript(
+      "app.initForm(
+        '$formName',
+        {receiptLogo: '$receipt_logo_url', receiptSignature: '$receipt_signature_url'}
+      );
     ");
-    CRM_Core_Resources::singleton()->addStyle('
-    .preview_image {
-      max-width: 100px;
-      max-height: 100px;
-      min-width: 100px;
-      min-height: 100px;
-    }');
-  }
-
+    }
   if (is_a($form, 'CRM_Contribute_Form_ContributionView')) {
     // add "Issue Tax Receipt" button to the "View Contribution" page
     // if the Tax Receipt has NOT yet been issued -> display a white maple leaf icon
@@ -320,39 +283,7 @@ function cdntaxreceipts_civicrm_postProcess($formName, &$form) {
     }
   }
 
-  // @todo code can be moved to main extension
-  if (is_a( $form, 'CRM_Cdntaxreceipts_Form_Settings')) {
-    //CRM-1235 DMS - After Signature/Logo is uploaded in Receipt Settings, page continues to display "No File Chosen"
-    $receipt_logo = Civi::settings()->get('receipt_logo');
-    $receipt_logo_type = pathinfo($receipt_logo, PATHINFO_EXTENSION);
-    $receipt_logo_data = file_get_contents($receipt_logo);
-    $receipt_logo_url = 'data:image/' . $receipt_logo_type . ';base64,' . base64_encode($receipt_logo_data);
 
-    $receipt_signature = Civi::settings()->get('receipt_signature');
-    $receipt_signature_type = pathinfo($receipt_signature, PATHINFO_EXTENSION);
-    $receipt_signature_data = file_get_contents($receipt_signature);
-    $receipt_signature_url = 'data:image/' . $receipt_signature_type . ';base64,' . base64_encode($receipt_signature_data);
-
-    CRM_Core_Resources::singleton()->addScript(
-      "CRM.$(function($) {
-        $( document ).ready(function() {
-          var receiptLogo = '$receipt_logo_url';
-          var receiptSignature = '$receipt_signature_url';
-          if(!receiptLogo || receiptLogo.length > 0)
-          {
-            $('#ReceiptLogoPreview').attr('src', receiptLogo);
-            $('#ReceiptLogoPreview').parent().find('span').hide();
-          }
-          if(!receiptSignature || receiptSignature.length > 0)
-          {
-            $('#ReceiptSignaturePreview').attr('src',receiptSignature);
-            $('#ReceiptSignaturePreview').parent().find('span').hide();
-          }
-        });
-      });
-    ");
-
-  }
   // First check whether I really need to process this form
   if (!is_a($form, 'CRM_Contribute_Form_ContributionView')) {
     return;
