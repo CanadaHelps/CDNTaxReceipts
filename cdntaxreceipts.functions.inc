@@ -112,7 +112,10 @@ function cdntaxreceipts_processTaxReceipt($receipt, &$collectedPdf = NULL, $mode
     $customReceipt->setUploadDir(CRM_Core_Config::singleton()->uploadDir);
     $customReceipt->setDefaultImagesDir( dirname(__FILE__) . '/img/' );
     $customReceipt->setFontsDir( dirname(__FILE__) . '/fonts/' );
-    $customReceipt->generatePDF();
+    //CRM-1864 if there is some issue in generatePDF then system will terminate receipt generation
+    if(!$customReceipt->generatePDF()){
+      return array(FALSE, $receipt['issue_method'], NULL);
+    }
 
     // @todo check for errors during PDF generation / empty -> do not proceed if so
     // @todo CRM-1897
@@ -281,7 +284,8 @@ function cdnaxreceipts_manageVoidPDF($receipt_id,$contributionId)
    $customReceipt->setUploadDir(CRM_Core_Config::singleton()->uploadDir);
    $customReceipt->setDefaultImagesDir( dirname(__FILE__) . '/img/' );
    $customReceipt->setFontsDir( dirname(__FILE__) . '/fonts/' );   
-   $customReceipt->generatePDF(); // this should create the original pdf - to be confirmed
+   if(!$customReceipt->generatePDF()){
+   return FALSE;}
     // Code for download void receipt right after cancelling
    $contactID = $receipt['contact_id'] ?? NULL;
    $contributionID = $contributionId ?? NULL;
