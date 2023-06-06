@@ -284,7 +284,8 @@ function cdnaxreceipts_manageVoidPDF($receipt_id,$contributionId)
    $customReceipt->setUploadDir(CRM_Core_Config::singleton()->uploadDir);
    $customReceipt->setDefaultImagesDir( dirname(__FILE__) . '/img/' );
    $customReceipt->setFontsDir( dirname(__FILE__) . '/fonts/' );   
-   $customReceipt->generatePDF(); // this should create the original pdf - to be confirmed
+   if(!$customReceipt->generatePDF()){
+   return FALSE;}
     // Code for download void receipt right after cancelling
    $contactID = $receipt['contact_id'] ?? NULL;
    $contributionID = $contributionId ?? NULL;
