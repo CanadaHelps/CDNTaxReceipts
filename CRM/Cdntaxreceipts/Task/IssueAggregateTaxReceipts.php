@@ -69,7 +69,6 @@ class CRM_Cdntaxreceipts_Task_IssueAggregateTaxReceipts extends CRM_Contribute_F
 
     // Count and categorize contributions
     foreach ($this->_contributionIds as $id) {
-      _cdntaxreceipts_check_lineitems($id);
       $status = isset($this->_contributions_status[$id]) ? $this->_contributions_status[$id] : NULL;
       if (is_array($status)) {
         $year = $status['receive_year'];
@@ -79,6 +78,7 @@ class CRM_Cdntaxreceipts_Task_IssueAggregateTaxReceipts extends CRM_Contribute_F
         $receipts[$issue_type][$year]['total_amount'] += ($status['total_amount']);
         $receipts[$issue_type][$year]['not_eligible_amount'] += $status['non_deductible_amount'];
         if ($status['eligible']) {
+          _cdntaxreceipts_check_lineitems($id);
           list( $method, $email ) = cdntaxreceipts_sendMethodForContact($status['contact_id']);
           $receipts[$issue_type][$year][$method]['contribution_count']++;
           if (!isset($receipts[$issue_type][$year]['contact_ids'][$status['contact_id']])) {
