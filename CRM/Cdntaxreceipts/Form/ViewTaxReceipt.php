@@ -306,8 +306,13 @@ class CRM_Cdntaxreceipts_Form_ViewTaxReceipt extends CRM_Core_Form {
 
       if ($result == TRUE) {
         //CRM-1907-Generate Cancelled receipt PDF
-        cdnaxreceipts_manageVoidPDF($receipt_id,$contributionId);
-        $statusMsg = ts('Tax Receipt has been cancelled.', array('domain' => 'org.civicrm.cdntaxreceipts'));
+        //CRM-1864 if receipt logo / signature is not uploaded while void receipt issuance, system won't issue receipt.
+        $voidReceiptStatus = cdnaxreceipts_manageVoidPDF($receipt_id,$contributionId);
+        if($voidReceiptStatus === FALSE){
+          $statusMsg = ts('Tax Receipt has been cancelled but tax receipt can not be generated.', array('domain' => 'org.civicrm.cdntaxreceipts'));
+        }else{
+          $statusMsg = ts('Tax Receipt has been cancelled.', array('domain' => 'org.civicrm.cdntaxreceipts'));
+        }
       }
       else {
         $statusMsg = ts('Encountered an error. Tax receipt has not been cancelled.', array('domain' => 'org.civicrm.cdntaxreceipts'));
@@ -316,7 +321,7 @@ class CRM_Cdntaxreceipts_Form_ViewTaxReceipt extends CRM_Core_Form {
       // refresh the form, with file stored in session if we need it.
       $urlParams = array('reset=1', 'cid='.$contactId, 'id='.$contributionId);
       //CRM-1907 - After cancelling recipt download automatically
-      if($result == TRUE)
+      if($result == TRUE && $voidReceiptStatus !== FALSE)
       {
         $urlParams[] = 'file=1';
       }
