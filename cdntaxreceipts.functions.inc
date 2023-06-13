@@ -276,23 +276,19 @@ function cdntaxreceipts_processTaxReceipt($receipt, &$collectedPdf = NULL, $mode
 // CRM-1907 Manage void Tax receipt by adding 'CANCELLED' watermark 
 function cdnaxreceipts_manageVoidPDF($receipt_id,$contributionId)
 {
-  
-   $mode = NULL;
-   $receipt = cdntaxreceipts_load_receipt($receipt_id);
-   $customReceipt = new CRM_Canadahelps_TaxReceipts_Receipt($receipt['receipt_no'], $receipt);
-   $customReceipt->setMode(CDNTAXRECEIPTS_MODE_BACKOFFICE );
-   $customReceipt->setUploadDir(CRM_Core_Config::singleton()->uploadDir);
-   $customReceipt->setDefaultImagesDir( dirname(__FILE__) . '/img/' );
-   $customReceipt->setFontsDir( dirname(__FILE__) . '/fonts/' );   
-   if(!$customReceipt->generatePDF()){
+  $contribution =  new CRM_Contribute_DAO_Contribution();
+  $contribution->id = $contributionId;
+  if ( ! $contribution->find( TRUE ) ) {
+    CRM_Core_Error::fatal( "CDNTaxReceipts: Could not retrieve details for this contribution" );
+  }
+  $contactID = $contribution->contact_id ?? NULL;
+  list($result, $method, $pdf) = cdntaxreceipts_issueTaxReceipt( $contribution );
+  if($result == FALSE){
    return FALSE;}
-    // Code for download void receipt right after cancelling
-   $contactID = $receipt['contact_id'] ?? NULL;
-   $contributionID = $contributionId ?? NULL;
-   $session = CRM_Core_Session::singleton();
-   $filename = $customReceipt->getFilePath();
-   $session->set("pdf_file_". $contributionID . "_" . $contactID, $filename, 'cdntaxreceipts');
-   return;
+  $contributionID = $contributionId ?? NULL;
+  $session = CRM_Core_Session::singleton();
+  $session->set("pdf_file_". $contributionID . "_" . $contactID, $pdf, 'cdntaxreceipts');
+  return;
 }
 
 /**
@@ -784,6 +780,11 @@ function cdntaxreceipts_issueTaxReceipt($contribution, &$collectedPdf = NULL, $m
   // check if a Tax Receipt has already been issued previously for this Contribution
   // user input could be tainted! we want this method to check everything for validity...
   list($issued_on, $receipt_id) = cdntaxreceipts_issued_on($contribution->id);
+  //CRM-1822 cdntaxreceipts_issued_on method fetches detail of latest issued receipt_no linked with that contribution 
+  if(isset($contribution->previewCancelReceiptId)){
+    //$issued_on = $contribution->previewCancelReceiptNumber;
+    $receipt_id = $contribution->previewCancelReceiptId;
+  }
 
   // When returning issued_on field:
   //   returns false for non existing $contribution ID
@@ -799,12 +800,19 @@ function cdntaxreceipts_issueTaxReceipt($contribution, &$collectedPdf = NULL, $m
     if ( $receipt['issue_type'] == 'annual' ) {
       $contactId = $receipt['contact_id'];
       $year = substr($receipt['contributions'][0]['receive_date'], 0, 4);
-      return cdntaxreceipts_issueAnnualTaxReceipt($contactId, $year, $collectedPdf, $mode);
+      //CRM-1822 Adding last parameter to identify cancelled receipt_id for download 
+      $receiptCancelId = (isset($contribution->previewCancelReceiptId))?? $contribution->previewCancelReceiptId;
+      return cdntaxreceipts_issueAnnualTaxReceipt($contactId, $year, $collectedPdf, $mode, NULL, $receiptCancelId);
     }
     else if ( $receipt['issue_type'] == 'aggregate' ) {
       $contactId = $receipt['contact_id'];
       $year = substr($receipt['contributions'][0]['receive_date'], 0, 4);
       list($method, $email) = cdntaxreceipts_sendMethodForContact($contactId);
+      if(isset($contribution->previewCancelReceiptId)){
+        foreach($receipt['contributions'] as $key => $value){
+          $receipt['contributions'][$key]['receipt_id'] = $receipt_id;
+        }
+      }
       return cdntaxreceipts_issueAggregateTaxReceipt($contactId, $year, $receipt['contributions'],
         $method, $collectedPdf, $mode);
     }
@@ -822,7 +830,10 @@ function cdntaxreceipts_issueTaxReceipt($contribution, &$collectedPdf = NULL, $m
   if ($is_duplicate && $receipt['receipt_status'] == 'cancelled' && $method != 'data') {
     $method = 'print';
   }
-
+ // set method to print if user wants to download 
+  if($is_duplicate && isset($contribution->pdfDownloadReceipt) && $method != 'data'){
+    $method = 'print';
+  }
   // "Attach" receipts are email (we save the file & attach to an email)
   if ((int)$mode == CDNTAXRECEIPTS_MODE_WORKFLOW) {
     $method = 'email';
@@ -1049,14 +1060,17 @@ function cdntaxreceipts_eligibleAmount( $contributionId ) {
  * Issues an annual tax receipt for a given year.
  * Detects if the receipt is a duplicate and reacts appropriately.
  */
-function cdntaxreceipts_issueAnnualTaxReceipt( $contactId, $year, &$collectedPdf = NULL, $mode = CDNTAXRECEIPTS_MODE_BACKOFFICE, $thankyou_html = NULL ) {
+function cdntaxreceipts_issueAnnualTaxReceipt( $contactId, $year, &$collectedPdf = NULL, $mode = CDNTAXRECEIPTS_MODE_BACKOFFICE, $thankyou_html = NULL,$downloadCancelReceipt = NULL ) {
 
   // determine the send method
   list( $method, $email ) = cdntaxreceipts_sendMethodForContact($contactId);
 
   // query for duplicate receipt
   list( $issued_on, $receipt_id ) = cdntaxreceipts_annual_issued_on($contactId, $year);
-
+  //CRM-1822 Replaces receipt_id if user wants to fetch details about previously cancelled receipt
+  if(isset($downloadCancelReceipt)){
+    $receipt_id = $downloadCancelReceipt;
+  }
   // When returning issued_on field:
   //   returns false for non existing $contribution ID
   //   returns 0 for existing but old data
@@ -1168,7 +1182,10 @@ function cdntaxreceipts_issueAggregateTaxReceipt($contactId, $year, $contributio
   $contrib_copy = $contributions;
   $check_contribution = array_shift($contrib_copy);
   list($issued_on, $receipt_id) = cdntaxreceipts_issued_on($check_contribution['contribution_id']);
-
+  //CRM-1822 Replaces receipt_id if user wants to fetch details about previously cancelled receipt
+  if(isset($check_contribution['receipt_id'])){
+    $receipt_id = $check_contribution['receipt_id'];
+  }
   if (isset($check_contribution['receipt_id']) && $check_contribution['receipt_id'] != 0) {
     $is_duplicate = TRUE;
   }

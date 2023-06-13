@@ -266,11 +266,11 @@ class CRM_Cdntaxreceipts_Form_ViewTaxReceipt extends CRM_Core_Form {
 
     $contribution =  new CRM_Contribute_DAO_Contribution();
     $contribution->id = $contributionId;
-
+    
     if ( ! $contribution->find( TRUE ) ) {
       CRM_Core_Error::fatal( "CDNTaxReceipts: Could not retrieve details for this contribution" );
     }
-
+   
     $buttonName = $this->controller->getButtonName();
 
     //CRM-1820 Once the receipt has been cancelled and user wants to preview or issue "Replace Receipt"
@@ -279,7 +279,7 @@ class CRM_Cdntaxreceipts_Form_ViewTaxReceipt extends CRM_Core_Form {
       $contribution->cancelled_replace_receipt_number  = $receipt_number;
       $contribution->replace_receipt  = 1;
     }
-
+    
     // If we are cancelling the tax receipt (or preview)
     if ($buttonName == '_qf_ViewTaxReceipt_submit') {
 
@@ -359,6 +359,7 @@ class CRM_Cdntaxreceipts_Form_ViewTaxReceipt extends CRM_Core_Form {
             }
           }
         }
+  
         list($result, $method, $pdf) = cdntaxreceipts_issueTaxReceipt( $contribution );
 
         if ($result == TRUE) {
@@ -406,6 +407,8 @@ class CRM_Cdntaxreceipts_Form_ViewTaxReceipt extends CRM_Core_Form {
     $filename = $session->get("pdf_file_" . $contributionId . "_" . $contactId, 'cdntaxreceipts');
 
     if ( $filename && file_exists($filename) ) {
+      //CRM-1822 Fetching receipt status isCancelled and reissue for unlinking process.
+      $receiptStatus = CRM_Canadahelps_TaxReceipts_Receipt::isEligibleForUnlink($contributionId);
       // set up headers and stream the file
       header('Content-Description: File Transfer');
       header('Content-Type: application/octet-stream');
@@ -424,7 +427,8 @@ class CRM_Cdntaxreceipts_Form_ViewTaxReceipt extends CRM_Core_Form {
       // to delete the file once it has been downloaded.  hook_cron() cleans up after us
       // for now.
       //CRM-1819 - unlinking duplicate receipt for delivery method 'Print'
-      if(!$this->_isCancelled && (isset($this->_reissue)) )
+      
+      if(!$receiptStatus['_isCancelled'] && (isset($receiptStatus['_reissue'])) )
       { $findString   = '-duplicate';
         if (strpos($filename, $findString) !== false) {
           $session->set('pdf_file', NULL, 'cdntaxreceipts');
