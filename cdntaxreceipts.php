@@ -500,22 +500,6 @@ function cdntaxreceipts_civicrm_navigationMenu(&$params) {
   }
 }
 
-function cdntaxreceipts_civicrm_validate($formName, &$fields, &$files, &$form) {
-  if ($formName == 'CRM_Cdntaxreceipts_Form_Settings') {
-    $errors = [];
-    $allowed = ['gif', 'png', 'jpg', 'pdf'];
-    foreach ($files as $key => $value) {
-      if (CRM_Utils_Array::value('name', $value)) {
-        $ext = pathinfo($value['name'], PATHINFO_EXTENSION);
-        if (!in_array($ext, $allowed)) {
-          $errors[$key] = E::ts('Please upload a valid file. Allowed extensions are (.gif, .png, .jpg, .pdf)');
-        }
-      }
-    }
-    return $errors;
-  }
-}
-
 /**
  * Implements hook_civicrm_alterMailParams().
  */
