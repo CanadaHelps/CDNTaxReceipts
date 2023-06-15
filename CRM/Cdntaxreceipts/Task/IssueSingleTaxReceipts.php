@@ -342,8 +342,18 @@ class CRM_Cdntaxreceipts_Task_IssueSingleTaxReceipts extends CRM_Contribute_Form
         } else if (!$result['eligible']) {
           $contribObject = json_decode(json_encode($result));
           $result['ineligible_reason'] =  canadahelps_isContributionEligibleForReceipting($contribObject);
-          if (!empty($result['ineligible_reason']))
+          if (!empty($result['ineligible_reason'])) {
             $result['eligibility_reason'] = '('.$result['ineligible_reason'].')';
+            switch ($result['ineligible_reason']) {
+              case 'Incomplete Address':
+                $result['eligibility_fix'] = "The donor's address is required. Please <a href=\"/dms/contact/view?reset=1&cid=$contact_id\">update</a> to issue a tax receipt.";
+                break;
+
+              case 'Incomplete Name':
+                $result['eligibility_fix'] = "The donor's name is required. Please <a href=\"/dms/contact/view?reset=1&cid=$contact_id\">update</a> to issue a tax receipt.";
+                break;
+            }
+          }
         }
 
         // Contact

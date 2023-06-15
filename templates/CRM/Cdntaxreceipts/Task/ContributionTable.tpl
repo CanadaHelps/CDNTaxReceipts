@@ -53,8 +53,10 @@
             <td><span class="small">{$contribution.eligibility_reason}</span></td>
           {elseif $contribution.eligible}
             <td><i class="fa fa-check"><span class="hidden">Eligible<span></i></td>
+          {elseif isset($contribution.eligibility_fix)}
+            <td><i class="fa fa-close"><span class="hidden">Not Eligible<span></i><br/><span class="small">{$contribution.eligibility_fix}</span></td>
           {elseif isset($contribution.eligibility_reason)}
-            <td><i class="fa fa-close"><span class="hidden">Not Eligible<span></i>  <br/><span class="small">{$contribution.eligibility_reason}</span></td>
+            <td><i class="fa fa-close"><span class="hidden">Not Eligible<span></i><br/><span class="small">{$contribution.eligibility_reason}</span></td>
           {else}
             <td><i class="fa fa-close"><span class="hidden">Not Eligible<span></i></td>
           {/if}
