@@ -1201,7 +1201,7 @@ function cdntaxreceipts_issueAggregateTaxReceipt($contactId, $year, $contributio
     $total_advantage_amount = 0;
     foreach ( $receipt['contributions'] as $key=>$contribution ) {
       $contribution_id = array($contribution['contribution_id']);
-      $inkind_details = cdntaxreceipts_contributions_get_status_inkind($contribution_id);
+      $inkind_details = cdntaxreceipts_contributions_get_status($contribution_id);
       if($inkind_details){
         $receipt['contributions'][$key]['inkind']=$inkind_details[$contribution['contribution_id']]['inkind'];
         $receipt['contributions'][$key]['inkind_values']=$inkind_details[$contribution['contribution_id']]['inkind_values'] ?? FALSE;
