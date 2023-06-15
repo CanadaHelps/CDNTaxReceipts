@@ -49,6 +49,64 @@ class CRM_Cdntaxreceipts_Form_Settings extends CRM_Core_Form {
     parent::buildQuickForm();
   }
 
+  //CRM-1944 Adding a custom rule to provide error message next to an invalid field on receipt settings form when submitting
+  public function addRules() {
+    $this->addFormRule(['CRM_Cdntaxreceipts_Form_Settings', 'receiptSettingCustomRules'], $this);
+  }
+
+  /**
+   * custom validation callback for CRM-1944
+   */
+  public static function receiptSettingCustomRules($params, $files, $self) {
+    $errors = array();
+    // Make receipt logo and signature mandatory fields
+    $defaults = $self->getVar('_defaultValues');
+    if(empty($defaults['receipt_logo']) && empty($files['receipt_logo']['name']))
+    $errors['receipt_logo'] = ts('Organization Logo is mandatory field');
+
+    if(empty($defaults['receipt_signature']) && empty($files['receipt_signature']['name']))
+    $errors['receipt_signature'] = ts('Signature Image is mandatory field');
+
+    //Add custom rule to check the extension for logo, signature, watermark and pdf template
+    foreach ($files as $key => $value) {
+      if (CRM_Utils_Array::value('name', $value)) {
+        $ext = pathinfo($value['name'], PATHINFO_EXTENSION);
+        if($key == 'receipt_pdftemplate')
+        {
+          $allowed = ['pdf'];
+          $errorMessage = ts('Please upload a valid file. Allowed extension is (.pdf)');
+        }else{
+          $allowed = ['png', 'jpg', 'jpeg'];
+          $errorMessage = ts('Please upload a valid file. Allowed extensions are (.jpg , .png)');
+        }
+        if (!in_array($ext, $allowed)) {
+          $errors[$key] = $errorMessage;
+        }
+      }
+    }
+
+    //custom rule to check for default values for organization name, address, telephone, email, registration number
+    if ($params['org_name'] == 'Charitable Organization') {
+      $errors['org_name'] = ts('You can not use default Organisation Name value');
+    }
+    if ($params['org_charitable_no'] == '10000-000-RR0000') {
+      $errors['org_charitable_no'] = ts('You can not use default Charitable Registration Number  value');
+    }
+    if ($params['org_address_line1'] == '123 Street') {
+      $errors['org_address_line1'] = ts('You can not use default Address Line 1 value');
+    }
+    if ($params['org_address_line2'] == 'City, PR, O1O 1O1') {
+      $errors['org_address_line2'] = ts('You can not use default Address Line 2 value');
+    }
+    if ($params['org_tel'] == '(555) 555-5555') {
+      $errors['org_tel'] = ts('You can not use default Telephone value');
+    }
+    if ($params['org_web'] == 'Charitable.org') {
+      $errors['org_web'] = ts('You can not use default Website value');
+    }
+    return empty($errors) ? TRUE : $errors;
+  }
+
   function processOrgOptions($mode) {
     if ( $mode == 'build' ) {
       $this->add('text', 'org_name', ts('Organization Name', array('domain' => 'org.civicrm.cdntaxreceipts')));
