@@ -28,16 +28,11 @@ class CRM_Cdntaxreceipts_Task_IssueSingleTaxReceipts extends CRM_Contribute_Form
     }
 
     parent::preProcess();
-    $this->_years = array();
 
     $receipts = array( 'original'  => array('email' => 0, 'print' => 0, 'data' => 0),
                        'duplicate' => array('email' => 0, 'print' => 0, 'data' => 0), );
 
     // count and categorize contributions
-    $receiptList = [];
-    $eligible_contact_ids = [];
-    $contributionsDetails = CRM_Cdntaxreceipts_Task_IssueSingleTaxReceipts::getContributionsDetails($this->_contributionIds);
-    $index = $contributionsDetails->column('id');
     foreach ( $this->_contributionIds as $id ) {
       $key = 'ineligibles';
       if ( cdntaxreceipts_eligibleForReceipt($id) ) {
@@ -47,72 +42,14 @@ class CRM_Cdntaxreceipts_Task_IssueSingleTaxReceipts extends CRM_Contribute_Form
         $receipts[$key][$method]++;
       }
 
-      // Search for details within api results
-      $indexAt = array_search($id, $index);
-      if ($indexAt !== false) {
-        $result     = $contributionsDetails->itemAt($indexAt);
-        $year       = $result['receive_year'];
-        $contact_id = $result['contact_id'];
-
-        // Add year
-        $this->_years[$year] = $result['receive_year'];
-
-        // Eligible?
-        $result['eligible'] = ($key != 'ineligibles');
-
-        if (!$result['eligible']) {
-          $contribObject = json_decode(json_encode($result));
-          $result['ineligible_reason'] =  canadahelps_isContributionEligibleForReceipting($contribObject);
-        }
-
-        // Contact
-        if ( $contact_id ) {
-          $receiptList[$key][$year]['contact_ids'][$contact_id]['display_name'] = $result['contact_id.display_name'];
-          $receiptList[$key][$year]['contact_ids'][$contact_id]['contributions'][$id] = $result;
-        }
-
-        // Count the totals
-        if (!array_key_exists('total_contrib', $receiptList[$key][$year])) {
-          $receiptList[$key][$year]['total_contrib']  = 0;
-          $receiptList[$key][$year]['total_amount']   = 0;
-          $receiptList[$key][$year]['total_contacts'] = 0;
-        }
-
-        $receiptList[$key][$year]['total_contrib']++;
-        $receiptList[$key][$year]['total_amount'] += $result['total_amount'];
-        $receiptList[$key][$year]['total_amount']   = round($receiptList[$key][$year]['total_amount'], 2);
-        $receiptList[$key][$year]['total_contacts'] = count($receiptList[$key][$year]['contact_ids']);
-        if ($key !== 'ineligibles') {
-          $eligible_contact_ids[$year][] = $contact_id;
-        }
-
-      }
+      // temporary set array with type of receipt for each contribution
+      // so that we can use in setReceiptsList
+      $this->_receiptList[$id] = $key;
 
     }
 
-    $receiptTypes = ['original', 'duplicate', 'ineligibles'];
-    foreach ($receiptTypes as $rtype) {
-      foreach ($this->_years as $year) {
-        if (empty($receiptList[$rtype][$year])) {
-          $receiptList[$rtype][$year]['total_contacts'] = 0;
-          $receiptList[$rtype][$year]['total_contrib'] = 0;
-          $receiptList[$rtype][$year]['total_amount'] = 0;
-        }
-      }
-    }
-
-    //Count Total Eligible Contacts
-    if (isset($eligible_contact_ids)) {
-      foreach ($this->_years as $year) {
-        if (!empty($eligible_contact_ids[$year])) {
-          $receiptList['totals'][$year]['total_eligible_contacts'] = count(array_unique($eligible_contact_ids[$year]));
-        } else {
-          $receiptList['totals'][$year]['total_eligible_contacts'] = 0;
-        }
-      }
-    }
-    $this->_receiptList = $receiptList;
     $this->_receipts = $receipts;
+    list($this->_years, $this->_receiptList) = CRM_Cdntaxreceipts_Task_IssueSingleTaxReceipts::getReceiptsList($this->_contributionIds, $this->_receiptList);
   }
 
   /**
@@ -165,19 +102,10 @@ class CRM_Cdntaxreceipts_Task_IssueSingleTaxReceipts extends CRM_Contribute_Form
         'submitOnce' => FALSE,
       ),
     );
-    //For contributions whose receipt has already been generated ,hide 'Preview' button for them
-    if(($receiptTotal === $duplicateTotal)&&!empty($duplicateTotal) &&  empty($originalTotal))	
-    {	
-      if(isset($buttons))	
-      {	
-        foreach($buttons as $keyb=>$valueb)	
-        {	
-          if($valueb['name']=='Preview' )	
-          {	
-            unset($buttons[$keyb]);	
-          }	
-        }	
-      }	
+
+    // Hide PREVIEW button for already receipted
+    if (($receiptTotal === $duplicateTotal)&&!empty($duplicateTotal) &&  empty($originalTotal)) {
+      unset($buttons[1]);
     }
 
     //CRM-921: Integrate WYSWIG Editor on the form
@@ -363,6 +291,121 @@ class CRM_Cdntaxreceipts_Task_IssueSingleTaxReceipts extends CRM_Contribute_Form
     cdntaxreceipts_sendCollectedPDF($receiptsForPrinting, 'Receipts-To-Print-' . (int) $_SERVER['REQUEST_TIME'] . '.pdf');  // EXITS.
   }
 
+  /**
+   * build receipt data structures needed to show contrib details
+   *
+   * @return void
+   */
+  static function getReceiptsList(array $contributionIds, array $receipts): array {
+
+    $years = array();
+    $receiptList = [
+      'original' => [],
+      'duplicate' => [],
+      'ineligibles' => [],
+      'totals' => []
+    ];
+    $eligible_contact_ids = [];
+    $contributionsDetails = CRM_Cdntaxreceipts_Task_IssueSingleTaxReceipts::getContributionsDetails($contributionIds);
+    $indexOfContributionsIds = $contributionsDetails->column('id');
+
+    foreach ( $receipts as $id => $receiptType ) {
+      // Search for details within api results
+      $indexAt = array_search($id, $indexOfContributionsIds);
+      if ($indexAt !== false) {
+        $result     = $contributionsDetails->itemAt($indexAt);
+        $year       = $result['receive_year'];
+        $contact_id = $result['contact_id'];
+
+        // Init year arrays
+        if (!array_key_exists($year, $receiptList[$receiptType])) {
+          $receiptList[$receiptType][$year] = [
+            'total_contrib'  => 0,
+            'total_amount'   => 0,
+            'total_contacts' => 0,
+            'duplicates'    => 0
+          ];
+        }
+
+        // Add year
+        $years[$year] = $year;
+
+        // Eligible?
+        $result['eligible'] = ($receiptType != 'ineligibles');
+
+        // Duplicate
+        if ($receiptType == 'duplicate') {
+          $result['eligibility_reason'] = '(Duplicate)';
+          $result['ineligible_reason'] = 'Duplicate';
+
+        // Ineligible Reason
+        } else if (!$result['eligible']) {
+          $contribObject = json_decode(json_encode($result));
+          $result['ineligible_reason'] =  canadahelps_isContributionEligibleForReceipting($contribObject);
+          if (!empty($result['ineligible_reason']))
+            $result['eligibility_reason'] = '('.$result['ineligible_reason'].')';
+        }
+
+        // Contact
+        if ( $contact_id ) {
+          $receiptList[$receiptType][$year]['contact_ids'][$contact_id]['display_name'] = $result['contact_id.display_name'];
+          $receiptList[$receiptType][$year]['contact_ids'][$contact_id]['contributions'][$id] = $result;
+        }
+
+        // Count the totals
+        // By type + year
+        $receiptList[$receiptType][$year]['total_contrib']++;
+        $receiptList[$receiptType][$year]['total_amount'] += $result['total_amount'];
+        $receiptList[$receiptType][$year]['total_amount']   = round($receiptList[$receiptType][$year]['total_amount'], 2);
+        $receiptList[$receiptType][$year]['total_contacts'] = count($receiptList[$receiptType][$year]['contact_ids']);
+        if ($receiptType == 'duplicate')
+          $receiptList[$receiptType][$year]['duplicates']++;
+      }
+    }
+
+    // Count the totals
+    // By year
+    foreach ( $years as $year ) {
+
+      foreach ($receiptList as $receiptType => $receiptTypeArray) {
+        if ($receiptType != "totals" && isset($receiptTypeArray[$year])) {
+
+          if (!array_key_exists($year, $receiptList['totals'])) {
+            $receiptList['totals'][$year] = [
+              'total_contrib'     => 0,
+              'total_amount'      => 0,
+              'total_contacts'    => 0,
+              'eligible_contrib'  => 0,
+              'eligible_amount'   => 0,
+              'eligible_contacts' => 0,
+              'duplicate_contrib' => 0
+            ];
+          }
+
+          // All selected
+          $receiptList['totals'][$year]['total_contrib']  += $receiptTypeArray[$year]['total_contrib'];
+          $receiptList['totals'][$year]['total_amount'] += $receiptTypeArray[$year]['total_amount'];
+          $receiptList['totals'][$year]['total_contacts'] += $receiptTypeArray[$year]['total_contacts'];
+
+          // Eligible only (original)
+          if ($receiptType == 'original') {
+            $receiptList['totals'][$year]['eligible_contrib']  += $receiptTypeArray[$year]['total_contrib'];
+            $receiptList['totals'][$year]['eligible_amount'] += $receiptTypeArray[$year]['total_amount'];
+            $receiptList['totals'][$year]['eligible_contacts'] += $receiptTypeArray[$year]['total_contacts'];
+
+          // Duplicates only
+          } else if ($receiptType == 'duplicate') {
+            $receiptList['totals'][$year]['duplicate_contrib']  += $receiptTypeArray[$year]['duplicates'];
+          }
+        }
+      }
+      $receiptList['totals'][$year]['skipped_contrib'] = $receiptList['totals'][$year]['total_contrib'] - $receiptList['totals'][$year]['eligible_contrib'] - $receiptList['totals'][$year]['duplicate_contrib'];
+    }
+
+    // Override our array w/ updated data
+    return [$years, $receiptList];
+  }
+
   static function getContributionsDetails(array $contributionIds) {
     $contributions = \Civi\Api4\Contribution::get()
       ->addSelect('financial_type_id', 'contribution_page_id', 'contact_id', 'source', 'contribution_status_id', 'payment_instrument_id', 'total_amount', 'financial_type_id', 'receive_date', 'payment_instrument_id:label', 'contribution_status_id:label', 'contribution_page_id:label', 'financial_type_id:label', 'contact_id.display_name')
@@ -404,7 +447,13 @@ class CRM_Cdntaxreceipts_Task_IssueSingleTaxReceipts extends CRM_Contribute_Form
     CRM_Core_Resources::singleton()->addStyleFile('org.civicrm.cdntaxreceipts', 'css/receipt_module.css');
 
     $this->assign('receiptList', $this->_receiptList);
+    Civi::resources()->addVars('receipts', ['receiptList' => $this->_receiptList]);
     $this->assign('receipt_type', 'single');
+
+    // Add Receipt Types
+    $receiptTypes = ['original', 'duplicate', 'ineligibles'];
+    $this->assign('receiptTypes', $receiptTypes);
+    Civi::resources()->addVars('receipts', ['receiptTypes' => $receiptTypes]);
 
     // Duplicates?
     if ($this->elementExists('receipt_option')) {
@@ -425,10 +474,6 @@ class CRM_Cdntaxreceipts_Task_IssueSingleTaxReceipts extends CRM_Contribute_Form
       'Eligibility',
     ];
     $this->assign('columnHeaders', $columnHeaders);
-
-    // Add Receipt Types
-    $receiptTypes = ['original', 'duplicate', 'ineligibles'];
-    $this->assign('receiptTypes', $receiptTypes);
 
     // Add tax year as select box
     krsort($this->_years);

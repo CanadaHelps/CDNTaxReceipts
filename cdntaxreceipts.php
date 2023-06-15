@@ -21,13 +21,7 @@ function cdntaxreceipts_civicrm_buildForm($formName, &$form) {
   // civicrm/ajax/makePreviewWork (added via cdntaxreceipts_civicrm_alterMenu) calls CRM_Canadahelps_ExtensionUtils::singleTaxReceiptPreview
   // @todo code can be moved to main extension
   if ($formName == 'CRM_Cdntaxreceipts_Task_IssueSingleTaxReceipts') {
-    $contributionIDS = json_encode($form->getVar('_contributionIds'));
-    CRM_Core_Resources::singleton()->addScript(
-      "app.initForm(
-        '$formName',
-        {contribution_ids: $contributionIDS}
-      );
-    ");
+    Civi::resources()->addVars('receipts', array('contributionIds' => json_encode($form->getVar('_contributionIds'))));
   }
 
   //CRM-1235 DMS - After Signature/Logo is uploaded in Receipt Settings, page continues to display "No File Chosen"
@@ -42,7 +36,7 @@ function cdntaxreceipts_civicrm_buildForm($formName, &$form) {
     if(!empty($receipt_logo))
     {
       $receipt_logo_type = pathinfo($receipt_logo, PATHINFO_EXTENSION);
-      // If existing value has relative path in it keep it as is otherwise prepand upload directory path 
+      // If existing value has relative path in it keep it as is otherwise prepand upload directory path
       $receiptPath = $receipt_logo;
       if(strpos("$receipt_logo", "$config->customFileUploadDir") === false){
         $receiptPath = $config->customFileUploadDir.$receipt_logo;

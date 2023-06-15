@@ -258,7 +258,7 @@ function cdntaxreceipts_processTaxReceipt($receipt, &$collectedPdf = NULL, $mode
     $pdf_file = NULL;
     }
     if(($receipt['is_duplicate'] &&  !isset($collectedPdf) && $receipt['issue_method'] == 'email') )
-    { 
+    {
       //unlink Delivery method email and from single manage receipt section
       $customReceipt->removeTemporaryFile($pdf_file);
         $pdf_file = NULL;
@@ -273,22 +273,26 @@ function cdntaxreceipts_processTaxReceipt($receipt, &$collectedPdf = NULL, $mode
  * Accepts receipt ID and Contribution ID for generation of receipt array.
  * This function is called when click 'void receipt' button.
  */
-// CRM-1907 Manage void Tax receipt by adding 'CANCELLED' watermark 
+// CRM-1907 Manage void Tax receipt by adding 'CANCELLED' watermark
 function cdnaxreceipts_manageVoidPDF($receipt_id,$contributionId)
 {
-  $contribution =  new CRM_Contribute_DAO_Contribution();
-  $contribution->id = $contributionId;
-  if ( ! $contribution->find( TRUE ) ) {
-    CRM_Core_Error::fatal( "CDNTaxReceipts: Could not retrieve details for this contribution" );
-  }
-  $contactID = $contribution->contact_id ?? NULL;
-  list($result, $method, $pdf) = cdntaxreceipts_issueTaxReceipt( $contribution );
-  if($result == FALSE){
-   return FALSE;}
-  $contributionID = $contributionId ?? NULL;
-  $session = CRM_Core_Session::singleton();
-  $session->set("pdf_file_". $contributionID . "_" . $contactID, $pdf, 'cdntaxreceipts');
-  return;
+
+   $mode = NULL;
+   $receipt = cdntaxreceipts_load_receipt($receipt_id);
+   $customReceipt = new CRM_Canadahelps_TaxReceipts_Receipt($receipt['receipt_no'], $receipt);
+   $customReceipt->setMode(CDNTAXRECEIPTS_MODE_BACKOFFICE );
+   $customReceipt->setUploadDir(CRM_Core_Config::singleton()->uploadDir);
+   $customReceipt->setDefaultImagesDir( dirname(__FILE__) . '/img/' );
+   $customReceipt->setFontsDir( dirname(__FILE__) . '/fonts/' );
+   $customReceipt->generatePDF(); // this should create the original pdf - to be confirmed
+
+    // Code for download void receipt right after cancelling
+   $contactID = $receipt['contact_id'] ?? NULL;
+   $filename = $customReceipt->getFilePath();
+   $contributionID = $contributionId ?? NULL;
+   $session = CRM_Core_Session::singleton();
+   $session->set("pdf_file_". $contributionID . "_" . $contactID, $filename, 'cdntaxreceipts');
+   return;
 }
 
 /**
@@ -780,7 +784,7 @@ function cdntaxreceipts_issueTaxReceipt($contribution, &$collectedPdf = NULL, $m
   // check if a Tax Receipt has already been issued previously for this Contribution
   // user input could be tainted! we want this method to check everything for validity...
   list($issued_on, $receipt_id) = cdntaxreceipts_issued_on($contribution->id);
-  //CRM-1822 cdntaxreceipts_issued_on method fetches detail of latest issued receipt_no linked with that contribution 
+  //CRM-1822 cdntaxreceipts_issued_on method fetches detail of latest issued receipt_no linked with that contribution
   if(isset($contribution->previewCancelReceiptId)){
     //$issued_on = $contribution->previewCancelReceiptNumber;
     $receipt_id = $contribution->previewCancelReceiptId;
@@ -800,7 +804,7 @@ function cdntaxreceipts_issueTaxReceipt($contribution, &$collectedPdf = NULL, $m
     if ( $receipt['issue_type'] == 'annual' ) {
       $contactId = $receipt['contact_id'];
       $year = substr($receipt['contributions'][0]['receive_date'], 0, 4);
-      //CRM-1822 Adding last parameter to identify cancelled receipt_id for download 
+      //CRM-1822 Adding last parameter to identify cancelled receipt_id for download
       $receiptCancelId = (isset($contribution->previewCancelReceiptId))?? $contribution->previewCancelReceiptId;
       return cdntaxreceipts_issueAnnualTaxReceipt($contactId, $year, $collectedPdf, $mode, NULL, $receiptCancelId);
     }
@@ -830,7 +834,7 @@ function cdntaxreceipts_issueTaxReceipt($contribution, &$collectedPdf = NULL, $m
   if ($is_duplicate && $receipt['receipt_status'] == 'cancelled' && $method != 'data') {
     $method = 'print';
   }
- // set method to print if user wants to download 
+ // set method to print if user wants to download
   if($is_duplicate && isset($contribution->pdfDownloadReceipt) && $method != 'data'){
     $method = 'print';
   }
