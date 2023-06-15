@@ -1756,6 +1756,12 @@ function ch_loadTemplate(string $workflowName, bool $isTest, int $messageTemplat
 function _cdntaxreceipts_get_image_filepath($imageSettingName) {
   $fileName = Civi::settings()->get($imageSettingName);
   if ($fileName) {
+    //CRM-1861 checking if existing receipt signature, logo and watermark have diffrent extension then .png,.jpg,.jpeg
+    $ext = pathinfo($fileName, PATHINFO_EXTENSION);
+    $allowed = ['png', 'jpg', 'jpeg'];
+    if (!in_array($ext, $allowed)) {
+      return NULL;
+    }
     // Backward compatibilty for full path
     if ( strpos($fileName, "/") === 0 )
       return $fileName;
