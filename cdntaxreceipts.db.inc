@@ -13,16 +13,16 @@
 
 function cdntaxreceipts_issued_on($contribution_id) {
   //CRM-1820 Modified query to fetch the latest receipt record in case of multiple records for single contribution
-  $sql = "SELECT issued_on, l.id as receipt_id FROM cdntaxreceipts_log l
+  $sql = "SELECT issued_on, l.id as receipt_id, receipt_status FROM cdntaxreceipts_log l
     INNER JOIN cdntaxreceipts_log_contributions c ON l.id = c.receipt_id
     WHERE is_duplicate = 0 AND contribution_id = $contribution_id ORDER BY l.issued_on DESC";
 
   $dao = CRM_Core_DAO::executeQuery($sql);
   if ( $dao->fetch() ) {
-    return array($dao->issued_on, $dao->receipt_id);
+    return array($dao->issued_on, $dao->receipt_id, $dao->receipt_status);
   }
   else {
-    return array(NULL, NULL);
+    return array(NULL, NULL, NULL);
   }
 
 }

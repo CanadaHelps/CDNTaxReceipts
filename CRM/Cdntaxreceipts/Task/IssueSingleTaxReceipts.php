@@ -36,8 +36,8 @@ class CRM_Cdntaxreceipts_Task_IssueSingleTaxReceipts extends CRM_Contribute_Form
     foreach ( $this->_contributionIds as $id ) {
       $key = 'ineligibles';
       if ( cdntaxreceipts_eligibleForReceipt($id) ) {
-        list($issued_on, $receipt_id) = cdntaxreceipts_issued_on($id);
-        $key = empty($issued_on) ? 'original' : 'duplicate';
+        list($issued_on, $receipt_id, $receipt_status) = cdntaxreceipts_issued_on($id);
+        $key = (empty($issued_on) || $receipt_status == 'cancelled') ? 'original' : 'duplicate';
         list( $method, $email ) = cdntaxreceipts_sendMethodForContribution($id);
         $receipts[$key][$method]++;
       }
