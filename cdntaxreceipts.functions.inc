@@ -920,9 +920,11 @@ function cdntaxreceipts_issueTaxReceipt($contribution, &$collectedPdf = NULL, $m
       'advantage_amount' => $contribution->non_deductible_amount,
     )
   );
+
   // CRM-1820 While replacing a receipt, passing receipt number
-  if($is_replaced){
+  if ($is_replaced) {
     $receipt['cancelled_replace_receipt_number'] = $contribution->cancelled_replace_receipt_number;
+    $receipt['is_replaced'] = 1;
   }
 
   return cdntaxreceipts_processTaxReceipt($receipt, $collectedPdf, $mode);
