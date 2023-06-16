@@ -237,6 +237,20 @@ class CRM_Cdntaxreceipts_Task_IssueAggregateTaxReceipts extends CRM_Contribute_F
     $dataCount = 0;
     $failCount = 0;
 
+    //CRM-920: Thank-you Email Tool
+    $sendThankYouEmail = false;
+    if ($this->getElement('thankyou_email')->getValue()
+      && $this->getElement('html_message')->getValue()
+      && isset($params['template'])
+      && $params['template'] !== 'default') {
+
+      $from_email_address = current(CRM_Core_BAO_Domain::getNameAndEmail(FALSE, TRUE));
+      if ($from_email_address) {
+        $sendThankYouEmail = true;
+      }
+    }
+
+    // loop through original receipts only
     foreach ($this->_receipts['original'][$year]['contact_ids'] as $contact_id => $contribution_status) {
       if ( $emailCount + $printCount + $failCount >= self::MAX_RECEIPT_COUNT ) {
         // limit email, print receipts as the pdf generation and email-to-archive consume
@@ -266,44 +280,24 @@ class CRM_Cdntaxreceipts_Task_IssueAggregateTaxReceipts extends CRM_Contribute_F
       }
       //CRM-1470 Create separate In Kind contributions array and unset from combined tax receipt contributions array
       $contributionsInKind = array();
-      foreach($contributions as $contri_key => $contrivalue)
-      {
-        $fund_name_check = preg_replace("/[^a-zA-Z0-9]+/", "", $contrivalue['fund']);
-        if ( stripos($fund_name_check,"inkind") !== false) {
-          $contributionsInKind[$contri_key] = $contrivalue;
-          unset($contributions[$contri_key]);
-        }
-      }
-      if ( empty($issuedOn) && count($contributions) > 0 ) {
-        //CRM-920: Thank-you Email Tool
-        if($this->getElement('thankyou_email')->getValue()) {
-          if($this->getElement('html_message')->getValue()) {
-            if(isset($params['template'])) {
-              if($params['template'] !== 'default') {
-                $this->_contributionIds = array_column($contributions, 'contribution_id');
-                $from_email_address = current(CRM_Core_BAO_Domain::getNameAndEmail(FALSE, TRUE));
-                if($from_email_address) {
-                  $data = &$this->controller->container();
-                  $data['values']['ViewTaxReceipt']['from_email_address'] = $from_email_address;
-                  $data['values']['ViewTaxReceipt']['subject'] = $this->getElement('subject')->getValue();
-                  $data['values']['ViewTaxReceipt']['html_message'] = $this->getElement('html_message')->getValue();
-                  //CRM-1792 Adding 'group_by' parameter for token processor to process grouped contributions
-                  if(count($contributions) > 1) {
-                    $params['group_by'] = 'contact_id';
-                  }
-                  $thankyou_html = CRM_Cdntaxreceipts_Task_PDFLetterCommon::postProcessForm($this, $params);
-                  if($thankyou_html) {
-                    if(is_array($thankyou_html)) {
-                      $thankyou_html = array_values($thankyou_html)[0];
-                    } else {
-                      $thankyou_html = $thankyou_html;
-                    }
-                  }
-                }
-              }
-            }
+      foreach($contributions as $contri_key => $contrivalue) {
+        if (isset($contrivalue['fund'])) {
+          $fund_name_check = preg_replace("/[^a-zA-Z0-9]+/", "", $contrivalue['fund']);
+          if ( stripos($fund_name_check,"inkind") !== false) {
+            $contributionsInKind[$contri_key] = $contrivalue;
+            unset($contributions[$contri_key]);
           }
         }
+      }
+
+      if ( (empty($issuedOn) && count($contributions) > 0) ) {
+
+        //CRM-920: Thank-you Email Tool
+        $thankyou_html = NULL;
+        if ($sendThankYouEmail) {
+          $thankyou_html = $this->getThankYouHTML(array_column($contributions, 'contribution_id'), $from_email_address);
+        }
+
         $ret = cdntaxreceipts_issueAggregateTaxReceipt($contact_id, $year, $contributions, $method,
           $receiptsForPrintingPDF, $previewMode, $thankyou_html);
 
@@ -350,29 +344,14 @@ class CRM_Cdntaxreceipts_Task_IssueAggregateTaxReceipts extends CRM_Contribute_F
         if ( cdntaxreceipts_eligibleForReceipt($contribution->id) ) {
           list($issued_on, $receipt_id) = cdntaxreceipts_issued_on($contribution->id);
           if ( empty($issued_on) || ! $originalOnly ) {
-            //CRM-918: Thank-you Email Tool
-            if($this->getElement('thankyou_email')->getValue()) {
-              if($this->getElement('html_message')->getValue()) {
-                if(isset($params['template'])) {
-                  if($params['template'] !== 'default') {
-                    $this->_contributionIds = [$contribution->id];
-                    $from_email_address = current(CRM_Core_BAO_Domain::getNameAndEmail(FALSE, TRUE));
-                    if($from_email_address) {
-                      $data = &$this->controller->container();
-                      $data['values']['ViewTaxReceipt']['from_email_address'] = $from_email_address;
-                      $data['values']['ViewTaxReceipt']['subject'] = $this->getElement('subject')->getValue();
-                      $data['values']['ViewTaxReceipt']['html_message'] = $this->getElement('html_message')->getValue();
-                      $thankyou_html = CRM_Cdntaxreceipts_Task_PDFLetterCommon::postProcessForm($this, $params);
-                      if($thankyou_html) {
-                        if(is_array($thankyou_html)) {
-                          $contribution->thankyou_html = array_values($thankyou_html)[0];
-                        } else {
-                          $contribution->thankyou_html = $thankyou_html;
-                        }
-                      }
-                    }
-                  }
-                }
+
+            //CRM-920: Thank-you Email Tool
+            if ($sendThankYouEmail) {
+              $thankyou_html = $this->getThankYouHTML([$contribution->id], $from_email_address);
+              if ($thankyou_html != NULL)
+                $contribution->thankyou_html = $thankyou_html;
+            }
+
               }
             }
             list( $ret, $method ) = cdntaxreceipts_issueTaxReceipt( $contribution, $receiptsForPrintingPDF, $previewMode );
@@ -428,6 +407,33 @@ class CRM_Cdntaxreceipts_Task_IssueAggregateTaxReceipts extends CRM_Contribute_F
     // 4. send the collected PDF for download
     // NB: This exits if a file is sent.
     cdntaxreceipts_sendCollectedPDF($receiptsForPrintingPDF, 'Receipts-To-Print-' . CRM_Cdntaxreceipts_Utils_Time::time() . '.pdf');  // EXITS.
+  }
+
+  //CRM-920: Thank-you Email Tool
+  private function getThankYouHTML(array $contributionIds, $sender) {
+
+    $this->_contributionIds = $contributionIds;
+    $data = &$this->controller->container();
+    $data['values']['ViewTaxReceipt']['from_email_address'] = $sender;
+    $data['values']['ViewTaxReceipt']['subject'] = $this->getElement('subject')->getValue();
+    $data['values']['ViewTaxReceipt']['html_message'] = $this->getElement('html_message')->getValue();
+
+    //CRM-1792 Adding 'group_by' parameter for token processor to process grouped contributions
+    if (count($contributionIds) > 1) {
+      $params['group_by'] = 'contact_id';
+    }
+
+    $thankyou_html = CRM_Cdntaxreceipts_Task_PDFLetterCommon::postProcessForm($this, $params);
+    if ($thankyou_html) {
+      if (is_array($thankyou_html)) {
+        $thankyou_html = array_values($thankyou_html)[0];
+      } else {
+        $thankyou_html = $thankyou_html;
+      }
+      return $thankyou_html;
+    }
+
+    return NULL;
   }
 
   private function customizeForm() {

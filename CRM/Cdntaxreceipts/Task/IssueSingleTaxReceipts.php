@@ -184,6 +184,19 @@ class CRM_Cdntaxreceipts_Task_IssueSingleTaxReceipts extends CRM_Contribute_Form
     $dataCount = 0;
     $failCount = 0;
 
+    //CRM-920: Thank-you Email Tool
+    $sendThankYouEmail = false;
+    if ($this->getElement('thankyou_email')->getValue()
+      && $this->getElement('html_message')->getValue()
+      && isset($params['template'])
+      && $params['template'] !== 'default') {
+
+      $from_email_address = current(CRM_Core_BAO_Domain::getNameAndEmail(FALSE, TRUE));
+      if ($from_email_address) {
+        $sendThankYouEmail = true;
+      }
+    }
+
     foreach ($this->_contributionIds as $item => $contributionId) {
 
       if ( $emailCount + $printCount + $failCount >= self::MAX_RECEIPT_COUNT ) {
@@ -222,31 +235,13 @@ class CRM_Cdntaxreceipts_Task_IssueSingleTaxReceipts extends CRM_Contribute_Form
           $issued_on = '';
         }
         if ( empty($issued_on) || ! $originalOnly ) {
-          //CRM-918: Thank-you Email Tool
-          if($this->getElement('thankyou_email')->getValue()) {
-            if($this->getElement('html_message')->getValue()) {
-              if(isset($params['template'])) {
-                if($params['template'] !== 'default') {
-                  $this->_contributionIds = [$contribution->id];
-                  $from_email_address = current(CRM_Core_BAO_Domain::getNameAndEmail(FALSE, TRUE));
-                  if($from_email_address) {
-                    $data = &$this->controller->container();
-                    $data['values']['ViewTaxReceipt']['from_email_address'] = $from_email_address;
-                    $data['values']['ViewTaxReceipt']['subject'] = $this->getElement('subject')->getValue();
-                    $data['values']['ViewTaxReceipt']['html_message'] = $this->getElement('html_message')->getValue();
-                    $thankyou_html = CRM_Cdntaxreceipts_Task_PDFLetterCommon::postProcessForm($this, $params);
-                    if($thankyou_html) {
-                      if(is_array($thankyou_html)) {
-                        $contribution->thankyou_html = array_values($thankyou_html)[0];
-                      } else {
-                        $contribution->thankyou_html = $thankyou_html;
-                      }
-                    }
-                  }
-                }
-              }
-            }
+          //CRM-920: Thank-you Email Tool
+          if ($sendThankYouEmail) {
+            $thankyou_html = $this->getThankYouHTML([$contribution->id], $from_email_address);
+            if ($thankyou_html != NULL)
+              $contribution->thankyou_html = $thankyou_html;
           }
+
           list( $ret, $method ) = cdntaxreceipts_issueTaxReceipt( $contribution, $receiptsForPrinting, $previewMode );
           if( $ret !== 0 ) {
             //CRM-918: Mark Contribution as thanked if checked
@@ -297,6 +292,33 @@ class CRM_Cdntaxreceipts_Task_IssueSingleTaxReceipts extends CRM_Contribute_Form
     // 4. send the collected PDF for download
     // NB: This exits if a file is sent.
     cdntaxreceipts_sendCollectedPDF($receiptsForPrinting, 'Receipts-To-Print-' . (int) $_SERVER['REQUEST_TIME'] . '.pdf');  // EXITS.
+  }
+
+  //CRM-920: Thank-you Email Tool
+  private function getThankYouHTML(array $contributionIds, $sender) {
+
+    $this->_contributionIds = $contributionIds;
+    $data = &$this->controller->container();
+    $data['values']['ViewTaxReceipt']['from_email_address'] = $sender;
+    $data['values']['ViewTaxReceipt']['subject'] = $this->getElement('subject')->getValue();
+    $data['values']['ViewTaxReceipt']['html_message'] = $this->getElement('html_message')->getValue();
+
+    //CRM-1792 Adding 'group_by' parameter for token processor to process grouped contributions
+    if (count($contributionIds) > 1) {
+      $params['group_by'] = 'contact_id';
+    }
+
+    $thankyou_html = CRM_Cdntaxreceipts_Task_PDFLetterCommon::postProcessForm($this, $params);
+    if ($thankyou_html) {
+      if (is_array($thankyou_html)) {
+        $thankyou_html = array_values($thankyou_html)[0];
+      } else {
+        $thankyou_html = $thankyou_html;
+      }
+      return $thankyou_html;
+    }
+
+    return NULL;
   }
 
   /**
