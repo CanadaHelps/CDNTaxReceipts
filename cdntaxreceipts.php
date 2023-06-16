@@ -21,7 +21,7 @@ function cdntaxreceipts_civicrm_buildForm($formName, &$form) {
   // civicrm/ajax/makePreviewWork (added via cdntaxreceipts_civicrm_alterMenu) calls CRM_Canadahelps_ExtensionUtils::singleTaxReceiptPreview
   // @todo code can be moved to main extension
   if ($formName == 'CRM_Cdntaxreceipts_Task_IssueSingleTaxReceipts') {
-    Civi::resources()->addVars('receipts', array('contributionIds' => json_encode($form->getVar('_contributionIds'))));
+    Civi::resources()->addVars('receipts', array('contributionIds' => $form->getVar('_contributionIds')));
   }
 
   //CRM-1235 DMS - After Signature/Logo is uploaded in Receipt Settings, page continues to display "No File Chosen"
