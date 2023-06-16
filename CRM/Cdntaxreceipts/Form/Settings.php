@@ -71,16 +71,22 @@ class CRM_Cdntaxreceipts_Form_Settings extends CRM_Core_Form {
     foreach ($files as $key => $value) {
       if (CRM_Utils_Array::value('name', $value)) {
         $ext = pathinfo($value['name'], PATHINFO_EXTENSION);
+        $tmpFileName = CRM_Utils_Array::value('tmp_name', $value);
+        $mimeType = mime_content_type($tmpFileName);
         if($key == 'receipt_pdftemplate')
         {
           $allowed = ['pdf'];
+          $allowedMimeType = ['application/pdf'];
           $errorMessage = ts('Please upload a valid file. Allowed extension is (.pdf)');
         }else{
           $allowed = ['png', 'jpg', 'jpeg'];
+          $allowedMimeType = ['image/png','image/jpeg'];
           $errorMessage = ts('Please upload a valid file. Allowed extensions are (.jpg , .png)');
         }
         if (!in_array($ext, $allowed)) {
           $errors[$key] = $errorMessage;
+        } else if (!in_array($mimeType, $allowedMimeType)) {
+          $errors[$key] = ts('File MIME format is invalid.');
         }
       }
     }
