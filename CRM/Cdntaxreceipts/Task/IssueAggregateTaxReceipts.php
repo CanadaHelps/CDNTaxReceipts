@@ -213,6 +213,13 @@ class CRM_Cdntaxreceipts_Task_IssueAggregateTaxReceipts extends CRM_Contribute_F
     }
 
     $params = $this->controller->exportValues($this->_name);
+
+    // Should we issue duplicates ?
+    $originalOnly = TRUE;
+    if ( isset($params['receipt_option']) && $params['receipt_option']) {
+      $originalOnly = FALSE;
+    }
+
     $year = $params['receipt_year'];
     if ( $year ) {
       $year = substr($year, strlen('issue_')); // e.g. issue_2012
@@ -263,7 +270,7 @@ class CRM_Cdntaxreceipts_Task_IssueAggregateTaxReceipts extends CRM_Contribute_F
 
       $contributions = $contribution_status['contributions'];
       foreach($contributions as $k => $contri) {
-        if($contri['receive_date_original']) {
+        if ( isset($contri['receive_date_original']) ) {
           $contributions[$k]['receive_date'] = $contri['receive_date_original'];
         }
       }
@@ -329,13 +336,9 @@ class CRM_Cdntaxreceipts_Task_IssueAggregateTaxReceipts extends CRM_Contribute_F
           $dataCount++;
         }
       }
+
       //CRM-1470 Generate individual In Kind contributions receipts
-      $originalOnly = TRUE;
-      if ($params['receipt_option']) {
-        $originalOnly = FALSE;
-      }
-      foreach ($contributionsInKind as $inkind_key => $inkind_value)
-      {
+      foreach ($contributionsInKind as $inkind_key => $inkind_value) {
         $contribution = new CRM_Contribute_DAO_Contribution();
         $contribution->id = $inkind_value['contribution_id'];
         if ( ! $contribution->find( TRUE ) ) {
@@ -362,6 +365,7 @@ class CRM_Cdntaxreceipts_Task_IssueAggregateTaxReceipts extends CRM_Contribute_F
                 $contribution->save();
               }
             }
+
             if ( $ret == 0 ) {
               $failCount++;
             }

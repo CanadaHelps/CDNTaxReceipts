@@ -88,8 +88,9 @@ function cdntaxreceipts_processTaxReceipt($receipt, &$collectedPdf = NULL, $mode
   // If already issued, or partialled issued, we stop and return as error
   // CRM-1820 Bypass this condition while replace receipt
   if (!$receipt['is_duplicate']
-    && (CRM_Canadahelps_TaxReceipts_Receipt::isAlreadyReceipted($receipt['contributions'])&&(!$receipt['is_replaced']))) {
-  return array(FALSE, $receipt['issue_method'], NULL); // -> this should be treated as an error
+    && !$receipt['is_replaced']
+    && CRM_Canadahelps_TaxReceipts_Receipt::isAlreadyReceipted($receipt['contributions']) ) {
+      return array(FALSE, $receipt['issue_method'], NULL); // -> this should be treated as an error
   };
 
   if ($receipt['issue_method'] == 'data') {
