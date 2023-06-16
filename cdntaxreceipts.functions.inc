@@ -286,6 +286,9 @@ function cdnaxreceipts_manageVoidPDF($receipt_id,$contributionId)
    $customReceipt->setFontsDir( dirname(__FILE__) . '/fonts/' );
    $customReceipt->generatePDF(); // this should create the original pdf - to be confirmed
 
+   //CRM-1948 -Add function to set is_receipted and receipt number field void after void receipt 
+   cdntaxreceipts_setReceiptNumberIsReceiptedField($receipt,$contributionId);
+
     // Code for download void receipt right after cancelling
    $contactID = $receipt['contact_id'] ?? NULL;
    $filename = $customReceipt->getFilePath();
@@ -295,6 +298,17 @@ function cdnaxreceipts_manageVoidPDF($receipt_id,$contributionId)
    return;
 }
 
+function cdntaxreceipts_setReceiptNumberIsReceiptedField($receipt, $contributionId) {
+    if($receipt['receipt_no']) {
+      foreach($receipt['contributions'] as $contribution) {
+        civicrm_api3('CustomValue', 'create', [
+          'entity_id' => $contribution['contribution_id'],
+          EU::getCustomFieldID('Is_Receipted_') => NULL,
+          EU::getCustomFieldID('Receipt_Number') => NULL,
+        ]);
+      }
+    }
+}
 /**
  * generateFormattedReceipt()
  * Accepts an associative array of receipt variables and produces a PDF file.
