@@ -1759,16 +1759,30 @@ function _cdntaxreceipts_get_image_filepath($imageSettingName) {
     //CRM-1861 checking if existing receipt signature, logo and watermark have diffrent extension then .png,.jpg,.jpeg
     $ext = pathinfo($fileName, PATHINFO_EXTENSION);
     $allowed = ['png', 'jpg', 'jpeg'];
+    //mime type verification when image is getting added to PDF
+    $allowedMimeType = ['image/png','image/jpeg'];
     if (!in_array($ext, $allowed)) {
       return NULL;
     }
     // Backward compatibilty for full path
     if ( strpos($fileName, "/") === 0 )
+    {
+      if(is_file($fileName)) {
+        $mimeType = mime_content_type($fileName);
+        if (!in_array($mimeType, $allowedMimeType)) {
+          return NULL;
+        }
       return $fileName;
+      }
+    }
 
     // @todo https://lab.civicrm.org/extensions/cdntaxreceipts/-/commit/8ebaf88064323b1e20c005084caabd8846f8de25
     $fileNameWithPath = CRM_Core_Config::singleton()->customFileUploadDir . $fileName;
     if (file_exists($fileNameWithPath)) {
+      $mimeType = mime_content_type($fileNameWithPath);
+        if (!in_array($mimeType, $allowedMimeType)) {
+          return NULL;
+        }
       return $fileNameWithPath;
     }
   }
