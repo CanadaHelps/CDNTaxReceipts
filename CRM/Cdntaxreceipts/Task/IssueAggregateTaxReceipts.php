@@ -355,8 +355,6 @@ class CRM_Cdntaxreceipts_Task_IssueAggregateTaxReceipts extends CRM_Contribute_F
                 $contribution->thankyou_html = $thankyou_html;
             }
 
-              }
-            }
             list( $ret, $method ) = cdntaxreceipts_issueTaxReceipt( $contribution, $receiptsForPrintingPDF, $previewMode );
             if( $ret !== 0 ) {
               //CRM-918: Mark Contribution as thanked if checked
