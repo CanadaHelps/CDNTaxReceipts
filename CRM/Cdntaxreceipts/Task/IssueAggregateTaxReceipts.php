@@ -363,6 +363,63 @@ class CRM_Cdntaxreceipts_Task_IssueAggregateTaxReceipts extends CRM_Contribute_F
                 $contribution->save();
               }
             }
+            if ( $ret == 0 ) {
+              $failCount++;
+            }
+            elseif ( $method == 'email' ) {
+              $emailCount++;
+            }
+            elseif ( $method == 'print' ) {
+              $printCount++;
+            }
+            elseif ( $method == 'data' ) {
+              $dataCount++;
+            }
+          }
+        }
+      }
+    }
+
+    // loop through duplicate receipts only
+    if (!$originalOnly) {
+      $duplicateReceipts = [];
+      foreach ($this->_receipts['duplicate'][$year]['contact_ids'] as $contact_id => $contact_data) {
+        foreach ($contact_data['contributions'] as $contributionId => $contribution) {
+
+          // don't process duplicate if already processed
+          if (!in_array($contribution['receipt_id'], $duplicateReceipts)) {
+            $duplicateReceipts[] = $contribution['receipt_id'];
+
+            if ( $emailCount + $printCount + $failCount >= self::MAX_RECEIPT_COUNT ) {
+              // limit email, print receipts as the pdf generation and email-to-archive consume
+              // server resources. don't limit data-type receipts.
+              $status = ts('Maximum of %1 tax receipt(s) were sent. Please repeat to continue processing.', array(1=>self::MAX_RECEIPT_COUNT, 'domain' => 'org.civicrm.cdntaxreceipts'));
+              CRM_Core_Session::setStatus($status, '', 'info');
+              break;
+            }
+
+            // 1. Load Contribution information
+            $contribution = new CRM_Contribute_DAO_Contribution();
+            $contribution->id = $contributionId;
+            if ( ! $contribution->find( TRUE ) ) {
+              CRM_Core_Error::fatal( "CDNTaxReceipts: Could not find corresponding contribution id." );
+            }
+
+            //CRM-920: Thank-you Email Tool
+            if ($sendThankYouEmail) {
+              $thankyou_html = $this->getThankYouHTML([$contribution->id], $from_email_address);
+              if ($thankyou_html != NULL)
+                $contribution->thankyou_html = $thankyou_html;
+            }
+
+            list( $ret, $method ) = cdntaxreceipts_issueTaxReceipt( $contribution, $receiptsForPrintingPDF, $previewMode );
+            if( $ret !== 0 ) {
+              //CRM-918: Mark Contribution as thanked if checked
+              if($this->getElement('thankyou_date')->getValue()) {
+                $contribution->thankyou_date = date('Y-m-d H:i:s', CRM_Utils_Time::time());
+                $contribution->save();
+              }
+            }
 
             if ( $ret == 0 ) {
               $failCount++;
