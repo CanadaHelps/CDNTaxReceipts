@@ -73,7 +73,9 @@ class CRM_Cdntaxreceipts_Task_IssueAggregateTaxReceipts extends CRM_Contribute_F
       $status = isset($this->_contributions_status[$id]) ? $this->_contributions_status[$id] : NULL;
       if (is_array($status)) {
         $year = $status['receive_year'];
-        $issue_type = empty($status['receipt_id']) ? 'original' : 'duplicate';
+        // check if most recent is cancelled, and mark as "replace" then add that contribution to 'original' receipt array
+        $cancelledReceipt = CRM_Canadahelps_TaxReceipts_Receipt::receiptNumber($id, true);
+        $issue_type = (empty($status['receipt_id']) || ($cancelledReceipt[0] != NULL && $status['receipt_id'] == $cancelledReceipt[1])) ? 'original' : 'duplicate';
         $receipts[$issue_type][$year]['total_contrib']++;
         // Note: non-deductible amount has already had hook called in cdntaxreceipts_contributions_get_status
         $receipts[$issue_type][$year]['total_amount'] += ($status['total_amount']);
@@ -273,6 +275,13 @@ class CRM_Cdntaxreceipts_Task_IssueAggregateTaxReceipts extends CRM_Contribute_F
         if ( isset($contri['receive_date_original']) ) {
           $contributions[$k]['receive_date'] = $contri['receive_date_original'];
         }
+        //To Replace receipt we need to add extra parameters to contribution array
+        $cancelledReceipt = CRM_Canadahelps_TaxReceipts_Receipt::receiptNumber($contri['contribution_id'], true);
+        if ($cancelledReceipt[0] != NULL && $contri['receipt_id'] == $cancelledReceipt[1]) {
+          $contributions[$k]['cancelled_replace_receipt_number']  = $cancelledReceipt[0];
+          $contributions[$k]['replace_receipt']  = 1;
+          $contributions[$k]['receipt_id']  = 0;
+        }
       }
       // $method = $contribution_status['issue_method'];
       $method = 'print';
@@ -380,8 +389,8 @@ class CRM_Cdntaxreceipts_Task_IssueAggregateTaxReceipts extends CRM_Contribute_F
             }
           }
         }
-      }
-    }
+     // }
+    //}
 
     // 3. Set session status
     if ( $previewMode ) {
