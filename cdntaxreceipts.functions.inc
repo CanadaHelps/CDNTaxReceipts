@@ -1263,6 +1263,11 @@ function cdntaxreceipts_issueAggregateTaxReceipt($contactId, $year, $contributio
       if($c['non_deductible_amount']) {
         $total_advantage_amount += $c['non_deductible_amount'];
       }
+      if($c['replace_receipt'])
+      {
+        $is_replaced = 1;
+        $cancelled_replace_receipt_number = $c['cancelled_replace_receipt_number'];
+      }
     }
 
     // generate a receipt number
@@ -1290,7 +1295,7 @@ function cdntaxreceipts_issueAggregateTaxReceipt($contactId, $year, $contributio
   // CRM-1820 While replacing a receipt, passing receipt number
   if ($is_replaced) {
     $receipt['cancelled_replace_receipt_number'] = 
-    $check_contribution['cancelled_replace_receipt_number'];
+    $cancelled_replace_receipt_number;
     $receipt['is_replaced'] = 1;
   }
 

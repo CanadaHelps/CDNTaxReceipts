@@ -313,7 +313,7 @@ class CRM_Cdntaxreceipts_Task_IssueAggregateTaxReceipts extends CRM_Contribute_F
         if ($sendThankYouEmail) {
           $thankyou_html = $this->getThankYouHTML(array_column($contributions, 'contribution_id'), $from_email_address);
         }
-
+//echo '<pre>';print_r($contributions);echo '</pre>';
         $ret = cdntaxreceipts_issueAggregateTaxReceipt($contact_id, $year, $contributions, $method,
           $receiptsForPrintingPDF, $previewMode, $thankyou_html);
 
@@ -391,7 +391,7 @@ class CRM_Cdntaxreceipts_Task_IssueAggregateTaxReceipts extends CRM_Contribute_F
         }
      // }
     //}
-
+    //die('dddddddd');
     // 3. Set session status
     if ( $previewMode ) {
       $status = ts('%1 tax receipt(s) have been previewed.  No receipts have been issued.', array(1=>$printCount, 'domain' => 'org.civicrm.cdntaxreceipts'));
