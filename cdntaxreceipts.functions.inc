@@ -1211,8 +1211,11 @@ function cdntaxreceipts_issueAggregateTaxReceipt($contactId, $year, $contributio
     $is_duplicate = TRUE;
   }
   else {
-    $is_duplicate = empty($issued_on) ? 0 : 1;
+    $is_duplicate = (empty($issued_on)||isset($check_contribution['replace_receipt'])) ? 0 : 1;
   }
+
+  // CRM-1820 check replace status
+  $is_replaced =  isset($check_contribution['replace_receipt'])? 1 : 0;
 
   if ( $is_duplicate ) {
     $receipt = cdntaxreceipts_load_receipt($receipt_id);
@@ -1274,6 +1277,11 @@ function cdntaxreceipts_issueAggregateTaxReceipt($contactId, $year, $contributio
       if($c['non_deductible_amount']) {
         $total_advantage_amount += $c['non_deductible_amount'];
       }
+      if($c['replace_receipt'])
+      {
+        $is_replaced = 1;
+        $cancelled_replace_receipt_number = $c['cancelled_replace_receipt_number'];
+      }
     }
 
     // generate a receipt number
@@ -1297,6 +1305,12 @@ function cdntaxreceipts_issueAggregateTaxReceipt($contactId, $year, $contributio
       'total_advantage_amount' => $total_advantage_amount,
       'is_replaced' => 0,
     );
+  }
+  // CRM-1820 While replacing a receipt, passing receipt number
+  if ($is_replaced) {
+    $receipt['cancelled_replace_receipt_number'] = 
+    $cancelled_replace_receipt_number;
+    $receipt['is_replaced'] = 1;
   }
 
   return cdntaxreceipts_processTaxReceipt($receipt, $collectedPdf, $mode);
