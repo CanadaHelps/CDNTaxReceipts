@@ -313,7 +313,7 @@ class CRM_Cdntaxreceipts_Task_IssueAggregateTaxReceipts extends CRM_Contribute_F
         if ($sendThankYouEmail) {
           $thankyou_html = $this->getThankYouHTML(array_column($contributions, 'contribution_id'), $from_email_address);
         }
-//echo '<pre>';print_r($contributions);echo '</pre>';
+
         $ret = cdntaxreceipts_issueAggregateTaxReceipt($contact_id, $year, $contributions, $method,
           $receiptsForPrintingPDF, $previewMode, $thankyou_html);
 
