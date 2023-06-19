@@ -389,9 +389,7 @@ class CRM_Cdntaxreceipts_Task_IssueAggregateTaxReceipts extends CRM_Contribute_F
             }
           }
         }
-     // }
-    //}
-    //die('dddddddd');
+
     // 3. Set session status
     if ( $previewMode ) {
       $status = ts('%1 tax receipt(s) have been previewed.  No receipts have been issued.', array(1=>$printCount, 'domain' => 'org.civicrm.cdntaxreceipts'));
