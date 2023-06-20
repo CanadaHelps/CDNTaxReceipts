@@ -444,6 +444,8 @@ class CRM_Cdntaxreceipts_Task_IssueAggregateTaxReceipts extends CRM_Contribute_F
             }
           }
         }
+      }
+    }
 
     // 3. Set session status
     if ( $previewMode ) {
