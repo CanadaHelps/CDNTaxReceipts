@@ -36,7 +36,7 @@ class CRM_Cdntaxreceipts_Form_Settings extends CRM_Core_Form {
       ),
     ));
     // Set image defaults
-    $images = array('receipt_logo', 'receipt_signature', 'receipt_watermark', 'receipt_pdftemplate');
+    $images = array('receipt_logo', 'receipt_signature', 'receipt_pdftemplate');
     foreach ($images as $image) {
       if (!empty($defaults[$image])) {
         $this->assign($image, $defaults[$image]);
@@ -133,7 +133,6 @@ class CRM_Cdntaxreceipts_Form_Settings extends CRM_Core_Form {
         'org_web' => Civi::settings()->get('org_web'),
         'receipt_logo' => Civi::settings()->get('receipt_logo'),
         'receipt_signature' => Civi::settings()->get('receipt_signature'),
-        'receipt_watermark' => Civi::settings()->get('receipt_watermark'),
         'receipt_pdftemplate' => Civi::settings()->get('receipt_pdftemplate'),
         'org_charitable_no' => Civi::settings()->get('org_charitable_no'),
       );
@@ -178,10 +177,6 @@ class CRM_Cdntaxreceipts_Form_Settings extends CRM_Core_Form {
       $this->addRule('receipt_logo', ts('Please upload a signature.') . ' ', 'required');
       $this->addRule( 'receipt_signature', ts('File size should be less than %1 MBytes (%2 bytes)', array(1 => $uploadSize, 2 => $uploadFileSize)), 'maxfilesize', $uploadFileSize, array('domain' => 'org.civicrm.cdntaxreceipts') );
 
-      $this->addElement('file', 'receipt_watermark', ts('Watermark Image', array('domain' => 'org.civicrm.cdntaxreceipts')), 'size=30 maxlength=60');
-      $this->addUploadElement('receipt_watermark');
-      $this->addRule( 'receipt_watermark', ts('File size should be less than %1 MBytes (%2 bytes)', array(1 => $uploadSize, 2 => $uploadFileSize)), 'maxfilesize', $uploadFileSize, array('domain' => 'org.civicrm.cdntaxreceipts') );
-
       $this->addElement('file', 'receipt_pdftemplate', ts('PDF Template', array('domain' => 'org.civicrm.cdntaxreceipts')), 'size=30 maxlength=60');
       $this->addUploadElement('receipt_pdftemplate');
       $this->addRule( 'receipt_pdftemplate', ts('File size should be less than %1 MBytes (%2 bytes)', array(1 => $uploadSize, 2 => $uploadFileSize)), 'maxfilesize', $uploadFileSize, array('domain' => 'org.civicrm.cdntaxreceipts') );
@@ -200,7 +195,7 @@ class CRM_Cdntaxreceipts_Form_Settings extends CRM_Core_Form {
       Civi::settings()->set('receipt_serial', $values['receipt_serial'] ?? 0);
       Civi::settings()->set('receipt_authorized_signature_text', $values['receipt_authorized_signature_text']);
 
-      foreach ( array('receipt_logo', 'receipt_signature', 'receipt_watermark', 'receipt_pdftemplate') as $key ) {
+      foreach ( array('receipt_logo', 'receipt_signature', 'receipt_pdftemplate') as $key ) {
         $upload_file = $this->getSubmitValue($key);
         if (is_array($upload_file)) {
           if ( $upload_file['error'] == 0 ) {
