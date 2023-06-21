@@ -135,9 +135,11 @@ function cdntaxreceipts_load_receipt($receipt_id) {
   $sql = "SELECT l.id, l.receipt_no, l.issued_on, l.contact_id, l.receipt_amount as total_receipt,
         l.is_duplicate, l.uid, l.ip, l.issue_type, l.issue_method, l.receipt_status,
         l.email_tracking_id, l.email_opened,
-        c.contribution_id, c.contribution_amount, c.receipt_amount, c.receive_date
+        c.contribution_id, c.contribution_amount, c.receipt_amount, c.receive_date,
+        contrib.contribution_status_id, contrib.source
     FROM cdntaxreceipts_log l
     INNER JOIN cdntaxreceipts_log_contributions c ON l.id = c.receipt_id
+    LEFT JOIN civicrm_contribution contrib ON contrib.id = c.contribution_id
     WHERE is_duplicate = 0 AND l.id = {$receipt_id}";
 
   $dao = CRM_Core_DAO::executeQuery($sql);
@@ -169,6 +171,8 @@ function cdntaxreceipts_load_receipt($receipt_id) {
         'contribution_amount' => $dao->contribution_amount,
         'receipt_amount' => $dao->receipt_amount,
         'receive_date' => $dao->receive_date,
+        'contribution_status_id' => $dao->contribution_status_id,
+        'source' => $dao->source,
       );
     } while ( $dao->fetch() );
 

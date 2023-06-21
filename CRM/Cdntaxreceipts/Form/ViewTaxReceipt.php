@@ -36,11 +36,22 @@ class CRM_Cdntaxreceipts_Form_ViewTaxReceipt extends CRM_Core_Form {
       $contactId = $this->get('contact_id');
     }
 
+    // Force recheck receipt settings validation
+    // in case invalidated post issuance
+    $receiptSettingValidateVal = (bool) Civi::settings()->get('settings_validated_taxreceipts');
+    Civi::resources()->addVars('receipts', array('receiptSettingsValidated' => $receiptSettingValidateVal));
 
     list($issuedOn, $receiptId) = cdntaxreceipts_issued_on($contributionId);
 
     if (isset($receiptId)) {
       $existingReceipt = cdntaxreceipts_load_receipt($receiptId);
+
+      // Force re-check eligibility, in case it changed after issuance
+      $contribObject = json_decode(json_encode($existingReceipt['contributions'][0]));
+      $contribObject->id = $contribObject->contribution_id;
+      $isEligible = canadahelps_isContributionEligibleForReceipting($contribObject, true);
+      Civi::resources()->addVars('receipts', array('receiptIsEligible' => $isEligible));
+
       //CRM-1821 Show replaced receipt info on the Tax Receipt details page after receipt being replaced successfully
       if ($existingReceipt['receipt_status'] == 'issued') {
         list($receipt_number, $receipt_id) = CRM_Canadahelps_TaxReceipts_Receipt::receiptNumber($contributionId,TRUE);
