@@ -192,7 +192,13 @@ function cdntaxreceipts_processTaxReceipt($receipt, &$collectedPdf = NULL, $mode
         $sendTemplateParams['thankyou_email'] = TRUE;
         $sendTemplateParams['html'] = $receipt['thankyou_html'];
       }
-      list($sent, $subject, $message, $html) = ch_sendTemplate($sendTemplateParams);
+      //CRM-1950 Duplicate receipt should not be sent to archive
+      if($receipt['issue_method'] == 'email' && $receipt['is_duplicate'])
+      {
+        $sent = TRUE;
+      }else{
+        list($sent, $subject, $message, $html) = ch_sendTemplate($sendTemplateParams);
+      }
 
       // send a copy (with open tracking) to the donor
       if ($sent && $receipt['issue_method'] == 'email' && $mode != CDNTAXRECEIPTS_MODE_WORKFLOW) {
