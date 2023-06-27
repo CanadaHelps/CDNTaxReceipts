@@ -193,7 +193,7 @@ function cdntaxreceipts_processTaxReceipt($receipt, &$collectedPdf = NULL, $mode
         $sendTemplateParams['html'] = $receipt['thankyou_html'];
       }
       //CRM-1950 Duplicate receipt should not be sent to archive
-      if($receipt['issue_method'] == 'email' && $receipt['is_duplicate'])
+      if(($receipt['issue_method'] == 'email'|| $receipt['issue_method'] == 'print') && $receipt['is_duplicate'])
       {
         $sent = TRUE;
       }else{
