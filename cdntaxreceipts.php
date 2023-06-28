@@ -37,11 +37,10 @@ function cdntaxreceipts_civicrm_buildForm($formName, &$form) {
     {
       $receipt_logo_type = pathinfo($receipt_logo, PATHINFO_EXTENSION);
       // If existing value has relative path in it keep it as is otherwise prepand upload directory path
-      $receiptPath = $receipt_logo;
-      if(strpos("$receipt_logo", "$config->customFileUploadDir") === false){
-        $receiptPath = $config->customFileUploadDir.$receipt_logo;
-      }
-      $receipt_logo_data = file_get_contents($receiptPath);
+      $imagePath = $receipt_logo;
+      if ( substr($imagePath, 0, 1) != "/" )
+        $imagePath = CRM_Core_Config::singleton()->customFileUploadDir . $imagePath;
+      $receipt_logo_data = file_get_contents($imagePath);
       $receipt_logo_url = 'data:image/' . $receipt_logo_type . ';base64,' . base64_encode($receipt_logo_data);
     }
     //CRM-1860 If receipt signature is not set pass empty value
@@ -49,11 +48,10 @@ function cdntaxreceipts_civicrm_buildForm($formName, &$form) {
     $receipt_signature_url= '';
     if(!empty($receipt_signature)){
       $receipt_signature_type = pathinfo($receipt_signature, PATHINFO_EXTENSION);
-      $receiptPath = $receipt_signature;
-      if(strpos("$receipt_signature", "$config->customFileUploadDir") === false){
-        $receiptPath = $config->customFileUploadDir.$receipt_signature;
-      }
-      $receipt_signature_data = file_get_contents($config->customFileUploadDir.$receipt_signature);
+      $imagePath = $receipt_signature;
+      if ( substr($imagePath, 0, 1) != "/" )
+        $imagePath = CRM_Core_Config::singleton()->customFileUploadDir . $imagePath;
+      $receipt_signature_data = file_get_contents($imagePath);
       $receipt_signature_url = 'data:image/' . $receipt_signature_type . ';base64,' . base64_encode($receipt_signature_data);
     }
     //CRM-1860 passing receiptLogo and receiptSignature value to javascript
