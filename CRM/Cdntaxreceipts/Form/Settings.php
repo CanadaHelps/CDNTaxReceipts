@@ -40,7 +40,10 @@ class CRM_Cdntaxreceipts_Form_Settings extends CRM_Core_Form {
     foreach ($images as $image) {
       if (!empty($defaults[$image])) {
         $this->assign($image, $defaults[$image]);
-        if (!file_exists(CRM_Core_Config::singleton()->customFileUploadDir . $defaults[$image])) {
+        $imagePath = $defaults[$image];
+        if ( substr($imagePath, 0, 1) != "/" )
+          $imagePath = CRM_Core_Config::singleton()->customFileUploadDir . $defaults[$image];
+        if (!file_exists($imagePath)) {
           $this->assign($image.'_class', TRUE);
         }
       }
