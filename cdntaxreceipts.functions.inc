@@ -785,6 +785,25 @@ function cdntaxreceipts_configure_inkind_fields() {
 /**************************************
  * SECTION: Tax Receipt API
  */
+//CRM-1959 - 'Issued On' value is not getting updated in 'Edit Contribution Form' if the contribution's tax receipt was replaced with a new one
+function cdnaxreceipts_getReceiptDate($contributionID)
+{
+  $contributions = civicrm_api4('Contribution', 'get', [
+    'select' => [
+      'receipt_date',
+    ],
+    'where' => [
+      ['id', '=', $contributionID],
+    ],
+    'limit' => 1,
+  ]);
+  $contributionReceiptDate = 0 ;
+  foreach($contributions as $contribution)
+  {
+    $contributionReceiptDate = $contribution['receipt_date'];
+  }
+  return $contributionReceiptDate;
+}
 
 /**
  * issueTaxReceipt()
