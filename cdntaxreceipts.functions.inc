@@ -832,8 +832,9 @@ function cdntaxreceipts_issueTaxReceipt($contribution, &$collectedPdf = NULL, $m
           $receipt['contributions'][$key]['receipt_id'] = $receipt_id;
         }
       }
+      $thankyou_html = (isset($contribution->thankyou_html)) ? $contribution->thankyou_html : NULL;
       return cdntaxreceipts_issueAggregateTaxReceipt($contactId, $year, $receipt['contributions'],
-        $method, $collectedPdf, $mode);
+        $method, $collectedPdf, $mode, $thankyou_html);
     }
     // be sure I'm not changing the receipt number
     $receipt_no = $receipt['receipt_no'];
