@@ -237,7 +237,7 @@ class CRM_Cdntaxreceipts_Task_IssueSingleTaxReceipts extends CRM_Contribute_Form
         if ( empty($issued_on) || ! $originalOnly ) {
           //CRM-920: Thank-you Email Tool
           if ($sendThankYouEmail) {
-            $thankyou_html = $this->getThankYouHTML([$contribution->id], $from_email_address);
+            $thankyou_html = $this->getThankYouHTML([$contribution->id], $from_email_address, $params);
             if ($thankyou_html != NULL)
               $contribution->thankyou_html = $thankyou_html;
           }
@@ -295,7 +295,7 @@ class CRM_Cdntaxreceipts_Task_IssueSingleTaxReceipts extends CRM_Contribute_Form
   }
 
   //CRM-920: Thank-you Email Tool
-  private function getThankYouHTML(array $contributionIds, $sender) {
+  private function getThankYouHTML(array $contributionIds, $sender, $params) {
 
     $this->_contributionIds = $contributionIds;
     $data = &$this->controller->container();
