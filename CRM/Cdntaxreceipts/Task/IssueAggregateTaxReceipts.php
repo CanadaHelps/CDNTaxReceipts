@@ -311,7 +311,7 @@ class CRM_Cdntaxreceipts_Task_IssueAggregateTaxReceipts extends CRM_Contribute_F
         //CRM-920: Thank-you Email Tool
         $thankyou_html = NULL;
         if ($sendThankYouEmail) {
-          $thankyou_html = $this->getThankYouHTML(array_column($contributions, 'contribution_id'), $from_email_address);
+          $thankyou_html = $this->getThankYouHTML(array_column($contributions, 'contribution_id'), $from_email_address, $params);
         }
 
         $ret = cdntaxreceipts_issueAggregateTaxReceipt($contact_id, $year, $contributions, $method,
@@ -359,7 +359,7 @@ class CRM_Cdntaxreceipts_Task_IssueAggregateTaxReceipts extends CRM_Contribute_F
 
             //CRM-920: Thank-you Email Tool
             if ($sendThankYouEmail) {
-              $thankyou_html = $this->getThankYouHTML([$contribution->id], $from_email_address);
+              $thankyou_html = $this->getThankYouHTML([$contribution->id], $from_email_address, $params);
               if ($thankyou_html != NULL)
                 $contribution->thankyou_html = $thankyou_html;
             }
@@ -416,7 +416,7 @@ class CRM_Cdntaxreceipts_Task_IssueAggregateTaxReceipts extends CRM_Contribute_F
 
             //CRM-920: Thank-you Email Tool
             if ($sendThankYouEmail) {
-              $thankyou_html = $this->getThankYouHTML([$contribution->id], $from_email_address);
+              $thankyou_html = $this->getThankYouHTML([$contribution->id], $from_email_address, $params);
               if ($thankyou_html != NULL)
                 $contribution->thankyou_html = $thankyou_html;
             }
@@ -478,8 +478,7 @@ class CRM_Cdntaxreceipts_Task_IssueAggregateTaxReceipts extends CRM_Contribute_F
   }
 
   //CRM-920: Thank-you Email Tool
-  private function getThankYouHTML(array $contributionIds, $sender) {
-
+  private function getThankYouHTML(array $contributionIds, $sender, $params) {
     $this->_contributionIds = $contributionIds;
     $data = &$this->controller->container();
     $data['values']['ViewTaxReceipt']['from_email_address'] = $sender;
