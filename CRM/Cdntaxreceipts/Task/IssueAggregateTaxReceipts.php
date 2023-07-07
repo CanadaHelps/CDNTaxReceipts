@@ -402,8 +402,8 @@ class CRM_Cdntaxreceipts_Task_IssueAggregateTaxReceipts extends CRM_Contribute_F
       }
     }
 
-    // loop through duplicate receipts only
-    if (!$originalOnly) {
+    // loop through duplicate receipts only (but not if preview)
+    if (!$originalOnly && !$previewMode) {
       $duplicateReceipts = [];
       foreach ($this->_receipts['duplicate'][$year]['contact_ids'] as $contact_id => $contact_data) {
         foreach ($contact_data['contributions'] as $contributionId => $contribution) {
