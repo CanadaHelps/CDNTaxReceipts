@@ -326,7 +326,7 @@ class CRM_Cdntaxreceipts_Task_IssueSingleTaxReceipts extends CRM_Contribute_Form
    *
    * @return void
    */
-  static function getReceiptsList(array $contributionIds, array $receipts): array {
+  static function getReceiptsList(array $contributionIds, array $receipts, bool $isAggregate = false): array {
 
     $years = array();
     $receiptList = [
@@ -362,6 +362,13 @@ class CRM_Cdntaxreceipts_Task_IssueSingleTaxReceipts extends CRM_Contribute_Form
 
         // Eligible?
         $result['eligible'] = ($receiptType != 'ineligibles');
+
+        // In-Kind
+        if ($isAggregate && $result['inkind']) {
+          $result['eligibility_reason'] = '(InKind)';
+          $result['ineligible_reason']  = 'InKind';
+          $result['eligibility_fix']    = "Separate tax receipts are issued for In Kind donations";
+        }
 
         // Duplicate
         if ($receiptType == 'duplicate') {
@@ -475,6 +482,10 @@ class CRM_Cdntaxreceipts_Task_IssueSingleTaxReceipts extends CRM_Contribute_Form
       // Fund, Campaign
       $result['fund']     = $result['financial_type_id:label'];
       $result['campaign'] = $result['contribution_page_id:label'];
+
+      // InKind
+      $clean_fund = preg_replace("/[^a-zA-Z0-9]+/", "", $result['fund']);
+      $result['inkind'] = ( stripos($clean_fund,"inkind") !== false);
 
     }
 

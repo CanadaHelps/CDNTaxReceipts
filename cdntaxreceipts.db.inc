@@ -315,7 +315,9 @@ function cdntaxreceipts_contributions_get_status($contributionIds = array()) {
             ON contrib.id = cdntax_c.contribution_id
     LEFT  JOIN cdntaxreceipts_advantage cdntax_a
             ON contrib.id = cdntax_a.contribution_id
-    WHERE contrib_type.name NOT IN ('In-kind', 'In Kind') AND contrib.id IN($ids)";
+    WHERE
+      -- contrib_type.name NOT IN ('In-kind', 'In Kind') AND
+      contrib.id IN($ids)";
 
     $dao = CRM_Core_DAO::executeQuery($sql);
 

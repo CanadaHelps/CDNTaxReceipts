@@ -122,7 +122,7 @@ class CRM_Cdntaxreceipts_Task_IssueAggregateTaxReceipts extends CRM_Contribute_F
     }
 
     $this->_receipts = $receipts;
-    list($this->_years, $this->_receiptList) = CRM_Cdntaxreceipts_Task_IssueSingleTaxReceipts::getReceiptsList($this->_contributionIds, $this->_receiptList);
+    list($this->_years, $this->_receiptList) = CRM_Cdntaxreceipts_Task_IssueSingleTaxReceipts::getReceiptsList($this->_contributionIds, $this->_receiptList, true);
 
   }
 
@@ -297,13 +297,10 @@ class CRM_Cdntaxreceipts_Task_IssueAggregateTaxReceipts extends CRM_Contribute_F
       }
       //CRM-1470 Create separate In Kind contributions array and unset from combined tax receipt contributions array
       $contributionsInKind = array();
-      foreach($contributions as $contri_key => $contrivalue) {
-        if (isset($contrivalue['fund'])) {
-          $fund_name_check = preg_replace("/[^a-zA-Z0-9]+/", "", $contrivalue['fund']);
-          if ( stripos($fund_name_check,"inkind") !== false) {
-            $contributionsInKind[$contri_key] = $contrivalue;
-            unset($contributions[$contri_key]);
-          }
+      foreach($contributions as $key => $contribution) {
+        if ($contribution['inkind']) {
+          $contributionsInKind[$key] = $contribution;
+          unset($contributions[$key]);
         }
       }
 

@@ -51,6 +51,8 @@
           <td>{$contribution.contribution_status}</td>
           {if isset($contribution.eligibility_reason) && $contribution.eligibility_reason|stristr:"duplicate"}
             <td><span class="small">{$contribution.eligibility_reason}</span></td>
+          {elseif isset($contribution.eligibility_reason) && $contribution.eligibility_reason|stristr:"inkind"}
+            <td><i class="fa fa-check"><span class="hidden">Eligible<span></i><br/><span class="small">{$contribution.eligibility_fix}</span></td>
           {elseif $contribution.eligible}
             <td><i class="fa fa-check"><span class="hidden">Eligible<span></i></td>
           {elseif isset($contribution.eligibility_fix)}
