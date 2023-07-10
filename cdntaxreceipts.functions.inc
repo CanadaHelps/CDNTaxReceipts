@@ -192,7 +192,13 @@ function cdntaxreceipts_processTaxReceipt($receipt, &$collectedPdf = NULL, $mode
         $sendTemplateParams['thankyou_email'] = TRUE;
         $sendTemplateParams['html'] = $receipt['thankyou_html'];
       }
-      list($sent, $subject, $message, $html) = ch_sendTemplate($sendTemplateParams);
+      //CRM-1950 Duplicate receipt should not be sent to archive
+      if(($receipt['issue_method'] == 'email'|| $receipt['issue_method'] == 'print') && $receipt['is_duplicate'])
+      {
+        $sent = TRUE;
+      }else{
+        list($sent, $subject, $message, $html) = ch_sendTemplate($sendTemplateParams);
+      }
 
       // send a copy (with open tracking) to the donor
       if ($sent && $receipt['issue_method'] == 'email' && $mode != CDNTAXRECEIPTS_MODE_WORKFLOW) {
@@ -785,6 +791,25 @@ function cdntaxreceipts_configure_inkind_fields() {
 /**************************************
  * SECTION: Tax Receipt API
  */
+//CRM-1959 - 'Issued On' value is not getting updated in 'Edit Contribution Form' if the contribution's tax receipt was replaced with a new one
+function cdnaxreceipts_getReceiptDate($contributionID)
+{
+  $contributions = civicrm_api4('Contribution', 'get', [
+    'select' => [
+      'receipt_date',
+    ],
+    'where' => [
+      ['id', '=', $contributionID],
+    ],
+    'limit' => 1,
+  ]);
+  $contributionReceiptDate = 0 ;
+  foreach($contributions as $contribution)
+  {
+    $contributionReceiptDate = $contribution['receipt_date'];
+  }
+  return $contributionReceiptDate;
+}
 
 /**
  * issueTaxReceipt()
