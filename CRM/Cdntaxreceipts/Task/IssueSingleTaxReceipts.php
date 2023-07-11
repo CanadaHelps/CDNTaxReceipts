@@ -389,6 +389,10 @@ class CRM_Cdntaxreceipts_Task_IssueSingleTaxReceipts extends CRM_Contribute_Form
               case 'Incomplete Name':
                 $result['eligibility_fix'] = "The donor's name is required. Please <a href=\"/dms/contact/view?reset=1&cid=$contact_id\">update</a> to issue a tax receipt.";
                 break;
+
+              case 'Receipted Outside of DMS':
+                $result['eligibility_fix'] = "Receipted Outside of DMS.";
+                break;
             }
           }
         }
