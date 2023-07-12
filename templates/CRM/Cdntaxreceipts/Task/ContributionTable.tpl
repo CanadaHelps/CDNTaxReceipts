@@ -28,9 +28,6 @@
   <table class="selector row-highlight table-of-users">
     <thead class="sticky">
     <tr>
-      {if !$single and $context eq 'Search' }
-        <th scope="col" title="Select Rows">{$form.toggleSelect.html}</th>
-      {/if}
 
       {foreach from=$columnHeaders item=header}
         <th scope="col" class="crm-contribution-{$header}">
@@ -43,11 +40,6 @@
     {foreach from=$receiptTypes item=receiptType}
       {foreach from=$receiptList.$receiptType.$defaultYear.contact_ids item=contact}
         {foreach from=$contact.contributions item=contribution}
-        {if $receipt_type eq 'single'}
-          {if $receiptType eq 'duplicate'}
-            {assign var="receiptType" value="duplicate-single"}
-          {/if}
-        {/if}
         <tr class="{$receiptType}-receipt-contributions contribution-id-{$contribution.contribution_id}">
           <td>{$contribution.receive_date}<br/>{$contribution.receive_time}</td>
           <td><a href="{crmURL p='dms/contact/view' q="reset=1&cid=`$contribution.contact_id`"}">{$contact.display_name}</a></td>
@@ -57,10 +49,18 @@
           <td>{$contribution.contribution_source}</td>
           <td>{$contribution.payment_instrument}</td>
           <td>{$contribution.contribution_status}</td>
-          {if $contribution.eligible}
-            <td>Eligible</td>
+          {if isset($contribution.eligibility_reason) && $contribution.eligibility_reason|stristr:"duplicate"}
+            <td><span class="small">{$contribution.eligibility_reason}</span></td>
+          {elseif isset($contribution.eligibility_reason) && $contribution.eligibility_reason|stristr:"inkind"}
+            <td><i class="fa fa-check"><span class="hidden">Eligible<span></i><br/><span class="small">{$contribution.eligibility_fix}</span></td>
+          {elseif $contribution.eligible}
+            <td><i class="fa fa-check"><span class="hidden">Eligible<span></i></td>
+          {elseif isset($contribution.eligibility_fix)}
+            <td><i class="fa fa-close"><span class="hidden">Not Eligible<span></i><br/><span class="small">{$contribution.eligibility_fix}</span></td>
+          {elseif isset($contribution.eligibility_reason)}
+            <td><i class="fa fa-close"><span class="hidden">Not Eligible<span></i><br/><span class="small">{$contribution.eligibility_reason}</span></td>
           {else}
-            <td>Not Eligible <br/> {$contribution.eligibility_reason}</td>
+            <td><i class="fa fa-close"><span class="hidden">Not Eligible<span></i></td>
           {/if}
         </tr>
         {/foreach}

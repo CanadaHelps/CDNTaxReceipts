@@ -12,17 +12,17 @@
  */
 
 function cdntaxreceipts_issued_on($contribution_id) {
-
-  $sql = "SELECT issued_on, l.id as receipt_id FROM cdntaxreceipts_log l
+  //CRM-1820 Modified query to fetch the latest receipt record in case of multiple records for single contribution
+  $sql = "SELECT issued_on, l.id as receipt_id, receipt_status FROM cdntaxreceipts_log l
     INNER JOIN cdntaxreceipts_log_contributions c ON l.id = c.receipt_id
-    WHERE is_duplicate = 0 AND contribution_id = $contribution_id";
+    WHERE is_duplicate = 0 AND contribution_id = $contribution_id ORDER BY l.issued_on DESC";
 
   $dao = CRM_Core_DAO::executeQuery($sql);
   if ( $dao->fetch() ) {
-    return array($dao->issued_on, $dao->receipt_id);
+    return array($dao->issued_on, $dao->receipt_id, $dao->receipt_status);
   }
   else {
-    return array(NULL, NULL);
+    return array(NULL, NULL, NULL);
   }
 
 }
@@ -95,7 +95,7 @@ function cdntaxreceipts_contributions_not_receipted($contactId, $year) {
             ON contrib.financial_type_id = contrib_type.id
     LEFT  JOIN cdntaxreceipts_log_contributions cdntax_c
             ON contrib.id = cdntax_c.contribution_id
-    WHERE cdntax_c.receipt_id IS NULL AND contrib_type.name <> 'In-kind' AND contrib_type.name <> 'In Kind'
+    WHERE cdntax_c.receipt_id IS NULL AND contrib_type.name NOT IN ('In-kind', 'In Kind')
       AND contrib.contact_id = $contactId AND YEAR(contrib.receive_date) = $year
     ORDER BY contrib.id";
 
@@ -135,9 +135,11 @@ function cdntaxreceipts_load_receipt($receipt_id) {
   $sql = "SELECT l.id, l.receipt_no, l.issued_on, l.contact_id, l.receipt_amount as total_receipt,
         l.is_duplicate, l.uid, l.ip, l.issue_type, l.issue_method, l.receipt_status,
         l.email_tracking_id, l.email_opened,
-        c.contribution_id, c.contribution_amount, c.receipt_amount, c.receive_date
+        c.contribution_id, c.contribution_amount, c.receipt_amount, c.receive_date,
+        contrib.contribution_status_id, contrib.source
     FROM cdntaxreceipts_log l
     INNER JOIN cdntaxreceipts_log_contributions c ON l.id = c.receipt_id
+    LEFT JOIN civicrm_contribution contrib ON contrib.id = c.contribution_id
     WHERE is_duplicate = 0 AND l.id = {$receipt_id}";
 
   $dao = CRM_Core_DAO::executeQuery($sql);
@@ -169,6 +171,8 @@ function cdntaxreceipts_load_receipt($receipt_id) {
         'contribution_amount' => $dao->contribution_amount,
         'receipt_amount' => $dao->receipt_amount,
         'receive_date' => $dao->receive_date,
+        'contribution_status_id' => $dao->contribution_status_id,
+        'source' => $dao->source,
       );
     } while ( $dao->fetch() );
 
@@ -276,13 +280,22 @@ function cdntaxreceipts_cancel($receipt_id) {
  *   'receive_year' => $dao->receive_year,
  *   'eligible' => $eligible,
  *   'receipt_id' => $dao->receipt_id,
-);
+ * );
  */
 function cdntaxreceipts_contributions_get_status($contributionIds = array()) {
   $contributions = array();
 
   $ids = implode(',', $contributionIds);
 
+  // Custom fields
+  require_once 'CRM/Core/BAO/CustomField.php';
+  require_once 'CRM/Core/BAO/CustomValueTable.php';
+  $field_name_description       = 'custom_' . CRM_Core_BAO_CustomField::getCustomFieldID( 'Description of property', 'In Kind donation fields' );
+  $field_name_appraisedby       = 'custom_' . CRM_Core_BAO_CustomField::getCustomFieldID( 'Appraised by', 'In Kind donation fields' );
+  $field_name_appraiseraddress  = 'custom_' . CRM_Core_BAO_CustomField::getCustomFieldID( 'Address of Appraiser', 'In Kind donation fields' );
+  $field_name_cost              = 'custom_' . CRM_Core_BAO_CustomField::getCustomFieldID( 'Original cost', 'In Kind donation fields' );
+
+
   if (!empty($contributionIds)) {
     $sql = "
     SELECT
@@ -293,61 +306,8 @@ function cdntaxreceipts_contributions_get_status($contributionIds = array()) {
       , contrib.receive_date
       , YEAR(contrib.receive_date) as receive_year
       , IF(cdntax_c.receipt_id IS NULL, 0, cdntax_c.receipt_id) as receipt_id
-    FROM civicrm_contribution contrib
-    INNER JOIN civicrm_financial_type contrib_type
-            ON contrib.financial_type_id = contrib_type.id
-    LEFT  JOIN cdntaxreceipts_log_contributions cdntax_c
-            ON contrib.id = cdntax_c.contribution_id
-    WHERE contrib_type.name <> 'In-kind' AND contrib.id IN($ids) AND contrib_type.name <> 'In Kind'";
-
-    $dao = CRM_Core_DAO::executeQuery($sql);
-
-    while ($dao->fetch()) {
-      $id = $dao->contribution_id;
-
-      $eligible = cdntaxreceipts_eligibleForReceipt($id);
-      $contributions[$id] = array(
-        'contribution_id' => $id,
-        'contact_id' => $dao->contact_id,
-        'total_amount' => $dao->total_amount,
-        'non_deductible_amount' => $dao->non_deductible_amount,
-        'receive_date' => $dao->receive_date,
-        'receive_year' => $dao->receive_year,
-        'eligible' => $eligible,
-        'receipt_id' => $dao->receipt_id,
-      );
-    }
-  }
-  foreach ($contributions as $id => $contrib) {
-    $contributions[$id]['non_deductible_amount'] = $contributions[$id]['total_amount'] - cdntaxreceipts_eligibleAmount($id);
-  }
-
-  return $contributions;
-}
-
-
-/**
- * @param array $contributionIds
- * @return array $contributions with the contents below
- *
- */
-function cdntaxreceipts_contributions_get_status_inkind($contributionIds = array()) {
-  $contributions = array();
-
-  $ids = implode(',', $contributionIds);
-
-  if (!empty($contributionIds)) {
-    $sql = "
-    SELECT
-        contrib.id as contribution_id
-      , contrib.contact_id
-      , contrib.total_amount
-      , ifnull(contrib.non_deductible_amount, 0) as non_deductible_amount
-      , contrib.receive_date
       , contrib_type.name
       , cdntax_a.advantage_description
-      , YEAR(contrib.receive_date) as receive_year
-      , IF(cdntax_c.receipt_id IS NULL, 0, cdntax_c.receipt_id) as receipt_id
     FROM civicrm_contribution contrib
     INNER JOIN civicrm_financial_type contrib_type
             ON contrib.financial_type_id = contrib_type.id
@@ -355,7 +315,9 @@ function cdntaxreceipts_contributions_get_status_inkind($contributionIds = array
             ON contrib.id = cdntax_c.contribution_id
     LEFT  JOIN cdntaxreceipts_advantage cdntax_a
             ON contrib.id = cdntax_a.contribution_id
-    WHERE contrib.id IN($ids)";
+    WHERE
+      -- contrib_type.name NOT IN ('In-kind', 'In Kind') AND
+      contrib.id IN($ids)";
 
     $dao = CRM_Core_DAO::executeQuery($sql);
 
@@ -372,54 +334,37 @@ function cdntaxreceipts_contributions_get_status_inkind($contributionIds = array
         'receive_year' => $dao->receive_year,
         'eligible' => $eligible,
         'receipt_id' => $dao->receipt_id,
+        'receipt_id' => $dao->receipt_id,
         'advantage_description' => $dao->advantage_description,
         'inkind' => false,
       );
-      //CRM-1410 DMS - In-Kind Donation Receipts not displaying "Description of Property"
+
+      // In Kind?
       $fund_name_check = preg_replace("/[^a-zA-Z0-9]+/", "", $dao->name);
-      if ( stripos($fund_name_check,"inkind") !== false) {
-        require_once 'CRM/Core/BAO/CustomField.php';
-        $groupTitle = 'In Kind donation fields';
-        $fieldLabel_description = 'Description of property';
-        $customFieldID_description = CRM_Core_BAO_CustomField::getCustomFieldID( $fieldLabel_description, $groupTitle );
-        $fieldLabel_appraisedby = 'Appraised by';
-        $customFieldID_appraisedby = CRM_Core_BAO_CustomField::getCustomFieldID( $fieldLabel_appraisedby, $groupTitle );
-        $fieldLabel_appraiseraddress = 'Address of Appraiser';
-        $customFieldID_appraiseraddress = CRM_Core_BAO_CustomField::getCustomFieldID( $fieldLabel_appraiseraddress, $groupTitle );
-        $fieldLabel_cost = 'Original cost';
-        $customFieldID_cost = CRM_Core_BAO_CustomField::getCustomFieldID( $fieldLabel_cost, $groupTitle );
-
-        require_once 'CRM/Core/BAO/CustomValueTable.php';
-
-        $custom_id = 'custom_' . $customFieldID_description;
-        $params = array('entityID' => $id, $custom_id => 1);
-        $values = CRM_Core_BAO_CustomValueTable::getValues($params);
-        $inkind_values['Description of Property Received'] = !empty($values[$custom_id]) ? $values[$custom_id] : 'N/A';
-
-        $custom_id = 'custom_' . $customFieldID_appraisedby;
-        $params = array('entityID' => $id, $custom_id => 1);
-        $values = CRM_Core_BAO_CustomValueTable::getValues($params);
-        $inkind_values['Fair Market Value Appraised by'] = $values[$custom_id];
-
-        $custom_id = 'custom_' . $customFieldID_appraiseraddress;
-        $params = array('entityID' => $id, $custom_id => 1);
-        $values = CRM_Core_BAO_CustomValueTable::getValues($params);
-        $inkind_values['Address of Appraiser'] = $values[$custom_id];
-
-        $custom_id = 'custom_' . $customFieldID_cost;
-        $params = array('entityID' => $id, $custom_id => 1);
-        $values = CRM_Core_BAO_CustomValueTable::getValues($params);
-        //$inkind_values['Original Cost'] = $values[$custom_id];
+      if ( stripos($fund_name_check, "inkind") !== false ) {
+        $values = CRM_Core_BAO_CustomValueTable::getValues([
+          'entityID' => $id,
+          $field_name_description => 1,
+          $field_name_appraisedby => 1,
+          $field_name_appraiseraddress => 1,
+          $field_name_cost => 1
+        ]);
 
         $contributions[$id]['inkind'] = true;
-        $contributions[$id]['inkind_values'] = $inkind_values;
-        $inkind_values = [];
+        $contributions[$id]['inkind_values'] = [
+          'Description of Property Received'  => !empty($values[$field_name_description]) ? $values[$field_name_description] : 'N/A',
+          'Fair Market Value Appraised by'    => $values[$field_name_appraisedby],
+          'Address of Appraiser'              => $values[$field_name_appraiseraddress],
+          'Original Cost'                     => $values[$field_name_cost],
+        ];
       }
+
     }
   }
   foreach ($contributions as $id => $contrib) {
     $contributions[$id]['non_deductible_amount'] = $contributions[$id]['total_amount'] - cdntaxreceipts_eligibleAmount($id);
   }
+
   return $contributions;
 }
 
@@ -451,6 +396,9 @@ function cdntaxreceipts_log_next_id() {
   return $last_id + 1;
 }
 
+// Advantage fields
+// @todo CRM-1721
+// @todo code can be moved to main extension
 function cdntaxreceipts_advantage($id, $desc = NULL, &$defaults = [], $view = FALSE) {
   $advantage = new CRM_Cdntaxreceipts_DAO_CdnAdvantage;
   $advantage->contribution_id = $id;

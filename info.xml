@@ -4,27 +4,26 @@
   <name>CDN Tax Receipts</name>
   <description>
       Creates Tax Receipts including single or annual/aggregate tax receipts, with distribution by email or print,
-      detailed reporting, press ready PDF template possible. We worked with (and continue to work with) a BDO Tax Partner
-      who has strong ties to both the NPO community and Tax Authorities (CRA).
+      detailed reporting, press ready PDF template possible. !!! Requires CanadaHelps extension version 4.16+
   </description>
   <license>AGPL</license>
   <maintainer>
-    <author>Karin Gerritsen and Jake Martin White</author>
-    <email>frontdesk@semper-it.com</email>
+    <author>CanadaHelps</author>
   </maintainer>
-  <releaseDate>2023-05-03</releaseDate>
-  <version>2.0.0</version>
+  <releaseDate>2023-07-12</releaseDate>
+  <version>1.5.1.2</version>
   <develStage>stable</develStage>
   <compatibility>
     <ver>5.49</ver>
   </compatibility>
+  <requires>
+    <ext>com.cividesk.client.canadahelps</ext>
+  </requires>
   <urls>
-    <url desc="documentation">https://github.com/jake-mw/CDNTaxReceipts/blob/master/README.md</url>
-    <url desc="Support">https://github.com/jake-mw/CDNTaxReceipts/issues?state=open</url>
+    <url desc="documentation">https://github.com/CanadaHelps/CDNTaxReceipts/blob/master/README.md</url>
   </urls>
   <comments>
-      Developed as a collaboration between Karin Gerritsen (semper-it.com), Lola Slade (freeform.ca),
-      Alan Dixon (blackflysolutions.ca) and Jake Martin White (mustardseednonprofit.ca)
+      Customized version of CDNTaxReceipts extension (https://lab.civicrm.org/extensions/cdntaxreceipts)
   </comments>
   <civix>
     <namespace>CRM/Cdntaxreceipts</namespace>
