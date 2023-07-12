@@ -91,6 +91,21 @@ AND COLUMN_NAME = 'receipt_status'");
     return TRUE;
   }
 
+  /**
+   * Update uploaded file paths to be relative instead of absolute.
+   */
+  public function upgrade_1411() {
+    $this->ctx->log->info('Applying update 1411: uploaded file paths');
+    foreach (array('receipt_logo', 'receipt_signature', 'receipt_watermark', 'receipt_pdftemplate') as $fileSettingName) {
+      $path = Civi::settings()->get($fileSettingName);
+      if (!empty($path)) {
+        Civi::settings()->set($fileSettingName, basename($path));
+      }
+    }
+    return TRUE;
+  }
+
+
   public function upgrade_1510() {
     $this->ctx->log->info('Applying update 1510: Adding gift advantage description table');
     $sql = "CREATE TABLE IF NOT EXISTS cdntaxreceipts_advantage (

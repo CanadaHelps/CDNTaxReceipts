@@ -72,8 +72,8 @@
           <p class="description">{ts domain='org.civicrm.cdntaxreceipts'}Logo size: 280x120 pixels; File types allowed: .jpg .png.{/ts}</p>
           <img id="ReceiptLogoPreview" src="#" class="preview_image" alt="receipt_logo_preview" />
           <p id="receipt_logo-error-message"></p>
-	  {if $receipt_logo}
-	      {if $receipt_logo_class}<span class="crm-error">The file {$receipt_logo} was not found</span>
+	  {if isset($receipt_logo)}
+	      {if isset($receipt_logo_class)}<span class="crm-error">The file {$receipt_logo} was not found</span>
 	      {else}<p class="label">Current {$form.receipt_logo.label}: {$receipt_logo}</p>{/if}
 	  {/if}</td>
       </tr>
@@ -83,26 +83,17 @@
           <p class="description">{ts domain='org.civicrm.cdntaxreceipts'}Signature size: 141x58 pixels; File types allowed: .jpg .png.{/ts}</p>
           <img id="ReceiptSignaturePreview" src="#" class="preview_image" alt="receipt_signatur_preview" />
           <p id="receipt_signature-error-message"></p>
-	  {if $receipt_signature}
-	      {if $receipt_signature_class}<span class="crm-error">The file {$receipt_signature} was not found</span>
+	  {if isset($receipt_signature)}
+	      {if isset($receipt_signature_class)}<span class="crm-error">The file {$receipt_signature} was not found</span>
 	      {else}<p class="label">Current {$form.receipt_signature.label}: {$receipt_signature}</p>{/if}
-	  {/if}</td>
-      </tr>
-      <tr>
-        <td class="label">{$form.receipt_watermark.label}</td>
-        <td class="content">{$form.receipt_watermark.html}
-          <p class="description">{ts domain='org.civicrm.cdntaxreceipts'}Watermark Image size: 250x250 pixels; File types allowed: .jpg .png.{/ts}</p>
-	  {if $receipt_watermark}
-	      {if $receipt_watermark_class}<span class="crm-error">The file {$receipt_watermark} was not found</span>
-	      {else}<p class="label">Current {$form.receipt_watermark.label}: {$receipt_watermark}</p>{/if}
 	  {/if}</td>
       </tr>
       <tr>
         <td class="label">{$form.receipt_pdftemplate.label}</td>
         <td class="content">{$form.receipt_pdftemplate.html}
           <p class="description">{ts domain='org.civicrm.cdntaxreceipts'}Upload your own PDF template: .pdf{/ts}</p>
-	  {if $receipt_pdftemplate}
-	      {if $receipt_pdftemplate_class}<span class="crm-error">The file {$receipt_pdftemplate} was not found</span>
+	  {if isset($receipt_pdftemplate)}
+	      {if isset($receipt_pdftemplate_class)}<span class="crm-error">The file {$receipt_pdftemplate} was not found</span>
 	      {else}<p class="label">Current {$form.receipt_pdftemplate.label}: {$receipt_pdftemplate}</p>{/if}
 	  {/if}</td>
       </tr>

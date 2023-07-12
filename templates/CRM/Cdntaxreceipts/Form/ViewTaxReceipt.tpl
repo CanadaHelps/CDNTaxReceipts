@@ -21,16 +21,16 @@ cj(document).ready(
           <td>{$receipt.issued_on|crmDate}</td>
       </tr>
       <tr>
-          <td class="label bold-weight">{ts}Issued By{/ts}</td>
-          <td>{$receipt.uname}</td>
-          <td class="label display-cell-padding bold-weight">{ts}Method{/ts}</td>
-          <td>{if $receipt.issue_method eq 'email'}{ts}Email{/ts}{elseif $receipt.issue_method eq 'print'}{ts}Print{/ts}{elseif $receipt.issue_method eq 'data'}{ts}Data{/ts}{/if}</td>
+        <td class="label bold-weight">{ts}Receipt Status{/ts}</td>
+        <td>{if $receipt.receipt_status eq 'issued'}{ts}Issued{/ts}{elseif $receipt.receipt_status eq 'cancelled'}<span class="cancelled">{ts}Cancelled{/ts}</span>{/if}</td>
+        <td class="label display-cell-padding bold-weight">{ts}Issued By{/ts}</td>
+        <td>{$receipt.uname}</td>
       </tr>
       <tr>
           <td class="label bold-weight">{ts}Type{/ts}</td>
           <td>{ts}{$receipt.display_type}{/ts}</td>
-          <td class="label display-cell-padding bold-weight">{ts}Receipt Status{/ts}</td>
-          <td>{if $receipt.receipt_status eq 'issued'}{ts}Issued{/ts}{elseif $receipt.receipt_status eq 'cancelled'}{ts}Cancelled{/ts}{/if}</td>
+          <td class="label display-cell-padding bold-weight">{ts}Method{/ts}</td>
+          <td>{if $receipt.issue_method eq 'email'}{ts}Email{/ts}{elseif $receipt.issue_method eq 'print'}{ts}Print{/ts}{elseif $receipt.issue_method eq 'data'}{ts}Data{/ts}{/if}</td>
       </tr>
       <tr>
           <td class="label bold-weight">{ts}Amount{/ts}</td>
@@ -38,6 +38,12 @@ cj(document).ready(
           <td class="label display-cell-padding bold-weight">Email Opened</td>
           <td>{$receipt.email_opened|crmDate}</td>
       </tr>
+      {if $receipt.cancelled_receipt_number}
+      <tr class="replaces">
+        <td class="label bold-weight">{ts}Cancels and Replaces Receipt No.{/ts}</td>
+        <td class="content">{$receipt.cancelled_receipt_number}</td>
+      </tr>
+      {/if}
   </table>
 </div>
 {/if}
