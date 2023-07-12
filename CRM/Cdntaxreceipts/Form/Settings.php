@@ -90,14 +90,17 @@ class CRM_Cdntaxreceipts_Form_Settings extends CRM_Core_Form {
       'org_tel',
       'org_email',
       'org_web',
-      'org_charitable_no'];
+      'org_charitable_no',
+      'receipt_prefix'];
 
     foreach($receiptSettingsFields as $field) {
-      $value = trim($params[$field]);
+      //CRM-1972: Remove trim to get the original value of receipt_prefix field
+      $value = $params[$field];
       if (!isset($value))
         $value = '';
-
-      $isValid = CRM_Canadahelps_Config_Verify::isReceiptSettingsFieldValid($field, $value, TRUE);
+      //CRM-1972: Passing $required value as receipt_prefix is not mandatory field but if it has value then it should not contain any space.
+      $required = ($field == 'receipt_prefix') ? FALSE : TRUE;
+      $isValid = CRM_Canadahelps_Config_Verify::isReceiptSettingsFieldValid($field, $value, $required);
       if ( !$isValid || is_string($isValid))
         $errors[$field] = $isValid; // isReceiptSettingsFieldValid returns error if not valid
     }
