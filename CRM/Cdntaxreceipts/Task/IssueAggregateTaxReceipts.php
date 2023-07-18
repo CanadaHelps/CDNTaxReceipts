@@ -261,7 +261,7 @@ class CRM_Cdntaxreceipts_Task_IssueAggregateTaxReceipts extends CRM_Contribute_F
 
     // 4. send the collected PDF for download
     // NB: This exits if a file is sent.
-    cdntaxreceipts_sendCollectedPDF($receiptsForPrintingPDF, 'Receipts-To-Print-' . CRM_Cdntaxreceipts_Utils_Time::time() . '.pdf');  // EXITS.
+    cdntaxreceipts_sendCollectedPDF($receiptsForPrintingPDF, CRM_Utils_File::makeFilenameWithUnicode(ts('Receipts-To-Print-%1', [1 => CRM_Cdntaxreceipts_Utils_Time::time(), 'domain' => 'org.civicrm.cdntaxreceipts'])) . '.pdf');
   }
 }
 
