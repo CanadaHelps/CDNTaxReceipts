@@ -377,6 +377,12 @@ class CRM_Cdntaxreceipts_Form_ViewTaxReceipt extends CRM_Core_Form {
           //CRM-921: Mark Contribution as thanked if checked
           if($this->getElement('thankyou_date')->getValue()) {
             $contribution->thankyou_date = date('Y-m-d H:i:s', CRM_Utils_Time::time());
+          }
+          //CRM-1959
+          $contributionReceiptDate = cdnaxreceipts_getReceiptDate($contributionId);
+          if($contributionReceiptDate && !empty($contributionReceiptDate))
+          {
+            $contribution->receipt_date = $contributionReceiptDate;
             $contribution->save();
           }
 
