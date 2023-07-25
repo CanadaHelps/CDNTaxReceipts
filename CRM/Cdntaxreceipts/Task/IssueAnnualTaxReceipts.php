@@ -274,18 +274,24 @@ class CRM_Cdntaxreceipts_Task_IssueAnnualTaxReceipts extends CRM_Contact_Form_Ta
 
         if( $ret !== 0 ) {
           //CRM-919: Mark Contribution as thanked if checked
-          if($this->getElement('thankyou_date')->getValue()) {
             foreach($contributions as $contributionIds) {
               $contribution = new CRM_Contribute_DAO_Contribution();
               $contribution->id = $contributionIds['contribution_id'];
               if ( ! $contribution->find( TRUE ) ) {
                 CRM_Core_Error::fatal( "CDNTaxReceipts: Could not find corresponding contribution id." );
               }
+              if($this->getElement('thankyou_date')->getValue()) {
               $contribution->thankyou_date = date('Y-m-d H:i:s', CRM_Utils_Time::time());
+              }
+              //CRM-1959
+              $contributionReceiptDate = cdnaxreceipts_getReceiptDate($contribution->id);
+              if($contributionReceiptDate && !empty($contributionReceiptDate))
+              {
+                $contribution->receipt_date = $contributionReceiptDate;
+              }
               $contribution->save();
             }
           }
-        }
 
         if ( $ret == 0 ) {
           $failCount++;
