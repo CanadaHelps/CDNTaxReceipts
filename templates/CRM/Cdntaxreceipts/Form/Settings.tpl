@@ -88,15 +88,6 @@
 	      {else}<p class="label">Current {$form.receipt_signature.label}: {$receipt_signature}</p>{/if}
 	  {/if}</td>
       </tr>
-      <tr>
-        <td class="label">{$form.receipt_pdftemplate.label}</td>
-        <td class="content">{$form.receipt_pdftemplate.html}
-          <p class="description">{ts domain='org.civicrm.cdntaxreceipts'}Upload your own PDF template: .pdf{/ts}</p>
-	  {if isset($receipt_pdftemplate)}
-	      {if isset($receipt_pdftemplate_class)}<span class="crm-error">The file {$receipt_pdftemplate} was not found</span>
-	      {else}<p class="label">Current {$form.receipt_pdftemplate.label}: {$receipt_pdftemplate}</p>{/if}
-	  {/if}</td>
-      </tr>
     </tbody>
   </table>
 
