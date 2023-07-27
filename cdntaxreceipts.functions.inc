@@ -15,18 +15,7 @@ require_once('FPDI/fpdi.php');
      * include a background template for every page
      */
     function Header() {
-      $pdf_template_file = _cdntaxreceipts_get_image_filepath('receipt_pdftemplate');
-      if (!empty($pdf_template_file)) {
-
-        if (is_null($this->_tplIdx)) {
-          $this->setSourceFile($pdf_template_file);
-          $this->_tplIdx = $this->importPage(1);
-        }
-        $this->useTemplate($this->_tplIdx);
-      }
-      else {
-        $this->parsers = array();
-      }
+      $this->parsers = array();
     }
 
     function Footer() {}
@@ -534,8 +523,6 @@ function _cdntaxreceipts_writeReceipt(&$pdf, $pdf_variables) {
     $pdf->Image($pdf_img_files_path . 'duplicate_trans.png', $mymargin_left + 65, $mymargin_top, '', 45);
   }
   // Top left section
-  $pdf_template_file = _cdntaxreceipts_get_image_filepath('receipt_pdftemplate');
-  if (empty($pdf_template_file)) {
     $receipt_logo = _cdntaxreceipts_get_image_filepath('receipt_logo');
     if ( empty($receipt_logo) ) {
       $receipt_logo = $pdf_img_files_path . 'your-logo.png';
@@ -570,18 +557,14 @@ function _cdntaxreceipts_writeReceipt(&$pdf, $pdf_variables) {
     $pdf->Write(10, $emailTxt, '', 0, 'R', TRUE, 0, FALSE, FALSE, 0);
     $pdf->SetY($mymargin_top + 20);
     $pdf->Write(10, $registrationTxt, '', 0, 'R', TRUE, 0, FALSE, FALSE, 0);
-  }
 
   // Right section
   $x_detailscolumn = 116;
   $y_detailscolumnstart = 22;
-  $pdf_template_file = _cdntaxreceipts_get_image_filepath('receipt_pdftemplate');
-  if (empty($pdf_template_file)) {
     $background_image = _cdntaxreceipts_get_image_filepath('receipt_watermark');
     if ($background_image) {
       $pdf->Image($background_image, $mymargin_left + $x_detailscolumn, $mymargin_top + $y_detailscolumnstart + 6, '', 40);
     }
-  }
   $pdf->SetXY($mymargin_left + $x_detailscolumn, $mymargin_top + $y_detailscolumnstart + 6);
   $pdf->SetFont('Helvetica', 'B', 8);
   $pdf->Write(10, ts("Issue Date: %1", array(1 => $issued_on, 'domain' => 'org.civicrm.cdntaxreceipts')));
