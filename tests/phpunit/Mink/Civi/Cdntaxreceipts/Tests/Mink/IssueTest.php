@@ -30,6 +30,10 @@ class IssueTest extends CdntaxreceiptsBase {
     $this->drupalGet(\CRM_Utils_System::url("civicrm/contact/view/contribution", "reset=1&id={$contribution['id']}&cid={$this->contact['id']}&action=view", TRUE, NULL, FALSE));
     $this->assertPageHasNoErrorMessages();
 
+    // There's been ongoing intermittent fails, more often since drupal 10. See
+    // if this helps.
+    $this->assertSession()->waitForElementVisible('css', '.crm-button_qf_ContributionView_submit_issue_tax_receipt');
+
     // click the tax receipt button
     $this->getSession()->getPage()->pressButton('Tax Receipt');
     $this->assertSession()->pageTextContains('A tax receipt has not been issued for this contribution.');
