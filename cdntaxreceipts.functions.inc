@@ -464,27 +464,27 @@ function _cdntaxreceipts_writeReceipt(&$pdf, $pdf_variables) {
   $pdf->Write(10, ts("Received from: ", array('domain' => 'org.civicrm.cdntaxreceipts')), '', 0, 'L', TRUE, 0, FALSE, FALSE, 0);
   $pdf->SetFont('Helvetica', 'B', 10);
   $pdf->SetXY($mymargin_left+10, $mymargin_top + $y_detailscolumnstart + 20);
-  $pdf->Write(10, strtoupper($displayname), '', 0, 'L', TRUE, 0, FALSE, FALSE, 0);
+  $pdf->Write(10, mb_strtoupper($displayname), '', 0, 'L', TRUE, 0, FALSE, FALSE, 0);
 
   if (!$address_line_1b){
     $pdf->SetFont('Helvetica', '', 10);
     $pdf->SetXY($mymargin_left+10, $mymargin_top + $y_detailscolumnstart + 24);
-    $pdf->Write(10, strtoupper($address_line_1), '', 0, 'L', TRUE, 0, FALSE, FALSE, 0);
+    $pdf->Write(10, mb_strtoupper($address_line_1), '', 0, 'L', TRUE, 0, FALSE, FALSE, 0);
     $pdf->SetXY($mymargin_left+10, $mymargin_top + $y_detailscolumnstart + 28);
-    $pdf->Write(10, strtoupper($address_line_2), '', 0, 'L', TRUE, 0, FALSE, FALSE, 0);
+    $pdf->Write(10, mb_strtoupper($address_line_2), '', 0, 'L', TRUE, 0, FALSE, FALSE, 0);
     $pdf->SetXY($mymargin_left+10, $mymargin_top + $y_detailscolumnstart + 32);
-    $pdf->Write(10, strtoupper($address_line_3), '', 0, 'L', TRUE, 0, FALSE, FALSE, 0);
+    $pdf->Write(10, mb_strtoupper($address_line_3), '', 0, 'L', TRUE, 0, FALSE, FALSE, 0);
   }
   else {
     $pdf->SetFont('Helvetica', '', 10);
     $pdf->SetXY($mymargin_left+10, $mymargin_top + $y_detailscolumnstart + 24);
-    $pdf->Write(10, strtoupper($address_line_1), '', 0, 'L', TRUE, 0, FALSE, FALSE, 0);
+    $pdf->Write(10, mb_strtoupper($address_line_1), '', 0, 'L', TRUE, 0, FALSE, FALSE, 0);
     $pdf->SetXY($mymargin_left+10, $mymargin_top + $y_detailscolumnstart + 28);
-    $pdf->Write(10, strtoupper($address_line_1b), '', 0, 'L', TRUE, 0, FALSE, FALSE, 0);
+    $pdf->Write(10, mb_strtoupper($address_line_1b), '', 0, 'L', TRUE, 0, FALSE, FALSE, 0);
     $pdf->SetXY($mymargin_left+10, $mymargin_top + $y_detailscolumnstart + 32);
-    $pdf->Write(10, strtoupper($address_line_2), '', 0, 'L', TRUE, 0, FALSE, FALSE, 0);
+    $pdf->Write(10, mb_strtoupper($address_line_2), '', 0, 'L', TRUE, 0, FALSE, FALSE, 0);
     $pdf->SetXY($mymargin_left+10, $mymargin_top + $y_detailscolumnstart + 36);
-    $pdf->Write(10, strtoupper($address_line_3), '', 0, 'L', TRUE, 0, FALSE, FALSE, 0);
+    $pdf->Write(10, mb_strtoupper($address_line_3), '', 0, 'L', TRUE, 0, FALSE, FALSE, 0);
   }
 
   $valueAdvantage = ts('Value of advantage:');

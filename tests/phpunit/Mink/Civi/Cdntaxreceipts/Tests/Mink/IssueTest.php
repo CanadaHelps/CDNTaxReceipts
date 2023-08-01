@@ -23,6 +23,7 @@ class IssueTest extends CdntaxreceiptsBase {
       'contact_id' => $this->contact['id'],
       'financial_type_id' => 'Donation',
       'total_amount' => '10',
+      'receive_date' => date('Y-m-d H:i:s', \CRM_Cdntaxreceipts_Utils_Time::time()),
     ]);
 
     // view the contribution
@@ -44,7 +45,6 @@ class IssueTest extends CdntaxreceiptsBase {
       $this->getSession()->getPage()->checkField('printOverride');
     }
 
-    $this->getSession()->getPage()->pressButton('_qf_ViewTaxReceipt_next-bottom');
     $this->getSession()->getPage()->pressButton('_qf_ViewTaxReceipt_next-bottom');
     $this->assertSession()->pageTextContains("C-0000000{$contribution['id']}");
     $this->assertSession()->pageTextContains('Re-Issue Tax Receipt');
@@ -81,6 +81,36 @@ class IssueTest extends CdntaxreceiptsBase {
     $this->setDeliveryMethod(CDNTAX_DELIVERY_PRINT_EMAIL);
     $this->testIssueTaxReceipt(TRUE);
     $this->assertNotNull($this->getSession()->getPage()->find('css', '.crm-info-panel tbody tr td:contains("Print")'));
+  }
+
+  /**
+   * Similar but with accented characters.
+   * Maybe should expand this to test switching language to french and checking
+   * some other things?
+   */
+  public function testIssueTaxReceiptAccentedCharacters() {
+    $mock_time = '2023-01-02 10:11:12';
+    \CRM_Cdntaxreceipts_Utils_Time::setTime($mock_time);
+
+    $oldContact = $this->contact;
+    $this->contact = $this->createContact(0, ['first_name' => 'Pièrre', 'last_name' => 'Garçon']);
+    \Civi\Api4\Address::create(FALSE)
+      ->setValues([
+        'contact_id' => $this->contact['id'],
+        'street_address' => '123 Rue Noël',
+        'city' => 'Montréal',
+        'state_province_id:name' => 'Quebec',
+        'country_id:name' => 'CA',
+      ])
+      ->execute();
+
+    $this->setDeliveryMethod(CDNTAX_DELIVERY_PRINT_ONLY);
+    $this->testIssueTaxReceipt();
+
+    $this->assertExpectedPDF(__CLASS__, __FUNCTION__, 'Receipt-C-00000001-Pièrre_Garçon.pdf');
+
+    \CRM_Cdntaxreceipts_Utils_Time::reset();
+    $this->contact = $oldContact;
   }
 
 }
