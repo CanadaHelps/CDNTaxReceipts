@@ -359,6 +359,14 @@ class CRM_Cdntaxreceipts_Task_IssueAggregateTaxReceipts extends CRM_Contribute_F
         }
         if ( cdntaxreceipts_eligibleForReceipt($contribution->id) ) {
           list($issued_on, $receipt_id) = cdntaxreceipts_issued_on($contribution->id);
+          //CRM-1990-Receipt not getting replaced for a cancelled In Kind donation through Aggregate Tax Receipt method
+          // check if most recent is cancelled, and mark as "replace"
+          $cancelledInKindReceipt = CRM_Canadahelps_TaxReceipts_Receipt::receiptNumber($contribution->id, true);
+          if ($cancelledInKindReceipt[0] != NULL && $receipt_id == $cancelledInKindReceipt[1]) {
+            $contribution->cancelled_replace_receipt_number  = $cancelledInKindReceipt[0];
+            $contribution->replace_receipt  = 1;
+            $issued_on = '';
+          }
           if ( empty($issued_on) || ! $originalOnly ) {
 
             //CRM-920: Thank-you Email Tool
