@@ -228,29 +228,18 @@ class CRM_Cdntaxreceipts_Task_IssueSingleTaxReceipts extends CRM_Contribute_Form
         list($issued_on, $receipt_id) = cdntaxreceipts_issued_on($contribution->id);
 
         // check if most recent is cancelled, and mark as "replace"
-        $cancelledReceipt = CRM_Canadahelps_TaxReceipts_Receipt::receiptNumber($contribution->id, true);
+        $cancelledReceipt = CRM_Canadahelps_TaxReceipts_Receipt::retrieveReceiptDetails($contribution->id, true);
         if ($cancelledReceipt[0] != NULL && $receipt_id == $cancelledReceipt[1]) {
-          if (isset($receipt_id)) {
-            $existingReceipt = cdntaxreceipts_load_receipt($receipt_id);
-            if ($existingReceipt['receipt_status'] == 'cancelled' && $existingReceipt['issue_type'] == 'aggregate') {
-              //CRM-1993 Able to generate two or more different receipts that replaces the same old one
-              $aggregatedReceiptContributionList = array_column($existingReceipt['contributions'],'contribution_id');
-              //CRM-1993 if aggregate receipt has only single contribution in that case for issuing seperate or manage receipt 'cancel and replace receipt number' text should be visible.
-              if(count($aggregatedReceiptContributionList) == 1 && $aggregatedReceiptContributionList[0] == $contribution->id )
-              {
-                $contribution->cancelled_replace_receipt_number  = $cancelledReceipt[0];
-                $contribution->replace_receipt  = 1;
-                $issued_on = '';
-              }else{
-                $contribution->replace_receipt  = 1;
-                $issued_on = '';
-              }    
-            }else{
-              $contribution->cancelled_replace_receipt_number  = $cancelledReceipt[0];
-              $contribution->replace_receipt  = 1;
-              $issued_on = '';
-            }
+          if ($cancelledReceipt[2] == 'cancelled' && $cancelledReceipt[4] == 'aggregate') {
+            $cancelledReceiptContribIds = $cancelledReceipt[3];
+             //CRM-1993 if aggregate receipt has only single contribution in that case for issuing seperate or manage receipt 'cancel and replace receipt number' text should be visible.
+             if(count($cancelledReceiptContribIds) == 1 && $cancelledReceiptContribIds[0] == $contribution->id )
+             $contribution->cancelled_replace_receipt_number  = $cancelledReceipt[0];
+           }else{
+            $contribution->cancelled_replace_receipt_number  = $cancelledReceipt[0];
           }
+          $contribution->replace_receipt  = 1;
+          $issued_on = '';
         }
         if ( empty($issued_on) || ! $originalOnly ) {
           //CRM-920: Thank-you Email Tool
