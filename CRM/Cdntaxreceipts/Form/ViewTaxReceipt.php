@@ -54,7 +54,7 @@ class CRM_Cdntaxreceipts_Form_ViewTaxReceipt extends CRM_Core_Form {
 
       //CRM-1821 Show replaced receipt info on the Tax Receipt details page after receipt being replaced successfully
       if ($existingReceipt['receipt_status'] == 'issued') {
-        list($receipt_number, $receipt_id) = CRM_Canadahelps_TaxReceipts_Receipt::receiptNumber($contributionId,TRUE);
+        list($receipt_number, $receipt_id) = CRM_Canadahelps_TaxReceipts_Receipt::retrieveReceiptDetails($contributionId,TRUE);
         if(isset($receipt_number))
         $existingReceipt['cancelled_receipt_number'] = $receipt_number;
       }
@@ -286,24 +286,16 @@ class CRM_Cdntaxreceipts_Form_ViewTaxReceipt extends CRM_Core_Form {
 
     //CRM-1820 Once the receipt has been cancelled and user wants to preview or issue "Replace Receipt"
     if ($this->_reissue && $this->_isCancelled && ($buttonName == '_qf_ViewTaxReceipt_submit' || $buttonName == '_qf_ViewTaxReceipt_next')){
-      list($receipt_number, $receipt_id) = CRM_Canadahelps_TaxReceipts_Receipt::receiptNumber($contribution->id,TRUE);
+      list($receipt_number, $receipt_id,$receipt_status,$cancelledReceiptContribIds,$receipt_issue_type) = CRM_Canadahelps_TaxReceipts_Receipt::retrieveReceiptDetails($contribution->id,TRUE);
        //CRM-1977 if receipt status is 'cancelled' and receipt type is aggregated
-      list($issuedOn, $receiptId) = cdntaxreceipts_issued_on($contribution->id);
-      $existingReceipt = cdntaxreceipts_load_receipt($receipt_id);
-      if ($existingReceipt['receipt_status'] == 'cancelled' && $existingReceipt['issue_type'] == 'aggregate') {
-        $aggregatedReceiptContributionList = array_column($existingReceipt['contributions'],'contribution_id');
+      if ($receipt_status == 'cancelled' && $receipt_issue_type == 'aggregate') {
         //CRM-1993 if aggregate receipt has only single contribution in that case for issuing seperate or manage receipt 'cancel and replace receipt number' text should be visible.
-        if(count($aggregatedReceiptContributionList) == 1 && $aggregatedReceiptContributionList[0] == $contribution->id )
-        {
-          $contribution->cancelled_replace_receipt_number  = $receipt_number;
-          $contribution->replace_receipt  = 1;
-        }else{
-          $contribution->replace_receipt  = 1;
-        }  
-      }else{
+        if(count($cancelledReceiptContribIds) == 1 && $cancelledReceiptContribIds[0] == $contribution->id )
         $contribution->cancelled_replace_receipt_number  = $receipt_number;
-        $contribution->replace_receipt  = 1;
+      }else{
+        $contribution->cancelled_replace_receipt_number  = $receipt_number; 
       }   
+      $contribution->replace_receipt  = 1;
     }
     
     // If we are cancelling the tax receipt (or preview)
