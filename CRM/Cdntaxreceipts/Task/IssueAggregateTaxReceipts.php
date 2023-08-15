@@ -279,9 +279,26 @@ class CRM_Cdntaxreceipts_Task_IssueAggregateTaxReceipts extends CRM_Contribute_F
         //To Replace receipt we need to add extra parameters to contribution array
         $cancelledReceipt = CRM_Canadahelps_TaxReceipts_Receipt::receiptNumber($contri['contribution_id'], true);
         if ($cancelledReceipt[0] != NULL && $contri['receipt_id'] == $cancelledReceipt[1]) {
-          $contributions[$k]['cancelled_replace_receipt_number']  = $cancelledReceipt[0];
-          $contributions[$k]['replace_receipt']  = 1;
-          $contributions[$k]['receipt_id']  = 0;
+          //CRM-1977 start
+          $existingReceipt = cdntaxreceipts_load_receipt($contri['receipt_id']);
+          if ($existingReceipt['receipt_status'] == 'cancelled' && $existingReceipt['issue_type'] == 'aggregate') {
+              $aggregatedReceiptContributionList = array_column($existingReceipt['contributions'],'contribution_id');
+              $originalContributionList = array_column($contributions,'contribution_id');
+              sort($originalContributionList);
+              sort($aggregatedReceiptContributionList);
+              if (empty(array_diff($aggregatedReceiptContributionList, $originalContributionList))) {
+                $contributions[$k]['cancelled_replace_receipt_number']  = $cancelledReceipt[0];
+                $contributions[$k]['replace_receipt']  = 1;
+                $contributions[$k]['receipt_id']  = 0;
+              } else {
+                $contributions[$k]['replace_receipt']  = 1;
+                $contributions[$k]['receipt_id']  = 0;
+              }
+            }else{
+              $contributions[$k]['cancelled_replace_receipt_number']  = $cancelledReceipt[0];
+              $contributions[$k]['replace_receipt']  = 1;
+              $contributions[$k]['receipt_id']  = 0;
+            }
         }
       }
       // $method = $contribution_status['issue_method'];

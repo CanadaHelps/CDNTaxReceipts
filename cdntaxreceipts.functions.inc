@@ -946,6 +946,8 @@ function cdntaxreceipts_issueTaxReceipt($contribution, &$collectedPdf = NULL, $m
 
   // CRM-1820 While replacing a receipt, passing receipt number
   if ($is_replaced) {
+    //CRM-1993 , CRM-1977 If we get cancelled receipt number value only
+    if($contribution->cancelled_replace_receipt_number)
     $receipt['cancelled_replace_receipt_number'] = $contribution->cancelled_replace_receipt_number;
     $receipt['is_replaced'] = 1;
   }
@@ -1317,8 +1319,9 @@ function cdntaxreceipts_issueAggregateTaxReceipt($contactId, $year, $contributio
   }
   // CRM-1820 While replacing a receipt, passing receipt number
   if ($is_replaced) {
-    $receipt['cancelled_replace_receipt_number'] = 
-    $cancelled_replace_receipt_number;
+     //CRM-1993 , CRM-1977 If we get cancelled receipt number value only
+    if($cancelled_replace_receipt_number)
+    $receipt['cancelled_replace_receipt_number'] = $cancelled_replace_receipt_number;
     $receipt['is_replaced'] = 1;
   }
 
