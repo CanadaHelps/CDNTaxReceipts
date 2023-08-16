@@ -228,7 +228,7 @@ class CRM_Cdntaxreceipts_Task_IssueSingleTaxReceipts extends CRM_Contribute_Form
         list($issued_on, $receipt_id) = cdntaxreceipts_issued_on($contribution->id);
 
         // check if most recent is cancelled, and mark as "replace"
-        $cancelledReceipt = CRM_Canadahelps_TaxReceipts_Receipt::receiptNumber($contribution->id, true);
+        $cancelledReceipt = CRM_Canadahelps_TaxReceipts_Receipt::retrieveReceiptDetails($contribution->id, true);
         if ($cancelledReceipt[0] != NULL && $receipt_id == $cancelledReceipt[1]) {
           $contribution->cancelled_replace_receipt_number  = $cancelledReceipt[0];
           $contribution->replace_receipt  = 1;
