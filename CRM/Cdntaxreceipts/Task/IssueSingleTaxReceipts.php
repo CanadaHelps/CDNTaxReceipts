@@ -395,6 +395,11 @@ class CRM_Cdntaxreceipts_Task_IssueSingleTaxReceipts extends CRM_Contribute_Form
           if (!empty($result['ineligible_reason'])) {
             $result['eligibility_reason'] = '('.$result['ineligible_reason'].')';
             switch ($result['ineligible_reason']) {
+               //CRM-2005
+              case 'Non Deductible Amount':
+                $result['eligibility_fix'] = "Advantage amount is 100% of contribution.";
+                break;
+
               case 'Incomplete Address':
                 $result['eligibility_fix'] = "The donor's address is required. Please <a href=\"/dms/contact/view?reset=1&cid=$contact_id\">update</a> to issue a tax receipt.";
                 break;
