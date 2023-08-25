@@ -99,7 +99,6 @@ function cdntaxreceipts_processTaxReceipt($receipt, &$collectedPdf = NULL, $mode
     $customReceipt->setMode( ($mode === true || $mode == CDNTAXRECEIPTS_MODE_PREVIEW) ? CDNTAXRECEIPTS_MODE_PREVIEW : CDNTAXRECEIPTS_MODE_BACKOFFICE ); // fixing weird stuff from extension code where $mode is mixed and passed TRUE/FALSE ( > $mode == CDNTAXRECEIPTS_MODE_PREVIEW ==> true, but $mode === CDNTAXRECEIPTS_MODE_PREVIEW ==> false)
     if ( $collectedPdf != NULL )
       $customReceipt->setCollectedPDF($collectedPdf);
-    $customReceipt->setUploadDir(CRM_Core_Config::singleton()->uploadDir);
     $customReceipt->setDefaultImagesDir( dirname(__FILE__) . '/img/' );
     $customReceipt->setFontsDir( dirname(__FILE__) . '/fonts/' );
     //CRM-1864 if there is some issue in generatePDF then system will terminate receipt generation
@@ -277,7 +276,6 @@ function cdnaxreceipts_manageVoidPDF($receipt_id,$contributionId)
    $receipt = cdntaxreceipts_load_receipt($receipt_id);
    $customReceipt = new CRM_Canadahelps_TaxReceipts_Receipt($receipt['receipt_no'], $receipt);
    $customReceipt->setMode(CDNTAXRECEIPTS_MODE_BACKOFFICE );
-   $customReceipt->setUploadDir(CRM_Core_Config::singleton()->uploadDir);
    $customReceipt->setDefaultImagesDir( dirname(__FILE__) . '/img/' );
    $customReceipt->setFontsDir( dirname(__FILE__) . '/fonts/' );
    $customReceipt->generatePDF(); // this should create the original pdf - to be confirmed
