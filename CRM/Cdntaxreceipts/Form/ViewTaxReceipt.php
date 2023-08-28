@@ -26,6 +26,20 @@ class CRM_Cdntaxreceipts_Form_ViewTaxReceipt extends CRM_Core_Form {
     parent::preProcess();
     $contributionId = CRM_Utils_Array::value('id', $_GET);
     $contactId = CRM_Utils_Array::value('cid', $_GET);
+    //CRM-1997 when two contacts get merged, for contribution whose contact got merged to another contact was identifying old deleted contactID
+    if(CRM_Canadahelps_ExtensionUtils::isContactDeleted($contactId))
+    {
+      $contribution = civicrm_api4('Contribution', 'get', [
+        'select' => [
+          'contact_id',
+        ],
+        'where' => [
+          ['id', '=', $contributionId],
+        ],
+      ]);
+      if(isset($contribution[0]['contact_id']))
+      $contactId = $contribution[0]['contact_id'];
+    }
 
     if ( isset($contributionId) && isset($contactId) ) {
       $this->set('contribution_id', $contributionId);
