@@ -282,7 +282,10 @@ class CRM_Cdntaxreceipts_Task_IssueAggregateTaxReceipts extends CRM_Contribute_F
           //CRM-1977
               $cancelledReceiptContribIds = $cancelledReceipt[3];
               $receiptContribIds = array_column($contributions,'contribution_id');
-              if (empty(array_diff($cancelledReceiptContribIds, $receiptContribIds))) {
+              //CRM-1977-1-If Cancelled contribution Receipt List exactly matches with List of contributions List in that case only add 'cancelled_replace_receipt_number'
+              sort($receiptContribIds);
+              sort($cancelledReceiptContribIds);
+              if ($receiptContribIds === $cancelledReceiptContribIds){
                 $contributions[$k]['cancelled_replace_receipt_number']  = $cancelledReceipt[0];
               } 
               $contributions[$k]['replace_receipt']  = 1;
