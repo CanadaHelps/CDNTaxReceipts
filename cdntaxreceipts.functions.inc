@@ -852,10 +852,6 @@ function cdntaxreceipts_issueTaxReceipt($contribution, &$collectedPdf = NULL, $m
   // determine the send method
   list($method, $email) = cdntaxreceipts_sendMethodForContact($contribution->contact_id);
 
-  // Cancelled receipts are not sent via email
-  if ($is_duplicate && $receipt['receipt_status'] == 'cancelled' && $method != 'data') {
-    $method = 'print';
-  }
  // set method to print if user wants to download
   if($is_duplicate && isset($contribution->pdfDownloadReceipt) && $method != 'data'){
     $method = 'print';
