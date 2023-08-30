@@ -228,9 +228,16 @@ class CRM_Cdntaxreceipts_Task_IssueSingleTaxReceipts extends CRM_Contribute_Form
         list($issued_on, $receipt_id) = cdntaxreceipts_issued_on($contribution->id);
 
         // check if most recent is cancelled, and mark as "replace"
-        $cancelledReceipt = CRM_Canadahelps_TaxReceipts_Receipt::receiptNumber($contribution->id, true);
+        $cancelledReceipt = CRM_Canadahelps_TaxReceipts_Receipt::retrieveReceiptDetails($contribution->id, true);
         if ($cancelledReceipt[0] != NULL && $receipt_id == $cancelledReceipt[1]) {
-          $contribution->cancelled_replace_receipt_number  = $cancelledReceipt[0];
+          if ($cancelledReceipt[2] == 'cancelled' && $cancelledReceipt[4] == 'aggregate') {
+            $cancelledReceiptContribIds = $cancelledReceipt[3];
+             //CRM-1993 if aggregate receipt has only single contribution in that case for issuing seperate or manage receipt 'cancel and replace receipt number' text should be visible.
+             if(count($cancelledReceiptContribIds) == 1 && $cancelledReceiptContribIds[0] == $contribution->id )
+             $contribution->cancelled_replace_receipt_number  = $cancelledReceipt[0];
+           }else{
+            $contribution->cancelled_replace_receipt_number  = $cancelledReceipt[0];
+          }
           $contribution->replace_receipt  = 1;
           $issued_on = '';
         }
@@ -388,6 +395,11 @@ class CRM_Cdntaxreceipts_Task_IssueSingleTaxReceipts extends CRM_Contribute_Form
           if (!empty($result['ineligible_reason'])) {
             $result['eligibility_reason'] = '('.$result['ineligible_reason'].')';
             switch ($result['ineligible_reason']) {
+               //CRM-2005
+              case 'Non Deductible Amount':
+                $result['eligibility_fix'] = "Advantage amount is 100% of contribution.";
+                break;
+
               case 'Incomplete Address':
                 $result['eligibility_fix'] = "The donor's address is required. Please <a href=\"/dms/contact/view?reset=1&cid=$contact_id\">update</a> to issue a tax receipt.";
                 break;

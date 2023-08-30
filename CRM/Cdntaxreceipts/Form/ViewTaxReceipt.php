@@ -26,6 +26,20 @@ class CRM_Cdntaxreceipts_Form_ViewTaxReceipt extends CRM_Core_Form {
     parent::preProcess();
     $contributionId = CRM_Utils_Array::value('id', $_GET);
     $contactId = CRM_Utils_Array::value('cid', $_GET);
+    //CRM-1997 when two contacts get merged, for contribution whose contact got merged to another contact was identifying old deleted contactID
+    if(CRM_Canadahelps_ExtensionUtils::isContactDeleted($contactId))
+    {
+      $contribution = civicrm_api4('Contribution', 'get', [
+        'select' => [
+          'contact_id',
+        ],
+        'where' => [
+          ['id', '=', $contributionId],
+        ],
+      ]);
+      if(isset($contribution[0]['contact_id']))
+      $contactId = $contribution[0]['contact_id'];
+    }
 
     if ( isset($contributionId) && isset($contactId) ) {
       $this->set('contribution_id', $contributionId);
@@ -54,7 +68,7 @@ class CRM_Cdntaxreceipts_Form_ViewTaxReceipt extends CRM_Core_Form {
 
       //CRM-1821 Show replaced receipt info on the Tax Receipt details page after receipt being replaced successfully
       if ($existingReceipt['receipt_status'] == 'issued') {
-        list($receipt_number, $receipt_id) = CRM_Canadahelps_TaxReceipts_Receipt::receiptNumber($contributionId,TRUE);
+        list($receipt_number, $receipt_id) = CRM_Canadahelps_TaxReceipts_Receipt::retrieveReceiptDetails($contributionId,TRUE);
         if(isset($receipt_number))
         $existingReceipt['cancelled_receipt_number'] = $receipt_number;
       }
@@ -286,8 +300,15 @@ class CRM_Cdntaxreceipts_Form_ViewTaxReceipt extends CRM_Core_Form {
 
     //CRM-1820 Once the receipt has been cancelled and user wants to preview or issue "Replace Receipt"
     if ($this->_reissue && $this->_isCancelled && ($buttonName == '_qf_ViewTaxReceipt_submit' || $buttonName == '_qf_ViewTaxReceipt_next')){
-      list($receipt_number, $receipt_id) = CRM_Canadahelps_TaxReceipts_Receipt::receiptNumber($contribution->id,TRUE);
-      $contribution->cancelled_replace_receipt_number  = $receipt_number;
+      list($receipt_number, $receipt_id,$receipt_status,$cancelledReceiptContribIds,$receipt_issue_type) = CRM_Canadahelps_TaxReceipts_Receipt::retrieveReceiptDetails($contribution->id,TRUE);
+       //CRM-1977 if receipt status is 'cancelled' and receipt type is aggregated
+      if ($receipt_status == 'cancelled' && $receipt_issue_type == 'aggregate') {
+        //CRM-1993 if aggregate receipt has only single contribution in that case for issuing seperate or manage receipt 'cancel and replace receipt number' text should be visible.
+        if(count($cancelledReceiptContribIds) == 1 && $cancelledReceiptContribIds[0] == $contribution->id )
+        $contribution->cancelled_replace_receipt_number  = $receipt_number;
+      }else{
+        $contribution->cancelled_replace_receipt_number  = $receipt_number; 
+      }   
       $contribution->replace_receipt  = 1;
     }
     
