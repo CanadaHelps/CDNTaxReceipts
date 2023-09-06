@@ -274,6 +274,12 @@ function cdnaxreceipts_manageVoidPDF($receipt_id,$contributionId)
 
    $mode = NULL;
    $receipt = cdntaxreceipts_load_receipt($receipt_id);
+   //CRM-2051-When we generate void receipt for contribution , receipt does not exist on server at that time following paramaters are missing from receipt object
+   if(isset($receipt['receipt_amount'])&& isset($receipt['contributions'][0]['receive_date']))
+   {
+    $receipt['contribution_amount'] = $receipt['receipt_amount'];
+    $receipt['receive_date'] = $receipt['contributions'][0]['receive_date'];
+  }
    $customReceipt = new CRM_Canadahelps_TaxReceipts_Receipt($receipt['receipt_no'], $receipt);
    $customReceipt->setMode(CDNTAXRECEIPTS_MODE_BACKOFFICE );
    $customReceipt->setDefaultImagesDir( dirname(__FILE__) . '/img/' );
@@ -821,29 +827,29 @@ function cdntaxreceipts_issueTaxReceipt($contribution, &$collectedPdf = NULL, $m
   $is_replaced =  isset($contribution->replace_receipt)? 1 : 0;
   if ( $is_duplicate ) {
     // if this was issued as part of an annual receipt, then jump over to the Annual method
-    $receipt = cdntaxreceipts_load_receipt($receipt_id);
-    if ( $receipt['issue_type'] == 'annual' ) {
-      $contactId = $receipt['contact_id'];
-      $year = substr($receipt['contributions'][0]['receive_date'], 0, 4);
+    $receiptInfo = cdntaxreceipts_load_receipt($receipt_id);
+    if ( $receiptInfo['issue_type'] == 'annual' ) {
+      $contactId = $receiptInfo['contact_id'];
+      $year = substr($receiptInfo['contributions'][0]['receive_date'], 0, 4);
       //CRM-1822 Adding last parameter to identify cancelled receipt_id for download
       $receiptCancelId = (isset($contribution->previewCancelReceiptId))?? $contribution->previewCancelReceiptId;
       return cdntaxreceipts_issueAnnualTaxReceipt($contactId, $year, $collectedPdf, $mode, NULL, $receiptCancelId);
     }
-    else if ( $receipt['issue_type'] == 'aggregate' ) {
-      $contactId = $receipt['contact_id'];
-      $year = substr($receipt['contributions'][0]['receive_date'], 0, 4);
+    else if ( $receiptInfo['issue_type'] == 'aggregate' ) {
+      $contactId = $receiptInfo['contact_id'];
+      $year = substr($receiptInfo['contributions'][0]['receive_date'], 0, 4);
       list($method, $email) = cdntaxreceipts_sendMethodForContact($contactId);
       if(isset($contribution->previewCancelReceiptId)){
-        foreach($receipt['contributions'] as $key => $value){
-          $receipt['contributions'][$key]['receipt_id'] = $receipt_id;
+        foreach($receiptInfo['contributions'] as $key => $value){
+          $receiptInfo['contributions'][$key]['receipt_id'] = $receipt_id;
         }
       }
       $thankyou_html = (isset($contribution->thankyou_html)) ? $contribution->thankyou_html : NULL;
-      return cdntaxreceipts_issueAggregateTaxReceipt($contactId, $year, $receipt['contributions'],
+      return cdntaxreceipts_issueAggregateTaxReceipt($contactId, $year, $receiptInfo['contributions'],
         $method, $collectedPdf, $mode, $thankyou_html);
     }
     // be sure I'm not changing the receipt number
-    $receipt_no = $receipt['receipt_no'];
+    $receipt_no = $receiptInfo['receipt_no'];
   }
   else { // generate a receipt number
     $receipt_no = Civi::settings()->get('receipt_prefix') . str_pad($contribution->id, 8, 0, STR_PAD_LEFT);
@@ -903,7 +909,7 @@ function cdntaxreceipts_issueTaxReceipt($contribution, &$collectedPdf = NULL, $m
     $values = CRM_Core_BAO_CustomValueTable::getValues($params);
     $inkind_values[] = $values[$custom_id];
   }
-
+  //CRM-2051
   // Get description advantage field
   cdntaxreceipts_advantage($contribution->id, NULL, $advantage, TRUE);
   $receipt = array(
@@ -911,14 +917,14 @@ function cdntaxreceipts_issueTaxReceipt($contribution, &$collectedPdf = NULL, $m
     'issued_on' => CRM_Cdntaxreceipts_Utils_Time::time(),
     'location_issued' => _cdntaxreceipts_get_location(),
     'contact_id' => $contribution->contact_id,
-    'receipt_amount' => cdntaxreceipts_eligibleAmount($contribution->id),
-    'contribution_amount' => $contribution->total_amount,
+    'receipt_amount' => (($is_duplicate && isset($receiptInfo)) ) ?$receiptInfo['receipt_amount'] :cdntaxreceipts_eligibleAmount($contribution->id),
+    'contribution_amount' => (($is_duplicate && isset($receiptInfo))) ?$receiptInfo['receipt_amount'] :$contribution->total_amount,
     'is_duplicate' => $is_duplicate,
     'issue_type' => 'single',
     'issue_method' => $method,
     'receive_date' => $contribution->receive_date,
     'inkind_values' => $inkind_values,
-    'receipt_status' => ($is_duplicate && isset($receipt)) ? $receipt['receipt_status'] : 'issued',
+    'receipt_status' => ($is_duplicate && isset($receiptInfo)) ? $receiptInfo['receipt_status'] : 'issued',
     'email_tracking_id' => md5(uniqid(rand(), TRUE)),
     'source' => _cdntaxreceipts_get_contribution_source($contribution),
     'advantage_description' => CRM_Utils_Array::value('advantage_description', $advantage, NULL),
@@ -930,7 +936,7 @@ function cdntaxreceipts_issueTaxReceipt($contribution, &$collectedPdf = NULL, $m
   $receipt['contributions'] = array(
     array(
       'contribution_id' => $contribution->id,
-      'contribution_amount' => $contribution->total_amount,
+      'contribution_amount' => (($is_duplicate && isset($receiptInfo))) ?$receiptInfo['receipt_amount'] :$contribution->total_amount,
       'receipt_amount' => $receipt['receipt_amount'],
       'receive_date' => $contribution->receive_date,
       'advantage_description' => CRM_Utils_Array::value('advantage_description', $advantage, NULL),
