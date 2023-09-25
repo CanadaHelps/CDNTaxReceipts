@@ -1800,7 +1800,7 @@ function _cdntaxreceipts_get_image_filepath($imageSettingName) {
   $fileName = Civi::settings()->get($imageSettingName);
   if ($fileName) {
     //CRM-1861 checking if existing receipt signature, logo and watermark have diffrent extension then .png,.jpg,.jpeg
-    $ext = pathinfo($fileName, PATHINFO_EXTENSION);
+    $ext = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
     $allowed = ['png', 'jpg', 'jpeg'];
     //mime type verification when image is getting added to PDF
     $allowedMimeType = ['image/png','image/jpeg'];
