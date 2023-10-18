@@ -49,42 +49,7 @@ function cdntaxreceipts_annual_issued_on($contactId, $year) {
     return array(NULL, NULL);
   }
 
-}/**
- * cdntaxreceipts_all_issued_on
- *
- * Return all records of when the contribution was receipted
- * This checks 'single', 'annual' and 'aggregate' receipts.
- *
- * @param $contribution_id - the contribution being looked up
- */
-
-function cdntaxreceipts_all_issued_on($contribution_id) {
-
-  $issued_on = array();
-
-  $sql = "
-    SELECT l.issued_on, l.id as receipt_id, l.is_duplicate, l.issue_type, l.issue_method
-    FROM cdntaxreceipts_log l
-    INNER JOIN cdntaxreceipts_log_contributions c ON l.id = c.receipt_id
-    WHERE contribution_id = {$contribution_id}
-    GROUP BY l.issued_on, l.is_duplicate, l.id as receipt_id, l.issue_type, l.issue_method";
-
-  $dao = CRM_Core_DAO::executeQuery($sql);
-  $count = 0;
-  while ($dao->fetch()) {
-    $issued_on['receipts'][$count] = array(
-      $dao->issued_on,
-      $dao->issue_method,
-      $dao->receipt_id,
-      $dao->is_duplicate,
-      $dao->issue_type
-    );
-    $count++;
-  }
-  $issued_on['count'] = $count;
-  return $issued_on;
 }
-
 
 function cdntaxreceipts_contributions_not_receipted($contactId, $year) {
 
@@ -395,6 +360,14 @@ function cdntaxreceipts_log_next_id() {
   $last_id = CRM_Core_DAO::singleValueQuery($sql);
   return $last_id + 1;
 }
+
+
+
+
+/**************************************
+* CH Custom Functions
+***************************************/
+
 
 // Advantage fields
 // @todo CRM-1721

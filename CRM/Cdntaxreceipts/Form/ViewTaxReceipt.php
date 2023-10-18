@@ -484,5 +484,6 @@ class CRM_Cdntaxreceipts_Form_ViewTaxReceipt extends CRM_Core_Form {
       CRM_Core_Session::setStatus( $statusMsg, '', 'error' );
     }
   }
+
 }
 
