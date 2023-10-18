@@ -8,8 +8,12 @@ class CRM_Cdntaxreceipts_Task_IssueAnnualTaxReceipts extends CRM_Contact_Form_Ta
 
   const MAX_RECEIPT_COUNT = 1000;
 
+  protected $_contributionIds;    // copied from CRM_Contribute_Form_Task
+  private $_contributions_status; // copied from CRM_Cdntaxreceipts_Task_IssueAggregateTaxReceipts
+  private $_issue_type;           // copied from CRM_Cdntaxreceipts_Task_IssueAggregateTaxReceipts
   private $_receipts;
   private $_years;
+  public $_receiptList = [];      // copied from CRM_Cdntaxreceipts_Task_IssueAggregateTaxReceipts
 
   /**
    * build all the data structures needed to build the form
@@ -26,31 +30,129 @@ class CRM_Cdntaxreceipts_Task_IssueAnnualTaxReceipts extends CRM_Contact_Form_Ta
 
     parent::preProcess();
 
+    $this->_issue_type  = array('original' , 'duplicate');
+    $this->_receipts    = array();
+    $this->_years       = array();
+
+    $receipts = array('totals' =>
+      array(
+        'total_contrib' => 0,
+        'loading_errors' => 0,
+        'total_contacts' => 0,
+        'original' => 0,
+        'duplicate' => 0,
+        'ineligibles' => 0
+      ),
+    );
+
     $thisYear = date("Y");
     $this->_years = array($thisYear, $thisYear - 1, $thisYear - 2);
 
+    /*
     $receipts = array();
     foreach ( $this->_years as $year ) {
       $receipts[$year] = array('email' => 0, 'print' => 0, 'data' => 0, 'total' => 0, 'contrib' => 0);
     }
+    */
 
-    // count and categorize contributions
+    // (copied from CRM_Cdntaxreceipts_Task_IssueAggregateTaxReceipts)
+    foreach ( $this->_years as $year ) {
+      foreach ($this->_issue_type as $issue_type) {
+        $receipts[$issue_type][$year] = array(
+          'total_contrib' => 0,
+          'total_amount' => 0,
+          'email' => array('contribution_count' => 0, 'receipt_count' => 0,),
+          'print' => array('contribution_count' => 0, 'receipt_count' => 0,),
+          'data' => array('contribution_count' => 0, 'receipt_count' => 0,),
+          'total_contacts' => 0,
+          'total_eligible_amount' => 0,
+          'not_eligible' => 0,
+          'not_eligible_amount' => 0,
+          'contact_ids' => array(),
+        );
+      }
+    }
+    
+    // get contributions ids for each contact/year    
     foreach ( $this->_contactIds as $id ) {
       foreach ( $this->_years as $year ) {
-        list( $issuedOn, $receiptId ) = cdntaxreceipts_annual_issued_on($id, $year);
-
-        $eligible = count(cdntaxreceipts_contributions_not_receipted($id, $year));
-        if ( $eligible > 0 ) {
-          list( $method, $email ) = cdntaxreceipts_sendMethodForContact($id);
-          $receipts[$year][$method]++;
-          $receipts[$year]['total']++;
-          $receipts[$year]['contrib'] += $eligible;
+        $contributions = cdntaxreceipts_contributions_for_annual($id, $year);
+        if ( count($contributions) > 0 ) {
+          $this->_contributionIds = (array)$this->_contributionIds + array_keys((array)$contributions);
         }
       }
     }
 
-    $this->_receipts = $receipts;
+    $this->_contributions_status = cdntaxreceipts_contributions_get_status($this->_contributionIds);
+    
+    // Count and categorize contributions
+    // (copied from CRM_Cdntaxreceipts_Task_IssueAggregateTaxReceipts)
+    foreach ($this->_contributions_status as $id => $status) {
+      
+        $year = $status['receive_year'];
 
+        //echo "<pre>id=".print_r($id, true)."</pre>";
+        //echo "<pre>year=".print_r($year, true)."</pre>";
+        //echo "<pre>receipt_id=".print_r($status['receipt_id'], true)."</pre>";
+        //echo "<pre>status=".print_r($status, true)."</pre>";
+        $issue_type = (empty($status['receipt_id'])) ? 'original' : 'duplicate';
+        // check if most recent is cancelled, and mark as "replace" then add that contribution to 'original' receipt array
+        if ($issue_type == "duplicate") {
+          $cancelledReceipt = CRM_Canadahelps_TaxReceipts_Receipt::retrieveReceiptDetails($id, true);
+          if ( $cancelledReceipt[0] != NULL && $status['receipt_id'] == $cancelledReceipt[1] ) {
+            $issue_type = 'original';
+          }
+        }
+        $receipts[$issue_type][$year]['total_contrib']++;
+        // Note: non-deductible amount has already had hook called in cdntaxreceipts_contributions_get_status
+        $receipts[$issue_type][$year]['total_amount'] += ($status['total_amount']);
+        $receipts[$issue_type][$year]['not_eligible_amount'] += $status['non_deductible_amount'];
+        if ($status['eligible']) {
+          list( $method, $email ) = cdntaxreceipts_sendMethodForContact($status['contact_id']);
+          $receipts[$issue_type][$year][$method]['contribution_count']++;
+          if (!isset($receipts[$issue_type][$year]['contact_ids'][$status['contact_id']])) {
+            $receipts[$issue_type][$year]['contact_ids'][$status['contact_id']] = array(
+              'issue_method' => $method,
+              'contributions' => array(),
+            );
+            $receipts[$issue_type][$year][$method]['receipt_count']++;
+          }
+          // Here we store all the contribution details for each contact_id
+          $receipts[$issue_type][$year]['contact_ids'][$status['contact_id']]['contributions'][$id] = $status;
+        }
+        else {
+          $receipts[$issue_type][$year]['not_eligible']++;
+          // $receipts[$issue_type][$year]['not_eligible_amount'] += $status['total_amount'];
+          $issue_type = 'ineligibles';
+        }
+
+        // temporary set array with type of receipt for each contribution
+        // so that we can use in setReceiptsList
+        $this->_receiptList[$id] = $issue_type;
+
+        // Global totals
+        $receipts['totals']['total_contrib']++;
+        $receipts['totals'][$issue_type]++;
+        if ($status['contact_id']) {
+          $receipts['totals']['total_contacts']++;
+        }
+    }
+
+    // (copied from CRM_Cdntaxreceipts_Task_IssueAggregateTaxReceipts)
+    foreach ($this->_issue_type as $issue_type) {
+      foreach ($this->_years as $year) {
+        $receipts[$issue_type][$year]['total_contacts'] = count($receipts[$issue_type][$year]['contact_ids']);
+      }
+    }
+
+    // (copied from CRM_Cdntaxreceipts_Task_IssueAggregateTaxReceipts)
+    $this->_receipts = $receipts;
+    list($this->_years, $this->_receiptList) = CRM_Cdntaxreceipts_Task_IssueSingleTaxReceipts::getReceiptsList((array) $this->_contributionIds, $this->_receiptList, true);
+    
+    // Even if no contributions found, show page with current year
+    if (count($this->_years) == 0) {
+      $this->_years[] = $thisYear;
+    }    
   }
 
   /**
@@ -62,9 +164,6 @@ class CRM_Cdntaxreceipts_Task_IssueAnnualTaxReceipts extends CRM_Contact_Form_Ta
    */
   function buildQuickForm() {
 
-    //CRM-919: Add Custom Stylesheet to pages as well
-    CRM_Core_Resources::singleton()->addStyleFile('org.civicrm.cdntaxreceipts', 'css/receipt_module.css');
-
     CRM_Utils_System::setTitle(ts('Issue Annual Tax Receipts', array('domain' => 'org.civicrm.cdntaxreceipts')));
 
     CRM_Core_Resources::singleton()->addStyleFile('org.civicrm.cdntaxreceipts', 'css/civicrm_cdntaxreceipts.css');
@@ -72,60 +171,26 @@ class CRM_Cdntaxreceipts_Task_IssueAnnualTaxReceipts extends CRM_Contact_Form_Ta
     // assign the counts
     $receipts = $this->_receipts;
     $receiptTotal = 0;
-    foreach ( $this->_years as $year ) {
+    /*foreach ( $this->_years as $year ) {
       $receiptTotal += $receipts[$year]['total'];
-    }
-    $receipt_years = $this->_years;
+    }*/
+
     $this->assign('receiptCount', $receipts);
     $this->assign('receiptTotal', $receiptTotal);
-    $this->assign('receiptYears', $receipt_years);
-    // Add tax year as select box
-    if($receipt_years) {
-      foreach( $receipt_years as $year ) {
-        $tax_year['issue_'.$year] = $year;
-      }
-    } else {
-      $tax_year['issues'. date('Y')] = date('Y');
-      $receipt_years[] = date('Y');
-    }
-    if($tax_year) {
-      $this->assign('defaultYear', $receipt_years[0]);
-    }
-    $this->add('select', 'receipt_year',
-      ts('Tax Year'),
-      $tax_year,
-      FALSE,
-      array('class' => 'crm-select')
-    );
+    $this->assign('receiptYears', $this->_years);
 
     $delivery_method = Civi::settings()->get('delivery_method') ?? CDNTAX_DELIVERY_PRINT_ONLY;
     $this->assign('deliveryMethod', $delivery_method);
 
+    // add radio buttons
+    foreach ( $this->_years as $year ) {
+      $this->addElement('radio', 'receipt_year', NULL, $year, 'issue_' . $year);
+    }
     $this->addRule('receipt_year', ts('Selection required', array('domain' => 'org.civicrm.cdntaxreceipts')), 'required');
 
     if ($delivery_method != CDNTAX_DELIVERY_DATA_ONLY) {
       $this->add('checkbox', 'is_preview', ts('Run in preview mode?', array('domain' => 'org.civicrm.cdntaxreceipts')));
     }
-
-    //CRM-919: Add delivery Method to form
-    $delivery_method = CRM_Core_BAO_Setting::getItem(CDNTAX_SETTINGS, 'delivery_method');
-    $delivery_placeholder = null;
-    $delivery_options = [];
-
-    $delivery_options[CDNTAX_DELIVERY_PRINT_ONLY] = 'Print';
-    $delivery_options[CDNTAX_DELIVERY_PRINT_EMAIL] = 'Email';
-    $this->add('select',
-      'delivery_method',
-      ts('Method'),
-      $delivery_options,
-      FALSE,
-      ['class' => 'crm-select2']
-    );
-
-    // Add Thank-you Setting block
-    $this->add('checkbox', 'thankyou_date', ts('Mark Contribution as thanked', array('domain' => 'org.civicrm.cdntaxreceipts')));
-    $this->add('checkbox', 'thankyou_email', ts('Send a custom Thank You Message', array('domain' => 'org.civicrm.cdntaxreceipts')));
-
 
     $buttons = array(
       array(
@@ -144,17 +209,16 @@ class CRM_Cdntaxreceipts_Task_IssueAnnualTaxReceipts extends CRM_Contact_Form_Ta
         'submitOnce' => FALSE,
       ),
     );
-    //CRM-919: Integrate WYSWIG Editor on the form
-    CRM_Contact_Form_Task_PDFLetterCommon::buildQuickForm($this);
-    if($this->elementExists('from_email_address')) {
-      $this->removeElement('from_email_address');
-    }
+    $this->addButtons($buttons);
+
+    // CH Customization
+    $this->customizeForm();
+  }
+
+  function setDefaultValues() {
     $from_email_address = current(CRM_Core_BAO_Domain::getNameAndEmail(FALSE, TRUE));
-    //CRM-1596 "From Email Address" value being passed as attributes
-    $this->add('text', 'from_email_address', ts('From Email Address'), array('value' => $from_email_address), TRUE);
-    $this->add('text', 'email_options', ts('Print and Email Options'), array('value' => 'email'), FALSE);
-    $this->add('text', 'group_by_separator', ts('Group By Seperator'), array('value' => 'comma'), FALSE);
-    $defaults = [
+    return array(
+      'receipt_year' => ($this->_years) ? 'issue_' . array_values($this->_years)[0] : 'issue_' . (date("Y") - 1), // TODO: Handle case where year -1 was not an option
       'margin_left' => 0.75,
       'margin_right' => 0.75,
       'margin_top' => 0.75,
@@ -163,24 +227,8 @@ class CRM_Cdntaxreceipts_Task_IssueAnnualTaxReceipts extends CRM_Contact_Form_Ta
       'from_email_address' => $from_email_address,
       'group_by_separator' => 'comma',
       'thankyou_date' => 1,
-      'receipt_year' => 'issue_'.$receipt_years[0],
-    ];
-    $this->setDefaults($defaults);
-    $this->addButtons($buttons);
-
-    //Add Tokens
-    $tokens = CRM_Cdntaxreceipts_Task_PDFLetterCommon::listTokens();
-    $this->assign('tokens', CRM_Utils_Token::formatTokensForDisplay($tokens));
-
-    $templates = CRM_Core_BAO_MessageTemplate::getMessageTemplates(FALSE);
-    if($this->elementExists('template')) {
-      $this->removeElement('template');
-      $this->assign('templates', TRUE);
-      $this->add('select', "template", ts('Use Template'),
-        ['default' => 'Default Message'] + $templates + ['0' => ts('Other Custom')], FALSE,
-        ['onChange' => "selectValue( this.value, '');"]
-      );
-    }
+      'receipt_option' => 0,
+    );
   }
 
   /**
@@ -199,18 +247,26 @@ class CRM_Cdntaxreceipts_Task_IssueAnnualTaxReceipts extends CRM_Contact_Form_Ta
     }
 
     $params = $this->controller->exportValues($this->_name);
+
+    // Should we issue duplicates ?
+    $originalOnly = TRUE;
+    if ( isset($params['receipt_option']) && $params['receipt_option']) {
+      $originalOnly = FALSE;
+    }
+
     $year = $params['receipt_year'];
     if ( $year ) {
       $year = substr($year, strlen('issue_')); // e.g. issue_2012
     }
 
+    // Preview mode ?
     $previewMode = FALSE;
-    if (isset($params['is_preview']) && $params['is_preview'] == 1 ) {
+    $buttonName = $this->controller->getButtonName();
+    if($buttonName == '_qf_IssueAnnualTaxReceipts_submit') {
       $previewMode = TRUE;
     }
 
-    $buttonName = $this->controller->getButtonName();
-    if($buttonName == '_qf_IssueAnnualTaxReceipts_submit') {
+    if (isset($params['is_preview']) && $params['is_preview'] == 1 ) {
       $previewMode = TRUE;
     }
 
@@ -228,6 +284,162 @@ class CRM_Cdntaxreceipts_Task_IssueAnnualTaxReceipts extends CRM_Contact_Form_Ta
     $dataCount = 0;
     $failCount = 0;
 
+    //CRM-920: Thank-you Email Tool
+    $sendThankYouEmail = false;
+    
+    if ($this->getElement('thankyou_email')->getValue()
+      && $this->getElement('html_message')->getValue()
+      && isset($params['template'])
+      && $params['template'] !== 'default') {
+
+      $from_email_address = current(CRM_Core_BAO_Domain::getNameAndEmail(FALSE, TRUE));
+      if ($from_email_address) {
+        $sendThankYouEmail = true;
+      }
+    }
+
+    // loop through original receipts only
+    foreach ($this->_receipts['original'][$year]['contact_ids'] as $contact_id => $contribution_status) {
+      if ( $emailCount + $printCount + $failCount >= self::MAX_RECEIPT_COUNT ) {
+        // limit email, print receipts as the pdf generation and email-to-archive consume
+        // server resources. don't limit data-type receipts.
+        $status = ts('Maximum of %1 tax receipt(s) were sent. Please repeat to continue processing.',
+          array(1=>self::MAX_RECEIPT_COUNT, 'domain' => 'org.civicrm.cdntaxreceipts'));
+        CRM_Core_Session::setStatus($status, '', 'info');
+        break;
+      }
+
+      $contributions = $contribution_status['contributions'];
+      foreach($contributions as $k => $contri) {
+        if ( isset($contri['receive_date_original']) ) {
+          $contributions[$k]['receive_date'] = $contri['receive_date_original'];
+        }
+        //To Replace receipt we need to add extra parameters to contribution array
+        $cancelledReceipt = CRM_Canadahelps_TaxReceipts_Receipt::retrieveReceiptDetails($contri['contribution_id'], true);
+        if ($cancelledReceipt[0] != NULL && $contri['receipt_id'] == $cancelledReceipt[1]) {
+          //CRM-1977
+          $cancelledReceiptContribIds = $cancelledReceipt[3];
+          $receiptContribIds = array_column($contributions,'contribution_id');
+          //CRM-1977-1-If Cancelled contribution Receipt List exactly matches with List of contributions List in that case only add 'cancelled_replace_receipt_number'
+          sort($receiptContribIds);
+          sort($cancelledReceiptContribIds);
+          if ($receiptContribIds === $cancelledReceiptContribIds){
+            $contributions[$k]['cancelled_replace_receipt_number']  = $cancelledReceipt[0];
+          } 
+          $contributions[$k]['replace_receipt']  = 1;
+          $contributions[$k]['receipt_id']  = 0;
+        }
+      }
+      // $method = $contribution_status['issue_method'];
+      $method = 'print';
+      if($params['delivery_method']) {
+        require_once 'CRM/Contact/BAO/Contact.php';
+        list($displayname, $email, $doNotEmail, $onHold) = CRM_Contact_BAO_Contact::getContactDetails($contact_id);
+        if ( isset($email) ) {
+          if ( ! $doNotEmail && ! $onHold ) {
+            $method = 'email';
+          }
+        }
+      }
+
+      if ( (empty($issuedOn) && count($contributions) > 0) ) {
+
+        //CRM-920: Thank-you Email Tool
+        $thankyou_html = NULL;
+        if ($sendThankYouEmail) {
+          $thankyou_html = $this->getThankYouHTML(array_column($contributions, 'contribution_id'), $from_email_address, $params);
+        }
+
+        $ret = cdntaxreceipts_issueAnnualTaxReceipt($contact_id, $year, $contributions, $method,
+          $receiptsForPrintingPDF, $previewMode, $thankyou_html);    
+
+        if( $ret !== 0 && !$previewMode ) {
+            //CRM-920: Mark Contribution as thanked if checked
+            foreach($contributions as $contributionIds) {
+              CRM_Cdntaxreceipts_Task_IssueSingleTaxReceipts::markContributionAsReceipted(
+                $contributionIds['contribution_id'],
+                $this->getElement('thankyou_date')->getValue()
+              );
+            }
+        }
+
+        if ( $ret == 0 ) {
+          $failCount++;
+        }
+        elseif ( $method == 'email' ) {
+          $emailCount++;
+        }
+        elseif ( $method == 'print' ) {
+          $printCount++;
+        }
+        elseif ( $method == 'data' ) {
+          $dataCount++;
+        }
+      }
+      
+    }
+
+    // loop through duplicate receipts only (but not if preview)
+    if (!$originalOnly && !$previewMode) {
+      $duplicateReceipts = [];
+      foreach ($this->_receipts['duplicate'][$year]['contact_ids'] as $contact_id => $contact_data) {
+        foreach ($contact_data['contributions'] as $contributionId => $contribution) {
+
+          // don't process duplicate if already processed
+          if (!in_array($contribution['receipt_id'], $duplicateReceipts)) {
+            $duplicateReceipts[] = $contribution['receipt_id'];
+
+            if ( $emailCount + $printCount + $failCount >= self::MAX_RECEIPT_COUNT ) {
+              // limit email, print receipts as the pdf generation and email-to-archive consume
+              // server resources. don't limit data-type receipts.
+              $status = ts('Maximum of %1 tax receipt(s) were sent. Please repeat to continue processing.', array(1=>self::MAX_RECEIPT_COUNT, 'domain' => 'org.civicrm.cdntaxreceipts'));
+              CRM_Core_Session::setStatus($status, '', 'info');
+              break;
+            }
+
+            // 1. Load Contribution information
+            $contribution = new CRM_Contribute_DAO_Contribution();
+            $contribution->id = $contributionId;
+            if ( ! $contribution->find( TRUE ) ) {
+              throw new CRM_Core_Exception("CDNTaxReceipts: Could not find corresponding contribution id.");
+            }
+
+            //CRM-920: Thank-you Email Tool
+            if ($sendThankYouEmail) {
+              $thankyou_html = $this->getThankYouHTML([$contribution->id], $from_email_address, $params);
+              if ($thankyou_html != NULL)
+                $contribution->thankyou_html = $thankyou_html;
+            }
+
+            list( $ret, $method ) = cdntaxreceipts_issueTaxReceipt( $contribution, $receiptsForPrintingPDF, $previewMode );
+            
+            if( $ret !== 0 && !$previewMode ) {
+              //CRM-918: Mark Contribution as thanked if checked
+              CRM_Cdntaxreceipts_Task_IssueSingleTaxReceipts::markContributionAsReceipted(
+                $contributionIds['contribution_id'],
+                $this->getElement('thankyou_date')->getValue(),
+                FALSE
+              );
+            }
+
+            if ( $ret == 0 ) {
+              $failCount++;
+            }
+            elseif ( $method == 'email' ) {
+              $emailCount++;
+            }
+            elseif ( $method == 'print' ) {
+              $printCount++;
+            }
+            elseif ( $method == 'data' ) {
+              $dataCount++;
+            }
+          }
+        }
+      }
+    }
+
+    /* Original code 
     foreach ($this->_contactIds as $contactId ) {
 
       list( $issuedOn, $receiptId ) = cdntaxreceipts_annual_issued_on($contactId, $year);
@@ -240,58 +452,8 @@ class CRM_Cdntaxreceipts_Task_IssueAnnualTaxReceipts extends CRM_Contact_Form_Ta
       }
 
       if ( empty($issuedOn) && count($contributions) > 0 ) {
-        //CRM-919: Thank-you Email Tool
-        if($this->getElement('thankyou_email')->getValue()) {
-          if($this->getElement('html_message')->getValue()) {
-            if(isset($params['template'])) {
-              if($params['template'] !== 'default') {
-                $this->_contributionIds = array_column($contributions, 'contribution_id');
-                $from_email_address = current(CRM_Core_BAO_Domain::getNameAndEmail(FALSE, TRUE));
-                if($from_email_address) {
-                  $data = &$this->controller->container();
-                  $data['values']['ViewTaxReceipt']['from_email_address'] = $from_email_address;
-                  $data['values']['ViewTaxReceipt']['subject'] = $this->getElement('subject')->getValue();
-                  $data['values']['ViewTaxReceipt']['html_message'] = $this->getElement('html_message')->getValue();
-                  //CRM-1792 Adding 'group_by' parameter for token processor to process grouped contributions
-                  if(count($contributions) > 1)
-                  {
-                    $params['group_by'] = 'contact_id';
-                  }
-                  $thankyou_html = CRM_Cdntaxreceipts_Task_PDFLetterCommon::postProcessForm($this, $params);
-                  if($thankyou_html) {
-                    if(is_array($thankyou_html)) {
-                      $thankyou_html = array_values($thankyou_html)[0];
-                    } else {
-                      $thankyou_html = $thankyou_html;
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-        list( $ret, $method ) = cdntaxreceipts_issueAnnualTaxReceipt($contactId, $year, $receiptsForPrinting, $previewMode, $thankyou_html);
 
-        if( $ret !== 0 ) {
-          //CRM-919: Mark Contribution as thanked if checked
-            foreach($contributions as $contributionIds) {
-              $contribution = new CRM_Contribute_DAO_Contribution();
-              $contribution->id = $contributionIds['contribution_id'];
-              if ( ! $contribution->find( TRUE ) ) {
-                CRM_Core_Error::fatal( "CDNTaxReceipts: Could not find corresponding contribution id." );
-              }
-              if($this->getElement('thankyou_date')->getValue()) {
-              $contribution->thankyou_date = date('Y-m-d H:i:s', CRM_Utils_Time::time());
-              }
-              //CRM-1959
-              $contributionReceiptDate = cdnaxreceipts_getReceiptDate($contribution->id);
-              if($contributionReceiptDate && !empty($contributionReceiptDate))
-              {
-                $contribution->receipt_date = $contributionReceiptDate;
-              }
-              $contribution->save();
-            }
-          }
+        list( $ret, $method ) = cdntaxreceipts_issueAnnualTaxReceipt($contactId, $year, $receiptsForPrintingPDF, $previewMode);
 
         if ( $ret == 0 ) {
           $failCount++;
@@ -307,6 +469,7 @@ class CRM_Cdntaxreceipts_Task_IssueAnnualTaxReceipts extends CRM_Contact_Form_Ta
         }
       }
     }
+    */
 
     // 3. Set session status
     if ( $previewMode ) {
@@ -343,5 +506,119 @@ class CRM_Cdntaxreceipts_Task_IssueAnnualTaxReceipts extends CRM_Contact_Form_Ta
   * CH Custom Functions
   ***************************************/
     
+  //CRM-920: Thank-you Email Tool
+  private function getThankYouHTML(array $contributionIds, $sender, $params) {
+    $this->_contributionIds = $contributionIds;
+    $data = &$this->controller->container();
+    $data['values']['ViewTaxReceipt']['from_email_address'] = $sender;
+    $data['values']['ViewTaxReceipt']['subject'] = $this->getElement('subject')->getValue();
+    $data['values']['ViewTaxReceipt']['html_message'] = $this->getElement('html_message')->getValue();
+
+    //CRM-1792 Adding 'group_by' parameter for token processor to process grouped contributions
+    if (count($contributionIds) > 1) {
+      $params['group_by'] = 'contact_id';
+    }
+
+    $thankyou_html = CRM_Cdntaxreceipts_Task_PDFLetterCommon::postProcessForm($this, $params);
+    if ($thankyou_html) {
+      if (is_array($thankyou_html)) {
+        $thankyou_html = array_values($thankyou_html)[0];
+      } else {
+        $thankyou_html = $thankyou_html;
+      }
+      return $thankyou_html;
+    }
+
+    return NULL;
+  }
+
+  private function customizeForm() {
+
+    //CRM-918: Add Custom Stylesheet to pages as well
+    CRM_Core_Resources::singleton()->addStyleFile('org.civicrm.cdntaxreceipts', 'css/receipt_module.css');
+
+    $this->assign('receiptList', $this->_receiptList);
+    Civi::resources()->addVars('receipts', ['receiptList' => $this->_receiptList]);
+    $this->assign('receipt_type', 'annual');
+
+    // Add Receipt Types
+    $receiptTypes = ['original', 'duplicate', 'ineligibles'];
+    $this->assign('receiptTypes', $receiptTypes);
+    Civi::resources()->addVars('receipts', ['receiptTypes' => $receiptTypes]);
+
+    // Duplicates?
+    $this->add('checkbox', 'receipt_option', ts('Also re-issue duplicates', array('domain' => 'org.civicrm.cdntaxreceipts')));
+
+    //Add ColumnHeaders for Table of Users Section
+    $columnHeaders = ['Received',
+      'Name',
+      'Amount',
+      'Fund',
+      'Campaign',
+      'Source',
+      'Method',
+      'Status',
+      'Eligibility',
+    ];
+    $this->assign('columnHeaders', $columnHeaders);
+
+    // Add tax year as select box
+    krsort($this->_years);
+    foreach( $this->_years as $year ) {
+      $tax_year['issue_'.$year] = $year;
+      $this->removeElement('receipt_year', true);
+    }
+    $this->assign('defaultYear', array_values($this->_years)[0]);
+
+    $this->add('select', 'receipt_year',
+      ts('Tax Year'),
+      $tax_year,
+      FALSE,
+      array('class' => 'crm-select')
+    );
+
+    //CRM-920: Add delivery Method to form
+    $delivery_method = CRM_Core_BAO_Setting::getItem(CDNTAX_SETTINGS, 'delivery_method');
+    $delivery_placeholder = null;
+    $delivery_options = [];
+
+    $delivery_options[CDNTAX_DELIVERY_PRINT_ONLY] = 'Print';
+    $delivery_options[CDNTAX_DELIVERY_PRINT_EMAIL] = 'Email';
+    $this->add('select',
+      'delivery_method',
+      ts('Method'),
+      $delivery_options,
+      FALSE,
+      ['class' => 'crm-select2']
+    );
+
+    // Add Thank-you Setting block
+    $this->add('checkbox', 'thankyou_date', ts('Mark Contribution as thanked', array('domain' => 'org.civicrm.cdntaxreceipts')));
+    $this->add('checkbox', 'thankyou_email', ts('Send a custom Thank You Message', array('domain' => 'org.civicrm.cdntaxreceipts')));
+
+    //CRM-1596 "From Email Address" value being passed as attributes
+    if ($this->elementExists('from_email_address')) {
+      $this->removeElement('from_email_address');
+    }
+    $from_email_address = current(CRM_Core_BAO_Domain::getNameAndEmail(FALSE, TRUE));
+    $this->add('text', 'from_email_address', ts('From Email Address'), array('value' => $from_email_address), TRUE);
+    $this->add('text', 'email_options', ts('Print and Email Options'), array('value' => 'email'), FALSE);
+    $this->add('text', 'group_by_separator', ts('Group By Seperator'), array('value' => 'comma'), FALSE);
+
+    //Add Tokens
+    $tokens = CRM_Cdntaxreceipts_Task_PDFLetterCommon::listTokens();
+    $this->assign('tokens', CRM_Utils_Token::formatTokensForDisplay($tokens));
+
+    $templates = CRM_Core_BAO_MessageTemplate::getMessageTemplates(FALSE);
+    if($this->elementExists('template')) {
+      $this->removeElement('template');
+    }
+    $this->assign('templates', TRUE);
+    $this->add('select', "template", ts('Use Template'),
+      ['default' => 'Default Message'] + $templates + ['0' => ts('Other Custom')], FALSE,
+      ['onChange' => "selectValue( this.value, '');"]
+    );
+
+  }
 }
 
