@@ -785,14 +785,7 @@ function cdntaxreceipts_issueTaxReceipt($contribution, &$collectedPdf = NULL, $m
   if ( $is_duplicate ) {
     // if this was issued as part of an annual receipt, then jump over to the Annual method
     $receiptInfo = cdntaxreceipts_load_receipt($receipt_id);
-    if ( $receiptInfo['issue_type'] == 'annual' ) {
-      $contactId = $receiptInfo['contact_id'];
-      $year = substr($receiptInfo['contributions'][0]['receive_date'], 0, 4);
-      //CRM-1822 Adding last parameter to identify cancelled receipt_id for download
-      $receiptCancelId = (isset($contribution->previewCancelReceiptId))?? $contribution->previewCancelReceiptId;
-      return cdntaxreceipts_issueAnnualTaxReceipt($contactId, $year, $collectedPdf, $mode, NULL, $receiptCancelId);
-    }
-    else if ( $receiptInfo['issue_type'] == 'aggregate' ) {
+    if ( $receiptInfo['issue_type'] == 'annual' || $receiptInfo['issue_type'] == 'aggregate' ) {
       $contactId = $receiptInfo['contact_id'];
       $year = substr($receiptInfo['contributions'][0]['receive_date'], 0, 4);
       list($method, $email) = cdntaxreceipts_sendMethodForContact($contactId, $printOverride);
@@ -802,6 +795,10 @@ function cdntaxreceipts_issueTaxReceipt($contribution, &$collectedPdf = NULL, $m
         }
       }
       $thankyou_html = (isset($contribution->thankyou_html)) ? $contribution->thankyou_html : NULL;
+      if ( $receiptInfo['issue_type'] == 'annual' ) {
+        return cdntaxreceipts_issueAnnualTaxReceipt($contactId, $year, $receiptInfo['contributions'],
+        $method, $collectedPdf, $mode, $thankyou_html);
+      }
       return cdntaxreceipts_issueAggregateTaxReceipt($contactId, $year, $receiptInfo['contributions'],
         $method, $collectedPdf, $mode, $thankyou_html);
     }
@@ -1141,7 +1138,7 @@ $mode = CDNTAXRECEIPTS_MODE_BACKOFFICE, $thankyou_html = NULL ) {
  * @return array
  */
 function cdntaxreceipts_issueAggregateTaxReceipt($contactId, $year, $contributions, $method, &$collectedPdf = NULL,
-                                                 $mode = CDNTAXRECEIPTS_MODE_BACKOFFICE, $thankyou_html = NULL) {
+                                                 $mode = CDNTAXRECEIPTS_MODE_BACKOFFICE, $thankyou_html = NULL, $issue_type = 'aggregate') {
   if ( count($contributions) == 0 ) {
     return array(FALSE, $method, NULL);
   }
@@ -1262,7 +1259,7 @@ function cdntaxreceipts_issueAggregateTaxReceipt($contactId, $year, $contributio
       'contact_id' => $contactId,
       'receipt_amount' => $totalReceipt,
       'is_duplicate' => 0,
-      'issue_type' => 'aggregate',
+      'issue_type' => $issue_type,
       'issue_method' => $method,
       'receive_date' => $year,
       'receipt_status' => 'issued',
