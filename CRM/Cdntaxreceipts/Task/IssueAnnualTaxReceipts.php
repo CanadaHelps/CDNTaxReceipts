@@ -74,11 +74,12 @@ class CRM_Cdntaxreceipts_Task_IssueAnnualTaxReceipts extends CRM_Contact_Form_Ta
     }
     
     // get contributions ids for each contact/year    
+    $this->_contributionIds = [];
     foreach ( $this->_contactIds as $id ) {
       foreach ( $this->_years as $year ) {
         $contributions = cdntaxreceipts_contributions_for_annual($id, $year);
         if ( count($contributions) > 0 ) {
-          $this->_contributionIds = (array)$this->_contributionIds + array_keys((array)$contributions);
+          $this->_contributionIds = array_merge($this->_contributionIds, array_keys($contributions));
         }
       }
     }
