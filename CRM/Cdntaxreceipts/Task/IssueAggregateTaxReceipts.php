@@ -24,7 +24,7 @@ class CRM_Cdntaxreceipts_Task_IssueAggregateTaxReceipts extends CRM_Contribute_F
 
     //check for permission to edit contributions
     if ( ! CRM_Core_Permission::check('issue cdn tax receipts') ) {
-      CRM_Core_Error::fatal(ts('You do not have permission to access this page', array('domain' => 'org.civicrm.cdntaxreceipts')));
+      throw new CRM_Core_Exception("You do not have permission to access this page");
     }
 
     parent::preProcess();
@@ -352,7 +352,7 @@ class CRM_Cdntaxreceipts_Task_IssueAggregateTaxReceipts extends CRM_Contribute_F
         $contribution = new CRM_Contribute_DAO_Contribution();
         $contribution->id = $inkind_value['contribution_id'];
         if ( ! $contribution->find( TRUE ) ) {
-          CRM_Core_Error::fatal( "CDNTaxReceipts: Could not find corresponding contribution id." );
+          throw new CRM_Core_Exception("CDNTaxReceipts: Could not find corresponding contribution id.");
         }
         if ( cdntaxreceipts_eligibleForReceipt($contribution->id) ) {
           list($issued_on, $receipt_id) = cdntaxreceipts_issued_on($contribution->id);
@@ -420,7 +420,7 @@ class CRM_Cdntaxreceipts_Task_IssueAggregateTaxReceipts extends CRM_Contribute_F
             $contribution = new CRM_Contribute_DAO_Contribution();
             $contribution->id = $contributionId;
             if ( ! $contribution->find( TRUE ) ) {
-              CRM_Core_Error::fatal( "CDNTaxReceipts: Could not find corresponding contribution id." );
+              throw new CRM_Core_Exception("CDNTaxReceipts: Could not find corresponding contribution id.");
             }
 
             //CRM-920: Thank-you Email Tool
