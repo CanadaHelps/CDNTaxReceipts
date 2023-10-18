@@ -209,6 +209,10 @@ class CRM_Cdntaxreceipts_Task_IssueAnnualTaxReceipts extends CRM_Contact_Form_Ta
         'submitOnce' => FALSE,
       ),
     );
+
+    //CRM-920: Integrate WYSWIG Editor on the form
+    CRM_Contact_Form_Task_PDFLetterCommon::buildQuickForm($this);
+    
     $this->addButtons($buttons);
 
     // CH Customization
