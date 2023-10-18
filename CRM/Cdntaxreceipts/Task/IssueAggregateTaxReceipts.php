@@ -280,17 +280,17 @@ class CRM_Cdntaxreceipts_Task_IssueAggregateTaxReceipts extends CRM_Contribute_F
         $cancelledReceipt = CRM_Canadahelps_TaxReceipts_Receipt::retrieveReceiptDetails($contri['contribution_id'], true);
         if ($cancelledReceipt[0] != NULL && $contri['receipt_id'] == $cancelledReceipt[1]) {
           //CRM-1977
-              $cancelledReceiptContribIds = $cancelledReceipt[3];
-              $receiptContribIds = array_column($contributions,'contribution_id');
-              //CRM-1977-1-If Cancelled contribution Receipt List exactly matches with List of contributions List in that case only add 'cancelled_replace_receipt_number'
-              sort($receiptContribIds);
-              sort($cancelledReceiptContribIds);
-              if ($receiptContribIds === $cancelledReceiptContribIds){
-                $contributions[$k]['cancelled_replace_receipt_number']  = $cancelledReceipt[0];
-              } 
-              $contributions[$k]['replace_receipt']  = 1;
-              $contributions[$k]['receipt_id']  = 0;
-            }
+          $cancelledReceiptContribIds = $cancelledReceipt[3];
+          $receiptContribIds = array_column($contributions,'contribution_id');
+          //CRM-1977-1-If Cancelled contribution Receipt List exactly matches with List of contributions List in that case only add 'cancelled_replace_receipt_number'
+          sort($receiptContribIds);
+          sort($cancelledReceiptContribIds);
+          if ($receiptContribIds === $cancelledReceiptContribIds){
+            $contributions[$k]['cancelled_replace_receipt_number']  = $cancelledReceipt[0];
+          } 
+          $contributions[$k]['replace_receipt']  = 1;
+          $contributions[$k]['receipt_id']  = 0;
+        }
       }
       // $method = $contribution_status['issue_method'];
       $method = 'print';
@@ -487,6 +487,12 @@ class CRM_Cdntaxreceipts_Task_IssueAggregateTaxReceipts extends CRM_Contribute_F
     cdntaxreceipts_sendCollectedPDF($receiptsForPrintingPDF, 'Receipts-To-Print-' . CRM_Cdntaxreceipts_Utils_Time::time() . '.pdf');  // EXITS.
   }
 
+
+
+  /**************************************
+  * CH Custom Functions
+  ***************************************/
+  
   //CRM-920: Thank-you Email Tool
   private function getThankYouHTML(array $contributionIds, $sender, $params) {
     $this->_contributionIds = $contributionIds;
@@ -593,12 +599,11 @@ class CRM_Cdntaxreceipts_Task_IssueAggregateTaxReceipts extends CRM_Contribute_F
     $templates = CRM_Core_BAO_MessageTemplate::getMessageTemplates(FALSE);
     if($this->elementExists('template')) {
       $this->removeElement('template');
-      $this->assign('templates', TRUE);
-      $this->add('select', "template", ts('Use Template'),
-        ['default' => 'Default Message'] + $templates + ['0' => ts('Other Custom')], FALSE,
-        ['onChange' => "selectValue( this.value, '');"]
-      );
     }
-
+    $this->assign('templates', TRUE);
+    $this->add('select', "template", ts('Use Template'),
+      ['default' => 'Default Message'] + $templates + ['0' => ts('Other Custom')], FALSE,
+      ['onChange' => "selectValue( this.value, '');"]
+    );
   }
 }

@@ -221,7 +221,7 @@ class CRM_Cdntaxreceipts_Task_IssueAnnualTaxReceipts extends CRM_Contact_Form_Ta
     //module_load_include('.module','civicrm_cdntaxreceipts','civicrm_cdntaxreceipts');
 
     // start a PDF to collect receipts that cannot be emailed
-    $receiptsForPrinting = cdntaxreceipts_openCollectedPDF();
+    $receiptsForPrintingPDF = cdntaxreceipts_openCollectedPDF();
 
     $emailCount = 0;
     $printCount = 0;
@@ -335,7 +335,13 @@ class CRM_Cdntaxreceipts_Task_IssueAnnualTaxReceipts extends CRM_Contact_Form_Ta
 
     // 4. send the collected PDF for download
     // NB: This exits if a file is sent.
-    cdntaxreceipts_sendCollectedPDF($receiptsForPrinting, 'Receipts-To-Print-' . (int) $_SERVER['REQUEST_TIME'] . '.pdf');  // EXITS.
+    cdntaxreceipts_sendCollectedPDF($receiptsForPrintingPDF, 'Receipts-To-Print-' . (int) $_SERVER['REQUEST_TIME'] . '.pdf');  // EXITS.
   }
+
+
+  /**************************************
+  * CH Custom Functions
+  ***************************************/
+    
 }
 

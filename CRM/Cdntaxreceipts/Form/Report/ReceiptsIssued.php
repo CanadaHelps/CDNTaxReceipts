@@ -1,7 +1,6 @@
 <?php
 
-require_once('CRM/Report/Form.php');
-require_once('CRM/Utils/Type.php');
+use CRM_Cdntaxreceipts_ExtensionUtil as E;
 
 class CRM_Cdntaxreceipts_Form_Report_ReceiptsIssued extends CRM_Report_Form {
 
@@ -19,13 +18,14 @@ class CRM_Cdntaxreceipts_Form_Report_ReceiptsIssued extends CRM_Report_Form {
         'fields' =>
         array(
           'sort_name' =>
-          array('title' => ts('Contact Name', array('domain' => 'org.civicrm.cdntaxreceipts')),
+          array('title' => E::ts('Contact Name (Current Value)'),
             'required' => TRUE,
           ),
           'id' =>
           array(
             'no_display' => TRUE,
             'required' => TRUE,
+            'type' => CRM_Utils_Type::T_INT,
           ),
         ),
         'grouping' => 'tax-fields',
@@ -47,7 +47,7 @@ class CRM_Cdntaxreceipts_Form_Report_ReceiptsIssued extends CRM_Report_Form {
           'receipt_no' => array('title' => 'Receipt No.', 'default' => TRUE),
           'issue_type' => array('title' => 'Issue Type', 'default' => TRUE),
           'issue_method' => array('title' => 'Issue Method', 'default' => TRUE),
-          'uid' => array('title' => 'Issued By', 'default' => TRUE),
+          'uid' => array('title' => 'Issued By', 'default' => TRUE, 'type' => CRM_Utils_Type::T_INT),
           'receipt_status' => array('title' => 'Receipt Status', 'default' => TRUE,),
           'email_opened' => array('title' => 'Email Open Date', 'type' => CRM_Utils_Type::T_TIMESTAMP, 'default' => TRUE),
         ),
@@ -113,7 +113,9 @@ class CRM_Cdntaxreceipts_Form_Report_ReceiptsIssued extends CRM_Report_Form {
         array(
           'contribution_id' => array(
             'default' => TRUE,
-            'dbAlias' => "GROUP_CONCAT(DISTINCT cdntaxreceipts_log_contributions_civireport.contribution_id ORDER BY cdntaxreceipts_log_contributions_civireport.contribution_id SEPARATOR ', ')", ),
+            'dbAlias' => "GROUP_CONCAT(DISTINCT cdntaxreceipts_log_contributions_civireport.contribution_id ORDER BY cdntaxreceipts_log_contributions_civireport.contribution_id SEPARATOR ', ')",
+            'type' => CRM_Utils_Type::T_INT,
+           ),
         ),
         'grouping' => 'tax-fields',
       ),
@@ -168,10 +170,11 @@ class CRM_Cdntaxreceipts_Form_Report_ReceiptsIssued extends CRM_Report_Form {
         FROM cdntaxreceipts_log {$this->_aliases['civicrm_cdntaxreceipts_log']}
         INNER JOIN cdntaxreceipts_log_contributions {$this->_aliases['civicrm_cdntaxreceipts_log_contributions']}
                 ON {$this->_aliases['civicrm_cdntaxreceipts_log']}.id = {$this->_aliases['civicrm_cdntaxreceipts_log_contributions']}.receipt_id
+        LEFT  JOIN civicrm_contact {$this->_aliases['civicrm_contact']}
+                ON {$this->_aliases['civicrm_contact']}.id = {$this->_aliases['civicrm_cdntaxreceipts_log']}.contact_id
         LEFT  JOIN civicrm_contribution {$this->_aliases['civicrm_contribution']}
                 ON {$this->_aliases['civicrm_contribution']}.id = {$this->_aliases['civicrm_cdntaxreceipts_log_contributions']}.contribution_id 
-        LEFT  JOIN civicrm_contact {$this->_aliases['civicrm_contact']}
-                ON {$this->_aliases['civicrm_contact']}.id = {$this->_aliases['civicrm_cdntaxreceipts_log']}.contact_id ";
+        ";
 
   }
 
@@ -297,6 +300,7 @@ class CRM_Cdntaxreceipts_Form_Report_ReceiptsIssued extends CRM_Report_Form {
     $statistics['counts']['count'] = array(
       'title' => ts('Number Issued', array('domain' => 'org.civicrm.cdntaxreceipts')),
       'value' => $count,
+      'type' => CRM_Utils_Type::T_INT,
     );
     $statistics['counts']['avg'] = array(
       'title' => ts('Average Amount Issued', array('domain' => 'org.civicrm.cdntaxreceipts')),

@@ -24,7 +24,7 @@ class CRM_Cdntaxreceipts_Task_IssueSingleTaxReceipts extends CRM_Contribute_Form
 
     //check for permission to edit contributions
     if ( ! CRM_Core_Permission::check('issue cdn tax receipts') ) {
-      CRM_Core_Error::fatal(ts('You do not have permission to access this page', array('domain' => 'org.civicrm.cdntaxreceipts')));
+      throw new CRM_Core_Exception("You do not have permission to access this page");
     }
 
     parent::preProcess();
@@ -211,7 +211,7 @@ class CRM_Cdntaxreceipts_Task_IssueSingleTaxReceipts extends CRM_Contribute_Form
       $contribution = new CRM_Contribute_DAO_Contribution();
       $contribution->id = $contributionId;
       if ( ! $contribution->find( TRUE ) ) {
-        CRM_Core_Error::fatal( "CDNTaxReceipts: Could not find corresponding contribution id." );
+        throw new CRM_Core_Exception("CDNTaxReceipts: Could not find corresponding contribution id.");
       }
 
       // Only process Contributions of selected Year
@@ -300,6 +300,11 @@ class CRM_Cdntaxreceipts_Task_IssueSingleTaxReceipts extends CRM_Contribute_Form
     // NB: This exits if a file is sent.
     cdntaxreceipts_sendCollectedPDF($receiptsForPrinting, 'Receipts-To-Print-' . (int) $_SERVER['REQUEST_TIME'] . '.pdf');  // EXITS.
   }
+
+
+  /**************************************
+  * CH Custom Functions
+  ***************************************/
 
   //CRM-920: Thank-you Email Tool
   private function getThankYouHTML(array $contributionIds, $sender, $params) {
