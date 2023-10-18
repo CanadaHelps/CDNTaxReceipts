@@ -1059,6 +1059,7 @@ $mode = CDNTAXRECEIPTS_MODE_BACKOFFICE, $thankyou_html = NULL ) {
   // query for duplicate receipt
   list( $issued_on, $receipt_id ) = cdntaxreceipts_annual_issued_on($contactId, $year);
 
+
   // When returning issued_on field:
   //   returns false for non existing $contribution ID
   //   returns 0 for existing but old data
@@ -1066,6 +1067,12 @@ $mode = CDNTAXRECEIPTS_MODE_BACKOFFICE, $thankyou_html = NULL ) {
   $is_duplicate = empty($issued_on) ? 0 : 1;
 
   if ( $is_duplicate ) {
+
+    // in case we're not getting the receipt id (CRM-2058)
+    if (empty($receipt_id)) {
+      return array(FALSE, $method, NULL);
+    }
+
     // issue an identical receipt
     $receipt = cdntaxreceipts_load_receipt($receipt_id);
     // Cancelled receipts are not sent via email
