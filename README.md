@@ -20,10 +20,12 @@ To set up the extension:
 2. Make sure your CiviCRM Extensions Resource URL is set (Administer > System Settings > Resource URLs).
 3. Unpack the code
     - cd extensions directory
-    - git clone https://github.com/jake-mw/CDNTaxReceipts.git org.civicrm.cdntaxreceipts
+    - git clone https://lab.civicrm.org/extensions/cdntaxreceipts.git org.civicrm.cdntaxreceipts
 4. Enable the extension at Administer > System Settings > Manage Extensions
 5. Configure CDN Tax Receipts at Administer > CiviContribute > CDN Tax Receipts. (Take note of the dimensions for each of the image parameters. Correct sizing is important. You might need to try a few times to get it right.)
-6. Review permissions: The extension has added a new permission called "CiviCRM CDN Tax Receipts: Issue Tax Receipts".
+6. Review permissions: The extension has added a new permission called "CiviCRM CDN Tax Receipts: Issue Tax Receipts". "Edit all Contacts" is also required.
+
+Note: if you are installing this on Drupal 8 or Drupal 9 -> remember clear the Drupal cache or you may not be able to get to the CiviCRM CDNTaxReceipts settings screen.
 
 Now you should be able to use the module.
 
@@ -61,7 +63,9 @@ Since there are multiple contributions on one receipt there are some differences
 
 - To issue Annual Tax Receipts, go to Search > Find Contacts (or Search > Advanced Search), run a search for contacts, select one or more contacts, and select "Issue Annual Tax Receipts" in the actions drop-down. Follow on-screen instructions from there.
 
-The extension also enables two report templates, which can be used to see a list of receipts issued and receipts outstanding.
+**Reports**
+
+The extension also enables two CiviReport templates, found under `Reports - Contribution Reports - New Contribution Report`, which can be used to see a list of receipts issued and receipts outstanding.
 
 - Tax Receipts - Receipts Issued
 - Tax Receipts - Receipts Not Issued
@@ -79,6 +83,7 @@ hook_cdntaxreceipts_eligible()
 
 You may be in a situation where certain Contributions are eligible for tax receipts and others are not (e.g. donations are receiptable, but only for individuals, and event fees are not receiptable). If this is the case, there is a PHP hook hook_cdntaxreceipts_eligible($contribution) that can be used for complex eligibility criteria. Hook implementations should return one of TRUE or FALSE, wrapped in an array.
 
+```php
     // Example hook implementation:
     //  Contributions have a custom yes/no field called "receiptable". Issue tax receipt
     //  on any contribution where receiptable = Yes.
@@ -101,6 +106,7 @@ You may be in a situation where certain Contributions are eligible for tax recei
       }
 
     }
+```
 
 By default, a contribution is eligible for tax receipting if it is completed, and if its Financial Type is deductible.
 
@@ -109,6 +115,7 @@ hook_cdntaxreceipts_eligibleAmount()
 
 If you need to customize the amount that is tax-deductible on a receipt, use this hook.
 
+```php
     // Example hook implementation:
     //  Return a maximum tax deduction of $1000.00
     function mymodule_cdntaxreceipts_eligibleAmount( $contribution ) {
@@ -119,6 +126,46 @@ If you need to customize the amount that is tax-deductible on a receipt, use thi
         return $contribution->total_amount - $contribution->non_deductible_amount;
       }
     }
+```
+
+hook_cdntaxreceipts_alter_receipt()
+-----------
+
+If you need to customize the variables that are passed to the receipt e.g. display name
+
+```php
+// example combining the name of a spouse in the receipt
+function mymodule_cdntaxreceipts_alter_receipt(&$receipt) {
+  if (!empty($_POST['is_spouse'])) {
+    $relationships = civicrm_api3('Relationship', 'get', [
+      'sequential' => 1,
+      'contact_id_a' => $receipt['contact_id'],
+      'relationship_type_id' => "Spouse of",
+      'is_active' => 1,
+      'options' => ['limit' => 1],
+    ])['values'];
+
+    if (empty($relationships)) {
+      $relationships = civicrm_api3('Relationship', 'get', [
+        'sequential' => 1,
+        'contact_id_b' => $receipt['contact_id'],
+        'relationship_type_id' => "Spouse of",
+        'is_active' => 1,
+        'options' => ['limit' => 1],
+      ])['values'];
+      $relContact = $relationships[0]['contact_id_a'] ?? NULL;
+    }
+    else {
+      $relContact = $relationships[0]['contact_id_b'];
+    }
+
+    $spouseRecords[] = CRM_Contact_BAO_Contact::displayName($receipt['contact_id']);
+    if (!empty($relContact)) {
+      $spouseRecords[] = CRM_Contact_BAO_Contact::displayName($relContact);
+      $receipt['display_name'] = E::ts('%1 and %2', [1 => $spouseRecords[0], 2 => $spouseRecords[1]]);
+    }
+  }
+```
 
 Disclaimer
 ------------

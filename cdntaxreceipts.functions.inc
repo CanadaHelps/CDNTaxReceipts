@@ -15,6 +15,20 @@ require_once('FPDI/fpdi.php');
      * include a background template for every page
      */
     function Header() {
+      /* Disable PDF Templates
+      $pdf_template_file = _cdntaxreceipts_get_image_filepath('receipt_pdftemplate');
+      if (!empty($pdf_template_file)) {
+
+        if (is_null($this->_tplIdx)) {
+          $this->setSourceFile($pdf_template_file);
+          $this->_tplIdx = $this->importPage(1);
+        }
+        $this->useTemplate($this->_tplIdx);
+      }
+      else {
+        $this->parsers = array();
+      }
+      */
       $this->parsers = array();
     }
 
@@ -70,7 +84,8 @@ function cdntaxreceipts_processTaxReceipt($receipt, &$collectedPdf = NULL, $mode
   //   modules should accept a reference to the $receipt array and alter it directly if they wish
   //   one useful use case: alter the $receipt['source'] line to include custom text
   //   to alter receipt amount, use hook_cdntaxreceipts_eligibleAmount() instead
-  CRM_Utils_Hook::singleton()->invoke(['receipt'], $receipt, CRM_Utils_Hook::$_nullObject, CRM_Utils_Hook::$_nullObject, CRM_Utils_Hook::$_nullObject, CRM_Utils_Hook::$_nullObject, CRM_Utils_Hook::$_nullObject, 'cdntaxreceipts_alter_receipt');
+  $_nullObject = NULL;
+  CRM_Utils_Hook::singleton()->invoke(['receipt'], $receipt, $_nullObject, $_nullObject, $_nullObject, $_nullObject, $_nullObject, 'cdntaxreceipts_alter_receipt');
 
 
   // Re-checking if issued, as we did add quite a bit of API calls since last check
@@ -240,75 +255,32 @@ function cdntaxreceipts_processTaxReceipt($receipt, &$collectedPdf = NULL, $mode
   }
 
   if (isset($collectedPdf) && $pdf_file) {
-    if(!$receipt['is_duplicate'] && ($mode === true || $mode == CDNTAXRECEIPTS_MODE_PREVIEW))
-    {
+    if (!$receipt['is_duplicate'] 
+      && ($mode === true || $mode == CDNTAXRECEIPTS_MODE_PREVIEW)) {
       //Unlink preview Tax receipts reciepts
       $customReceipt->removeTemporaryFile($pdf_file);
     }
-    if($receipt['is_duplicate'] && $mode != CDNTAXRECEIPTS_MODE_PREVIEW && ($receipt['issue_method'] == 'email' || $receipt['issue_method'] == 'print') && $receipt['receipt_status'] != 'cancelled')
-    {
+    if ($receipt['is_duplicate'] 
+      && $mode != CDNTAXRECEIPTS_MODE_PREVIEW 
+      && ($receipt['issue_method'] == 'email' || $receipt['issue_method'] == 'print') 
+      && $receipt['receipt_status'] != 'cancelled') {
       //Unlik generated duplicate tax receipts
       $customReceipt->removeTemporaryFile($pdf_file);
     }
     $pdf_file = NULL;
-    }
-    if(($receipt['is_duplicate'] &&  !isset($collectedPdf) && $receipt['issue_method'] == 'email') )
-    {
+  }
+
+  if (($receipt['is_duplicate'] 
+    &&  !isset($collectedPdf) && $receipt['issue_method'] == 'email') ) {
       //unlink Delivery method email and from single manage receipt section
       $customReceipt->removeTemporaryFile($pdf_file);
-        $pdf_file = NULL;
-    }
+      $pdf_file = NULL;
+  }
 
   // if not unset, cron will clean up the PDF file later on
   return array( $sent, $receipt['issue_method'], $pdf_file );
 }
 
-/**
- * cdnaxreceipts_manageVoidPDF()
- * Accepts receipt ID and Contribution ID for generation of receipt array.
- * This function is called when click 'void receipt' button.
- */
-// CRM-1907 Manage void Tax receipt by adding 'CANCELLED' watermark
-function cdnaxreceipts_manageVoidPDF($receipt_id,$contributionId)
-{
-
-   $mode = NULL;
-   $receipt = cdntaxreceipts_load_receipt($receipt_id);
-   //CRM-2051-When we generate void receipt for contribution , receipt does not exist on server at that time following paramaters are missing from receipt object
-   if(isset($receipt['receipt_amount'])&& isset($receipt['contributions'][0]['receive_date']))
-   {
-    $receipt['contribution_amount'] = $receipt['receipt_amount'];
-    $receipt['receive_date'] = $receipt['contributions'][0]['receive_date'];
-  }
-   $customReceipt = new CRM_Canadahelps_TaxReceipts_Receipt($receipt['receipt_no'], $receipt);
-   $customReceipt->setMode(CDNTAXRECEIPTS_MODE_BACKOFFICE );
-   $customReceipt->setDefaultImagesDir( dirname(__FILE__) . '/img/' );
-   $customReceipt->setFontsDir( dirname(__FILE__) . '/fonts/' );
-   $customReceipt->generatePDF(); // this should create the original pdf - to be confirmed
-
-   //CRM-1948 -Add function to set is_receipted and receipt number field void after void receipt 
-   cdntaxreceipts_setReceiptNumberIsReceiptedField($receipt,$contributionId);
-
-    // Code for download void receipt right after cancelling
-   $contactID = $receipt['contact_id'] ?? NULL;
-   $filename = $customReceipt->getFilePath();
-   $contributionID = $contributionId ?? NULL;
-   $session = CRM_Core_Session::singleton();
-   $session->set("pdf_file_". $contributionID . "_" . $contactID, $filename, 'cdntaxreceipts');
-   return;
-}
-
-function cdntaxreceipts_setReceiptNumberIsReceiptedField($receipt, $contributionId) {
-    if($receipt['receipt_no']) {
-      foreach($receipt['contributions'] as $contribution) {
-        civicrm_api3('CustomValue', 'create', [
-          'entity_id' => $contribution['contribution_id'],
-          EU::getCustomFieldID('Is_Receipted_') => NULL,
-          EU::getCustomFieldID('Receipt_Number') => NULL,
-        ]);
-      }
-    }
-}
 /**
  * generateFormattedReceipt()
  * Accepts an associative array of receipt variables and produces a PDF file.
@@ -442,9 +414,6 @@ function cdntaxreceipts_generateFormattedReceipt($receipt, &$collectedPdf = NULL
 
 function _cdntaxreceipts_writePage(&$f, $pdf_variables, $receipt) {
 
-  // !!! this entire code is no longer used
-  // shoulb be reverted back to core
-
   //
   // hook_cdntaxreceipts_writeReceipt(&$pdf, $pdf_variables, $receipt)
   //
@@ -527,6 +496,8 @@ function _cdntaxreceipts_writeReceipt(&$pdf, $pdf_variables) {
     $pdf->Image($pdf_img_files_path . 'duplicate_trans.png', $mymargin_left + 65, $mymargin_top, '', 45);
   }
   // Top left section
+  $pdf_template_file = _cdntaxreceipts_get_image_filepath('receipt_pdftemplate');
+  if (empty($pdf_template_file)) {
     $receipt_logo = _cdntaxreceipts_get_image_filepath('receipt_logo');
     if ( empty($receipt_logo) ) {
       $receipt_logo = $pdf_img_files_path . 'your-logo.png';
@@ -561,14 +532,18 @@ function _cdntaxreceipts_writeReceipt(&$pdf, $pdf_variables) {
     $pdf->Write(10, $emailTxt, '', 0, 'R', TRUE, 0, FALSE, FALSE, 0);
     $pdf->SetY($mymargin_top + 20);
     $pdf->Write(10, $registrationTxt, '', 0, 'R', TRUE, 0, FALSE, FALSE, 0);
+  }
 
   // Right section
   $x_detailscolumn = 116;
   $y_detailscolumnstart = 22;
+  $pdf_template_file = _cdntaxreceipts_get_image_filepath('receipt_pdftemplate');
+  if (empty($pdf_template_file)) {
     $background_image = _cdntaxreceipts_get_image_filepath('receipt_watermark');
     if ($background_image) {
       $pdf->Image($background_image, $mymargin_left + $x_detailscolumn, $mymargin_top + $y_detailscolumnstart + 6, '', 40);
     }
+  }
   $pdf->SetXY($mymargin_left + $x_detailscolumn, $mymargin_top + $y_detailscolumnstart + 6);
   $pdf->SetFont('Helvetica', 'B', 8);
   $pdf->Write(10, ts("Issue Date: %1", array(1 => $issued_on, 'domain' => 'org.civicrm.cdntaxreceipts')));
@@ -778,32 +753,14 @@ function cdntaxreceipts_configure_inkind_fields() {
 /**************************************
  * SECTION: Tax Receipt API
  */
-//CRM-1959 - 'Issued On' value is not getting updated in 'Edit Contribution Form' if the contribution's tax receipt was replaced with a new one
-function cdnaxreceipts_getReceiptDate($contributionID)
-{
-  $contributions = civicrm_api4('Contribution', 'get', [
-    'select' => [
-      'receipt_date',
-    ],
-    'where' => [
-      ['id', '=', $contributionID],
-    ],
-    'limit' => 1,
-  ]);
-  $contributionReceiptDate = 0 ;
-  foreach($contributions as $contribution)
-  {
-    $contributionReceiptDate = $contribution['receipt_date'];
-  }
-  return $contributionReceiptDate;
-}
 
 /**
  * issueTaxReceipt()
  * Issues a tax receipt for a single contribution.
  * Detects if the receipt is a duplicate and reacts appropriately.
  */
-function cdntaxreceipts_issueTaxReceipt($contribution, &$collectedPdf = NULL, $mode = CDNTAXRECEIPTS_MODE_BACKOFFICE) {
+function cdntaxreceipts_issueTaxReceipt($contribution, &$collectedPdf = NULL, $mode = CDNTAXRECEIPTS_MODE_BACKOFFICE, $printOverride = NULL) {
+
   // This function basically needs to set up a $receipt[] array and pass it to
   // processTaxReceipt() which does the hard work
   $receipt = array();
@@ -828,23 +785,20 @@ function cdntaxreceipts_issueTaxReceipt($contribution, &$collectedPdf = NULL, $m
   if ( $is_duplicate ) {
     // if this was issued as part of an annual receipt, then jump over to the Annual method
     $receiptInfo = cdntaxreceipts_load_receipt($receipt_id);
-    if ( $receiptInfo['issue_type'] == 'annual' ) {
+    if ( $receiptInfo['issue_type'] == 'annual' || $receiptInfo['issue_type'] == 'aggregate' ) {
       $contactId = $receiptInfo['contact_id'];
       $year = substr($receiptInfo['contributions'][0]['receive_date'], 0, 4);
-      //CRM-1822 Adding last parameter to identify cancelled receipt_id for download
-      $receiptCancelId = (isset($contribution->previewCancelReceiptId))?? $contribution->previewCancelReceiptId;
-      return cdntaxreceipts_issueAnnualTaxReceipt($contactId, $year, $collectedPdf, $mode, NULL, $receiptCancelId);
-    }
-    else if ( $receiptInfo['issue_type'] == 'aggregate' ) {
-      $contactId = $receiptInfo['contact_id'];
-      $year = substr($receiptInfo['contributions'][0]['receive_date'], 0, 4);
-      list($method, $email) = cdntaxreceipts_sendMethodForContact($contactId);
+      list($method, $email) = cdntaxreceipts_sendMethodForContact($contactId, $printOverride);
       if(isset($contribution->previewCancelReceiptId)){
         foreach($receiptInfo['contributions'] as $key => $value){
           $receiptInfo['contributions'][$key]['receipt_id'] = $receipt_id;
         }
       }
       $thankyou_html = (isset($contribution->thankyou_html)) ? $contribution->thankyou_html : NULL;
+      if ( $receiptInfo['issue_type'] == 'annual' ) {
+        return cdntaxreceipts_issueAnnualTaxReceipt($contactId, $year, $receiptInfo['contributions'],
+        $method, $collectedPdf, $mode, $thankyou_html);
+      }
       return cdntaxreceipts_issueAggregateTaxReceipt($contactId, $year, $receiptInfo['contributions'],
         $method, $collectedPdf, $mode, $thankyou_html);
     }
@@ -856,7 +810,7 @@ function cdntaxreceipts_issueTaxReceipt($contribution, &$collectedPdf = NULL, $m
   }
 
   // determine the send method
-  list($method, $email) = cdntaxreceipts_sendMethodForContact($contribution->contact_id);
+  list($method, $email) = cdntaxreceipts_sendMethodForContact($contribution->contact_id, $printOverride);
 
  // set method to print if user wants to download
   if($is_duplicate && isset($contribution->pdfDownloadReceipt) && $method != 'data'){
@@ -1092,17 +1046,20 @@ function cdntaxreceipts_eligibleAmount( $contributionId ) {
  * Issues an annual tax receipt for a given year.
  * Detects if the receipt is a duplicate and reacts appropriately.
  */
-function cdntaxreceipts_issueAnnualTaxReceipt( $contactId, $year, &$collectedPdf = NULL, $mode = CDNTAXRECEIPTS_MODE_BACKOFFICE, $thankyou_html = NULL,$downloadCancelReceipt = NULL ) {
+function cdntaxreceipts_issueAnnualTaxReceipt( $contactId, $year, $contributions, $method, &$collectedPdf = NULL, 
+$mode = CDNTAXRECEIPTS_MODE_BACKOFFICE, $thankyou_html = NULL ) {
+
+  // Annual receipts are identical to aggregate
+  // Use same code, but mark as "annual"
+  return cdntaxreceipts_issueAggregateTaxReceipt($contactId, $year, $contributions, $method, $collectedPdf, $mode, $thankyou_html, 'annual');
 
   // determine the send method
   list( $method, $email ) = cdntaxreceipts_sendMethodForContact($contactId);
 
   // query for duplicate receipt
   list( $issued_on, $receipt_id ) = cdntaxreceipts_annual_issued_on($contactId, $year);
-  //CRM-1822 Replaces receipt_id if user wants to fetch details about previously cancelled receipt
-  if($downloadCancelReceipt != NULL){
-    $receipt_id = $downloadCancelReceipt;
-  }
+
+
   // When returning issued_on field:
   //   returns false for non existing $contribution ID
   //   returns 0 for existing but old data
@@ -1127,7 +1084,6 @@ function cdntaxreceipts_issueAnnualTaxReceipt( $contactId, $year, &$collectedPdf
     $receipt['is_duplicate'] = 1;
     $receipt['receive_date'] = $year;
     $receipt['issue_method'] = $method;
-    $receipt['thankyou_html'] = $thankyou_html;
   }
   else {
 
@@ -1141,6 +1097,7 @@ function cdntaxreceipts_issueAnnualTaxReceipt( $contactId, $year, &$collectedPdf
     $receiptContributions = array();
     $totalReceipt = 0;
     foreach ( $contributions as $c ) {
+      _cdntaxreceipts_check_lineitems($c['contribution_id']);
       $eligibleAmount = cdntaxreceipts_eligibleAmount($c['contribution_id']);
       $receiptContributions[] = array(
         'contribution_id' => $c['contribution_id'],
@@ -1167,8 +1124,6 @@ function cdntaxreceipts_issueAnnualTaxReceipt( $contactId, $year, &$collectedPdf
       'receipt_status' => 'issued',
       'contributions' => $receiptContributions,
       'email_tracking_id' => md5(uniqid(rand(), TRUE)),
-      'thankyou_html' => $thankyou_html,
-      'is_replaced' => 0,
     );
 
   }
@@ -1190,7 +1145,7 @@ function cdntaxreceipts_issueAnnualTaxReceipt( $contactId, $year, &$collectedPdf
  * @return array
  */
 function cdntaxreceipts_issueAggregateTaxReceipt($contactId, $year, $contributions, $method, &$collectedPdf = NULL,
-                                                 $mode = CDNTAXRECEIPTS_MODE_BACKOFFICE, $thankyou_html = NULL) {
+                                                 $mode = CDNTAXRECEIPTS_MODE_BACKOFFICE, $thankyou_html = NULL, $issue_type = 'aggregate') {
   if ( count($contributions) == 0 ) {
     return array(FALSE, $method, NULL);
   }
@@ -1233,7 +1188,7 @@ function cdntaxreceipts_issueAggregateTaxReceipt($contactId, $year, $contributio
 
   // CRM-1820 check replace status
   $is_replaced =  isset($check_contribution['replace_receipt'])? 1 : 0;
-
+  
   if ( $is_duplicate ) {
     $receipt = cdntaxreceipts_load_receipt($receipt_id);
     //CRM-1060 Added "In-Kind Donation" details for re-issued aggregated tax receipts
@@ -1311,7 +1266,7 @@ function cdntaxreceipts_issueAggregateTaxReceipt($contactId, $year, $contributio
       'contact_id' => $contactId,
       'receipt_amount' => $totalReceipt,
       'is_duplicate' => 0,
-      'issue_type' => 'aggregate',
+      'issue_type' => $issue_type,
       'issue_method' => $method,
       'receive_date' => $year,
       'receipt_status' => 'issued',
@@ -1338,13 +1293,13 @@ function cdntaxreceipts_issueAggregateTaxReceipt($contactId, $year, $contributio
 /* determines the send method for the specified contact
  * returns array, [0] = 'email' or 'print', [1] = email address or NULL
  */
-function cdntaxreceipts_sendMethodForContact( $contactId ) {
+function cdntaxreceipts_sendMethodForContact( $contactId, $printOverride = NULL ) {
 
   $delivery_method = Civi::settings()->get('delivery_method') ?? CDNTAX_DELIVERY_PRINT_ONLY;
   if ($delivery_method == CDNTAX_DELIVERY_DATA_ONLY) {
     return array('data', NULL);
   }
-  else if ($delivery_method == CDNTAX_DELIVERY_PRINT_ONLY) {
+  else if (($delivery_method == CDNTAX_DELIVERY_PRINT_ONLY) || $printOverride) {
     return array('print', NULL);
   }
 
@@ -1600,6 +1555,222 @@ function _cdntaxreceipts_setReceiptanguage($language) {
 
 }
 
+// BACKPORTED from 1.7.1
+/**
+ * Get file name with path of file/image field.
+ *
+ * @param string $imageSettingName
+ *
+ * @return string file path or NULL
+ */
+function _cdntaxreceipts_get_image_filepath($imageSettingName) {
+  $fileName = Civi::settings()->get($imageSettingName);
+  if ($fileName) {
+    //CRM-1861 checking if existing receipt signature, logo and watermark have diffrent extension then .png,.jpg,.jpeg
+    $ext = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
+    $allowed = ['png', 'jpg', 'jpeg'];
+    //mime type verification when image is getting added to PDF
+    $allowedMimeType = ['image/png','image/jpeg'];
+    if (!in_array($ext, $allowed)) {
+      return NULL;
+    }
+    // Backward compatibilty for full path
+    if ( strpos($fileName, "/") === 0 )
+    {
+      if(is_file($fileName)) {
+        $mimeType = mime_content_type($fileName);
+        if (!in_array($mimeType, $allowedMimeType)) {
+          return NULL;
+        }
+      return $fileName;
+      }
+    }
+
+    // @todo https://lab.civicrm.org/extensions/cdntaxreceipts/-/commit/8ebaf88064323b1e20c005084caabd8846f8de25
+    $fileNameWithPath = CRM_Core_Config::singleton()->customFileUploadDir . $fileName;
+    if (file_exists($fileNameWithPath)) {
+      $mimeType = mime_content_type($fileNameWithPath);
+        if (!in_array($mimeType, $allowedMimeType)) {
+          return NULL;
+        }
+      return $fileNameWithPath;
+    }
+  }
+  return NULL;
+}
+
+/**
+ * Check if a custom field exists given only the `label`, but we want to
+ * check `name` first, then fall back to `label`.
+ * Being a little bit paranoid but it's not clear if it's possible that a
+ * really old install might have had the `name` generated differently than
+ * the way core currently does it, since we never used to set the `name`
+ * ourselves, so that's why we fall back to `label`.
+ *
+ * @param int $custom_group_id
+ * @param string $field_label
+ * @return bool
+ */
+function _cdntaxreceipts_custom_field_exists($custom_group_id, $field_label) {
+  $params = array(
+    'custom_group_id' => $custom_group_id,
+    'name' => CRM_Utils_String::munge($field_label, '_', 64),
+    'label' => $field_label,
+    'options' => array('or' => array(array('name', 'label'))),
+    'version' => 3,
+  );
+  $result = civicrm_api('custom_field', 'get', $params);
+  return ($result['count'] != 0);
+}
+
+/**
+ * Get the issuing city, but bounce if not set.
+ * @return string
+ */
+function _cdntaxreceipts_get_location(): string {
+  /*$city = \Civi::settings()->get('receipt_location_issued');
+  if (empty($city)) {
+    CRM_Core_Error::statusBounce(
+      ts('Location Issued is not set. Please set it under Administer - CiviContribute - CDN Tax Receipts.', array('domain' => 'org.civicrm.cdntaxreceipts')),
+      CRM_Utils_System::url('civicrm/cdntaxreceipts/settings', 'reset=1')
+    );
+  }
+  return $city;*/
+  // @todo, use setting field as per extension
+  // https://lab.civicrm.org/extensions/cdntaxreceipts/-/commit/6d2de1a3067cee936a92838af2d6a42aafa1df3d
+  $address = CRM_Core_BAO_Location::getValues(['contact_id' => CRM_Core_Config::domainID()], TRUE)['address'][1];
+  $address['province'] = CRM_Core_PseudoConstant::stateProvince($address['state_province_id']);
+  if ($address && $address['state_province_id']) {
+    return $address['city'].", ".$address['province'];
+  }
+  return '';
+}
+
+/**
+ * On upgrade, it may not always be possible to set a new setting to a sane
+ * value, or some similar issue. So on relevant pages we should call this to
+ * run some checks and statusBounce if not good to go.
+ */
+function _cdntaxreceipts_check_requirements(): void {
+  // At the moment this is all we do...
+  _cdntaxreceipts_get_location();
+}
+
+/**
+ * Based on configuration, either return the source field, a custom field,
+ * or nothing. Fancier customization can be done in
+ * hook_cdntaxreceipts_alter_receipt.
+ * @param CRM_Core_DAO_Contribution $contribution
+ * @return string
+ */
+function _cdntaxreceipts_get_contribution_source($contribution): string {
+  return 'Source: ' . $contribution->source;
+}
+
+/**
+ * Check the line items match the total.
+ * @todo Do we need to check the corresponding recurring if it exists?
+ */
+function _cdntaxreceipts_check_lineitems($contribution_id) {
+  $contribution = civicrm_api3('Contribution', 'getsingle', [
+    'id' => $contribution_id,
+    'return' => ['total_amount', 'contact_id'],
+  ]);
+
+  // This is the technique we use elsewhere to get line items, so keep it
+  // consistent, although I don't think we need the check for pre v4.5.
+  $line_item = new CRM_Price_DAO_LineItem();
+  $line_item->contribution_id = $contribution_id;
+  $line_item->find();
+
+  $line_item_totals = 0;
+  while ($line_item->fetch()) {
+    $line_item_totals += $line_item->line_total;
+  }
+
+  if ($contribution['total_amount'] != $line_item_totals) {
+    CRM_Core_Error::statusBounce(
+      ts('The total for contribution id <a %1>%2</a> does not match the line items. Please correct the contribution first.', [
+        'domain' => 'org.civicrm.cdntaxreceipts',
+        1 => 'href="' . CRM_Utils_System::url('civicrm/contact/view/contribution', 'reset=1&id=' . $contribution_id . '&cid=' . $contribution['contact_id'] . '&action=view&context=contribution&selectedChild=contribute') . '" target="_blank"',
+        2 => $contribution_id,
+      ])
+    );
+  }
+}
+
+
+
+
+/**************************************
+* CH Custom Functions
+***************************************/
+
+
+/**
+ * cdnaxreceipts_manageVoidPDF()
+ * Accepts receipt ID and Contribution ID for generation of receipt array.
+ * This function is called when click 'void receipt' button.
+ */
+// CRM-1907 Manage void Tax receipt by adding 'CANCELLED' watermark
+function cdnaxreceipts_manageVoidPDF($receipt_id,$contributionId) {
+
+  $mode = NULL;
+  $receipt = cdntaxreceipts_load_receipt($receipt_id);
+  //CRM-2051-When we generate void receipt for contribution , receipt does not exist on server at that time following paramaters are missing from receipt object
+  if(isset($receipt['receipt_amount'])&& isset($receipt['contributions'][0]['receive_date']))
+  {
+   $receipt['contribution_amount'] = $receipt['receipt_amount'];
+   $receipt['receive_date'] = $receipt['contributions'][0]['receive_date'];
+ }
+  $customReceipt = new CRM_Canadahelps_TaxReceipts_Receipt($receipt['receipt_no'], $receipt);
+  $customReceipt->setMode(CDNTAXRECEIPTS_MODE_BACKOFFICE );
+  $customReceipt->setDefaultImagesDir( dirname(__FILE__) . '/img/' );
+  $customReceipt->setFontsDir( dirname(__FILE__) . '/fonts/' );
+  $customReceipt->generatePDF(); // this should create the original pdf - to be confirmed
+
+  //CRM-1948 -Add function to set is_receipted and receipt number field void after void receipt 
+  cdntaxreceipts_setReceiptNumberIsReceiptedField($receipt,$contributionId);
+
+   // Code for download void receipt right after cancelling
+  $contactID = $receipt['contact_id'] ?? NULL;
+  $filename = $customReceipt->getFilePath();
+  $contributionID = $contributionId ?? NULL;
+  $session = CRM_Core_Session::singleton();
+  $session->set("pdf_file_". $contributionID . "_" . $contactID, $filename, 'cdntaxreceipts');
+  return;
+}
+
+function cdntaxreceipts_setReceiptNumberIsReceiptedField($receipt, $contributionId) {
+   if($receipt['receipt_no']) {
+     foreach($receipt['contributions'] as $contribution) {
+       civicrm_api3('CustomValue', 'create', [
+         'entity_id' => $contribution['contribution_id'],
+         EU::getCustomFieldID('Is_Receipted_') => NULL,
+         EU::getCustomFieldID('Receipt_Number') => NULL,
+       ]);
+     }
+   }
+}
+
+//CRM-1959 - 'Issued On' value is not getting updated in 'Edit Contribution Form' if the contribution's tax receipt was replaced with a new one
+function cdnaxreceipts_getReceiptDate($contributionID) {
+  $contributions = civicrm_api4('Contribution', 'get', [
+    'select' => [
+      'receipt_date',
+    ],
+    'where' => [
+      ['id', '=', $contributionID],
+    ],
+    'limit' => 1,
+  ]);
+  $contributionReceiptDate = 0 ;
+  foreach($contributions as $contribution) {
+    $contributionReceiptDate = $contribution['receipt_date'];
+  }
+  return $contributionReceiptDate;
+}
+
 /**
  * Override core SendTemplateMethod
  * Easier to attach custom email with the PDF
@@ -1793,115 +1964,3 @@ function ch_loadTemplate(string $workflowName, bool $isTest, int $messageTemplat
   return $mailContent;
 }
 
-
-// BACKPORTED from 1.7.1
-/**
- * Get file name with path of file/image field.
- *
- * @param string $imageSettingName
- *
- * @return string file path or NULL
- */
-function _cdntaxreceipts_get_image_filepath($imageSettingName) {
-  $fileName = Civi::settings()->get($imageSettingName);
-  if ($fileName) {
-    //CRM-1861 checking if existing receipt signature, logo and watermark have diffrent extension then .png,.jpg,.jpeg
-    $ext = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
-    $allowed = ['png', 'jpg', 'jpeg'];
-    //mime type verification when image is getting added to PDF
-    $allowedMimeType = ['image/png','image/jpeg'];
-    if (!in_array($ext, $allowed)) {
-      return NULL;
-    }
-    // Backward compatibilty for full path
-    if ( strpos($fileName, "/") === 0 )
-    {
-      if(is_file($fileName)) {
-        $mimeType = mime_content_type($fileName);
-        if (!in_array($mimeType, $allowedMimeType)) {
-          return NULL;
-        }
-      return $fileName;
-      }
-    }
-
-    // @todo https://lab.civicrm.org/extensions/cdntaxreceipts/-/commit/8ebaf88064323b1e20c005084caabd8846f8de25
-    $fileNameWithPath = CRM_Core_Config::singleton()->customFileUploadDir . $fileName;
-    if (file_exists($fileNameWithPath)) {
-      $mimeType = mime_content_type($fileNameWithPath);
-        if (!in_array($mimeType, $allowedMimeType)) {
-          return NULL;
-        }
-      return $fileNameWithPath;
-    }
-  }
-  return NULL;
-}
-
-/**
- * Check if a custom field exists given only the `label`, but we want to
- * check `name` first, then fall back to `label`.
- * Being a little bit paranoid but it's not clear if it's possible that a
- * really old install might have had the `name` generated differently than
- * the way core currently does it, since we never used to set the `name`
- * ourselves, so that's why we fall back to `label`.
- *
- * @param int $custom_group_id
- * @param string $field_label
- * @return bool
- */
-function _cdntaxreceipts_custom_field_exists($custom_group_id, $field_label) {
-  $params = array(
-    'custom_group_id' => $custom_group_id,
-    'name' => CRM_Utils_String::munge($field_label, '_', 64),
-    'label' => $field_label,
-    'options' => array('or' => array(array('name', 'label'))),
-    'version' => 3,
-  );
-  $result = civicrm_api('custom_field', 'get', $params);
-  return ($result['count'] != 0);
-}
-
-/**
- * Get the issuing city, but bounce if not set.
- * @return string
- */
-function _cdntaxreceipts_get_location(): string {
-  /*$city = \Civi::settings()->get('receipt_location_issued');
-  if (empty($city)) {
-    CRM_Core_Error::statusBounce(
-      ts('Location Issued is not set. Please set it under Administer - CiviContribute - CDN Tax Receipts.', array('domain' => 'org.civicrm.cdntaxreceipts')),
-      CRM_Utils_System::url('civicrm/cdntaxreceipts/settings', 'reset=1')
-    );
-  }
-  return $city;*/
-  // @todo, use setting field as per extension
-  // https://lab.civicrm.org/extensions/cdntaxreceipts/-/commit/6d2de1a3067cee936a92838af2d6a42aafa1df3d
-  $address = CRM_Core_BAO_Location::getValues(['contact_id' => CRM_Core_Config::domainID()], TRUE)['address'][1];
-  $address['province'] = CRM_Core_PseudoConstant::stateProvince($address['state_province_id']);
-  if ($address && $address['state_province_id']) {
-    return $address['city'].", ".$address['province'];
-  }
-  return '';
-}
-
-/**
- * On upgrade, it may not always be possible to set a new setting to a sane
- * value, or some similar issue. So on relevant pages we should call this to
- * run some checks and statusBounce if not good to go.
- */
-function _cdntaxreceipts_check_requirements(): void {
-  // At the moment this is all we do...
-  _cdntaxreceipts_get_location();
-}
-
-/**
- * Based on configuration, either return the source field, a custom field,
- * or nothing. Fancier customization can be done in
- * hook_cdntaxreceipts_alter_receipt.
- * @param CRM_Core_DAO_Contribution $contribution
- * @return string
- */
-function _cdntaxreceipts_get_contribution_source($contribution): string {
-  return 'Source: ' . $contribution->source;
-}

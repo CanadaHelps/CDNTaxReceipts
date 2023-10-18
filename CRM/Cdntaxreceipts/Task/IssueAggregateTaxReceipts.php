@@ -24,7 +24,7 @@ class CRM_Cdntaxreceipts_Task_IssueAggregateTaxReceipts extends CRM_Contribute_F
 
     //check for permission to edit contributions
     if ( ! CRM_Core_Permission::check('issue cdn tax receipts') ) {
-      CRM_Core_Error::fatal(ts('You do not have permission to access this page', array('domain' => 'org.civicrm.cdntaxreceipts')));
+      throw new CRM_Core_Exception("You do not have permission to access this page");
     }
 
     parent::preProcess();
@@ -280,17 +280,17 @@ class CRM_Cdntaxreceipts_Task_IssueAggregateTaxReceipts extends CRM_Contribute_F
         $cancelledReceipt = CRM_Canadahelps_TaxReceipts_Receipt::retrieveReceiptDetails($contri['contribution_id'], true);
         if ($cancelledReceipt[0] != NULL && $contri['receipt_id'] == $cancelledReceipt[1]) {
           //CRM-1977
-              $cancelledReceiptContribIds = $cancelledReceipt[3];
-              $receiptContribIds = array_column($contributions,'contribution_id');
-              //CRM-1977-1-If Cancelled contribution Receipt List exactly matches with List of contributions List in that case only add 'cancelled_replace_receipt_number'
-              sort($receiptContribIds);
-              sort($cancelledReceiptContribIds);
-              if ($receiptContribIds === $cancelledReceiptContribIds){
-                $contributions[$k]['cancelled_replace_receipt_number']  = $cancelledReceipt[0];
-              } 
-              $contributions[$k]['replace_receipt']  = 1;
-              $contributions[$k]['receipt_id']  = 0;
-            }
+          $cancelledReceiptContribIds = $cancelledReceipt[3];
+          $receiptContribIds = array_column($contributions,'contribution_id');
+          //CRM-1977-1-If Cancelled contribution Receipt List exactly matches with List of contributions List in that case only add 'cancelled_replace_receipt_number'
+          sort($receiptContribIds);
+          sort($cancelledReceiptContribIds);
+          if ($receiptContribIds === $cancelledReceiptContribIds){
+            $contributions[$k]['cancelled_replace_receipt_number']  = $cancelledReceipt[0];
+          } 
+          $contributions[$k]['replace_receipt']  = 1;
+          $contributions[$k]['receipt_id']  = 0;
+        }
       }
       // $method = $contribution_status['issue_method'];
       $method = 'print';
@@ -323,24 +323,13 @@ class CRM_Cdntaxreceipts_Task_IssueAggregateTaxReceipts extends CRM_Contribute_F
         $ret = cdntaxreceipts_issueAggregateTaxReceipt($contact_id, $year, $contributions, $method,
           $receiptsForPrintingPDF, $previewMode, $thankyou_html);
 
-        if( $ret !== 0 ) {
-          //CRM-920: Mark Contribution as thanked if checked
-        
+        if ( $ret !== 0 && !$previewMode ) {
+            //CRM-920: Mark Contribution as thanked if checked
             foreach($contributions as $contributionIds) {
-              $contribution = new CRM_Contribute_DAO_Contribution();
-              $contribution->id = $contributionIds['contribution_id'];
-              if ( ! $contribution->find( TRUE ) ) {
-                CRM_Core_Error::fatal( "CDNTaxReceipts: Could not find corresponding contribution id." );
-              }
-              if($this->getElement('thankyou_date')->getValue()) {
-                $contribution->thankyou_date = date('Y-m-d H:i:s', CRM_Utils_Time::time());
-                }
-                $contributionReceiptDate = cdnaxreceipts_getReceiptDate($contribution->id);
-                if($contributionReceiptDate && !empty($contributionReceiptDate))
-                {
-                  $contribution->receipt_date = $contributionReceiptDate;
-                }
-                $contribution->save();
+              CRM_Cdntaxreceipts_Task_IssueSingleTaxReceipts::markContributionAsReceipted(
+                $contributionIds['contribution_id'],
+                $this->getElement('thankyou_date')->getValue()
+              );
             }
         }
 
@@ -363,7 +352,7 @@ class CRM_Cdntaxreceipts_Task_IssueAggregateTaxReceipts extends CRM_Contribute_F
         $contribution = new CRM_Contribute_DAO_Contribution();
         $contribution->id = $inkind_value['contribution_id'];
         if ( ! $contribution->find( TRUE ) ) {
-          CRM_Core_Error::fatal( "CDNTaxReceipts: Could not find corresponding contribution id." );
+          throw new CRM_Core_Exception("CDNTaxReceipts: Could not find corresponding contribution id.");
         }
         if ( cdntaxreceipts_eligibleForReceipt($contribution->id) ) {
           list($issued_on, $receipt_id) = cdntaxreceipts_issued_on($contribution->id);
@@ -385,18 +374,12 @@ class CRM_Cdntaxreceipts_Task_IssueAggregateTaxReceipts extends CRM_Contribute_F
             }
 
             list( $ret, $method ) = cdntaxreceipts_issueTaxReceipt( $contribution, $receiptsForPrintingPDF, $previewMode );
-            if( $ret !== 0 ) {
-              //CRM-918: Mark Contribution as thanked if checked
-              if($this->getElement('thankyou_date')->getValue()) {
-                $contribution->thankyou_date = date('Y-m-d H:i:s', CRM_Utils_Time::time());
-              }
-              //CRM-1959
-              $contributionReceiptDate = cdnaxreceipts_getReceiptDate($contributionId);
-              if($contributionReceiptDate && !empty($contributionReceiptDate))
-              {
-                $contribution->receipt_date = $contributionReceiptDate;
-                $contribution->save();
-              }
+            if( $ret !== 0 && !$previewMode) {
+              //CRM-920: Mark Contribution as thanked if checked   
+              CRM_Cdntaxreceipts_Task_IssueSingleTaxReceipts::markContributionAsReceipted(
+                $contribution->id,
+                $this->getElement('thankyou_date')->getValue()
+              );
             }
             if ( $ret == 0 ) {
               $failCount++;
@@ -437,7 +420,7 @@ class CRM_Cdntaxreceipts_Task_IssueAggregateTaxReceipts extends CRM_Contribute_F
             $contribution = new CRM_Contribute_DAO_Contribution();
             $contribution->id = $contributionId;
             if ( ! $contribution->find( TRUE ) ) {
-              CRM_Core_Error::fatal( "CDNTaxReceipts: Could not find corresponding contribution id." );
+              throw new CRM_Core_Exception("CDNTaxReceipts: Could not find corresponding contribution id.");
             }
 
             //CRM-920: Thank-you Email Tool
@@ -448,12 +431,13 @@ class CRM_Cdntaxreceipts_Task_IssueAggregateTaxReceipts extends CRM_Contribute_F
             }
 
             list( $ret, $method ) = cdntaxreceipts_issueTaxReceipt( $contribution, $receiptsForPrintingPDF, $previewMode );
-            if( $ret !== 0 ) {
+            if( $ret !== 0 && !$previewMode) {
               //CRM-918: Mark Contribution as thanked if checked
-              if($this->getElement('thankyou_date')->getValue()) {
-                $contribution->thankyou_date = date('Y-m-d H:i:s', CRM_Utils_Time::time());
-                $contribution->save();
-              }
+              CRM_Cdntaxreceipts_Task_IssueSingleTaxReceipts::markContributionAsReceipted(
+                $contribution->id,
+                $this->getElement('thankyou_date')->getValue(),
+                FALSE
+              );
             }
 
             if ( $ret == 0 ) {
@@ -503,6 +487,12 @@ class CRM_Cdntaxreceipts_Task_IssueAggregateTaxReceipts extends CRM_Contribute_F
     cdntaxreceipts_sendCollectedPDF($receiptsForPrintingPDF, 'Receipts-To-Print-' . CRM_Cdntaxreceipts_Utils_Time::time() . '.pdf');  // EXITS.
   }
 
+
+
+  /**************************************
+  * CH Custom Functions
+  ***************************************/
+  
   //CRM-920: Thank-you Email Tool
   private function getThankYouHTML(array $contributionIds, $sender, $params) {
     $this->_contributionIds = $contributionIds;
@@ -609,12 +599,11 @@ class CRM_Cdntaxreceipts_Task_IssueAggregateTaxReceipts extends CRM_Contribute_F
     $templates = CRM_Core_BAO_MessageTemplate::getMessageTemplates(FALSE);
     if($this->elementExists('template')) {
       $this->removeElement('template');
-      $this->assign('templates', TRUE);
-      $this->add('select', "template", ts('Use Template'),
-        ['default' => 'Default Message'] + $templates + ['0' => ts('Other Custom')], FALSE,
-        ['onChange' => "selectValue( this.value, '');"]
-      );
     }
-
+    $this->assign('templates', TRUE);
+    $this->add('select', "template", ts('Use Template'),
+      ['default' => 'Default Message'] + $templates + ['0' => ts('Other Custom')], FALSE,
+      ['onChange' => "selectValue( this.value, '');"]
+    );
   }
 }

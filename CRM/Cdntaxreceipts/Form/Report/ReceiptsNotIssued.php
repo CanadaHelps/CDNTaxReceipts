@@ -220,6 +220,7 @@ CREATE TEMPORARY TABLE cdntaxreceipts_temp_civireport_eligible (
     CRM_Core_DAO::executeQuery($sql);
 
     $this->from(FALSE);
+    $this->customDataFrom(FALSE);
     $this->where(FALSE);
 
     // if no receive_date filter, then limit to beginning of current month to prevent lock-up on large data sets
