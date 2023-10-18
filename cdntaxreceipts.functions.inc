@@ -70,7 +70,8 @@ function cdntaxreceipts_processTaxReceipt($receipt, &$collectedPdf = NULL, $mode
   //   modules should accept a reference to the $receipt array and alter it directly if they wish
   //   one useful use case: alter the $receipt['source'] line to include custom text
   //   to alter receipt amount, use hook_cdntaxreceipts_eligibleAmount() instead
-  CRM_Utils_Hook::singleton()->invoke(['receipt'], $receipt, CRM_Utils_Hook::$_nullObject, CRM_Utils_Hook::$_nullObject, CRM_Utils_Hook::$_nullObject, CRM_Utils_Hook::$_nullObject, CRM_Utils_Hook::$_nullObject, 'cdntaxreceipts_alter_receipt');
+  $_nullObject = NULL;
+  CRM_Utils_Hook::singleton()->invoke(['receipt'], $receipt, $_nullObject, $_nullObject, $_nullObject, $_nullObject, $_nullObject, 'cdntaxreceipts_alter_receipt');
 
 
   // Re-checking if issued, as we did add quite a bit of API calls since last check
