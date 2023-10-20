@@ -28,8 +28,11 @@ class CRM_Cdntaxreceipts_Task_IssueAnnualTaxReceipts extends CRM_Contact_Form_Ta
       throw new CRM_Core_Exception("You do not have permission to access this page");
     }
 
+    _cdntaxreceipts_check_requirements();
+
     parent::preProcess();
 
+    // CH Customization: treat same as aggregate
     $this->_issue_type  = array('original' , 'duplicate');
     $this->_receipts    = array();
     $this->_years       = array();
@@ -55,6 +58,7 @@ class CRM_Cdntaxreceipts_Task_IssueAnnualTaxReceipts extends CRM_Contact_Form_Ta
     }
     */
 
+    // CH Customization:
     // (copied from CRM_Cdntaxreceipts_Task_IssueAggregateTaxReceipts)
     foreach ( $this->_years as $year ) {
       foreach ($this->_issue_type as $issue_type) {
@@ -73,6 +77,7 @@ class CRM_Cdntaxreceipts_Task_IssueAnnualTaxReceipts extends CRM_Contact_Form_Ta
       }
     }
     
+    // CH Customization:
     // get contributions ids for each contact/year    
     $this->_contributionIds = [];
     foreach ( $this->_contactIds as $id ) {
@@ -86,16 +91,13 @@ class CRM_Cdntaxreceipts_Task_IssueAnnualTaxReceipts extends CRM_Contact_Form_Ta
 
     $this->_contributions_status = cdntaxreceipts_contributions_get_status($this->_contributionIds);
     
+    // CH Customization:
     // Count and categorize contributions
     // (copied from CRM_Cdntaxreceipts_Task_IssueAggregateTaxReceipts)
     foreach ($this->_contributions_status as $id => $status) {
       
         $year = $status['receive_year'];
 
-        //echo "<pre>id=".print_r($id, true)."</pre>";
-        //echo "<pre>year=".print_r($year, true)."</pre>";
-        //echo "<pre>receipt_id=".print_r($status['receipt_id'], true)."</pre>";
-        //echo "<pre>status=".print_r($status, true)."</pre>";
         $issue_type = (empty($status['receipt_id'])) ? 'original' : 'duplicate';
         // check if most recent is cancelled, and mark as "replace" then add that contribution to 'original' receipt array
         if ($issue_type == "duplicate") {
@@ -139,6 +141,7 @@ class CRM_Cdntaxreceipts_Task_IssueAnnualTaxReceipts extends CRM_Contact_Form_Ta
         }
     }
 
+    // CH Customization:
     // (copied from CRM_Cdntaxreceipts_Task_IssueAggregateTaxReceipts)
     foreach ($this->_issue_type as $issue_type) {
       foreach ($this->_years as $year) {
@@ -146,10 +149,12 @@ class CRM_Cdntaxreceipts_Task_IssueAnnualTaxReceipts extends CRM_Contact_Form_Ta
       }
     }
 
+    // CH Customization:
     // (copied from CRM_Cdntaxreceipts_Task_IssueAggregateTaxReceipts)
     $this->_receipts = $receipts;
     list($this->_years, $this->_receiptList) = CRM_Cdntaxreceipts_Task_IssueSingleTaxReceipts::getReceiptsList((array) $this->_contributionIds, $this->_receiptList, true);
     
+    // CH Customization:
     // Even if no contributions found, show page with current year
     if (count($this->_years) == 0) {
       $this->_years[] = $thisYear;
@@ -198,6 +203,7 @@ class CRM_Cdntaxreceipts_Task_IssueAnnualTaxReceipts extends CRM_Contact_Form_Ta
         'type' => 'cancel',
         'name' => ts('Back', array('domain' => 'org.civicrm.cdntaxreceipts')),
       ),
+      // CH Customization: Preview
       array(
         'type' => 'submit',
         'name' => ts('Preview', array('domain' => 'org.civicrm.cdntaxreceipts')),
@@ -211,7 +217,7 @@ class CRM_Cdntaxreceipts_Task_IssueAnnualTaxReceipts extends CRM_Contact_Form_Ta
       ),
     );
 
-    //CRM-920: Integrate WYSWIG Editor on the form
+    // CH Customization: CRM-920: Integrate WYSWIG Editor on the form
     CRM_Contact_Form_Task_PDFLetterCommon::buildQuickForm($this);
     
     $this->addButtons($buttons);
@@ -221,6 +227,7 @@ class CRM_Cdntaxreceipts_Task_IssueAnnualTaxReceipts extends CRM_Contact_Form_Ta
   }
 
   function setDefaultValues() {
+    // CH Customization:
     $from_email_address = current(CRM_Core_BAO_Domain::getNameAndEmail(FALSE, TRUE));
     return array(
       'receipt_year' => ($this->_years) ? 'issue_' . array_values($this->_years)[0] : 'issue_' . (date("Y") - 1), // TODO: Handle case where year -1 was not an option
@@ -253,7 +260,7 @@ class CRM_Cdntaxreceipts_Task_IssueAnnualTaxReceipts extends CRM_Contact_Form_Ta
 
     $params = $this->controller->exportValues($this->_name);
 
-    // Should we issue duplicates ?
+    // CH Customization: Should we issue duplicates ?
     $originalOnly = TRUE;
     if ( isset($params['receipt_option']) && $params['receipt_option']) {
       $originalOnly = FALSE;
@@ -264,7 +271,7 @@ class CRM_Cdntaxreceipts_Task_IssueAnnualTaxReceipts extends CRM_Contact_Form_Ta
       $year = substr($year, strlen('issue_')); // e.g. issue_2012
     }
 
-    // Preview mode ?
+    // CH Customization: Preview mode ?
     $previewMode = FALSE;
     $buttonName = $this->controller->getButtonName();
     if($buttonName == '_qf_IssueAnnualTaxReceipts_submit') {
@@ -289,7 +296,7 @@ class CRM_Cdntaxreceipts_Task_IssueAnnualTaxReceipts extends CRM_Contact_Form_Ta
     $dataCount = 0;
     $failCount = 0;
 
-    //CRM-920: Thank-you Email Tool
+    // CH Customization: CRM-920: Thank-you Email Tool
     $sendThankYouEmail = false;
     
     if ($this->getElement('thankyou_email')->getValue()
@@ -303,6 +310,7 @@ class CRM_Cdntaxreceipts_Task_IssueAnnualTaxReceipts extends CRM_Contact_Form_Ta
       }
     }
 
+    // CH Customization: treat same as aggregate
     // loop through original receipts only
     foreach ($this->_receipts['original'][$year]['contact_ids'] as $contact_id => $contribution_status) {
       if ( $emailCount + $printCount + $failCount >= self::MAX_RECEIPT_COUNT ) {
@@ -384,6 +392,7 @@ class CRM_Cdntaxreceipts_Task_IssueAnnualTaxReceipts extends CRM_Contact_Form_Ta
       
     }
 
+    // CH Customization: treat same as aggregate
     // loop through duplicate receipts only (but not if preview)
     if (!$originalOnly && !$previewMode) {
       $duplicateReceipts = [];

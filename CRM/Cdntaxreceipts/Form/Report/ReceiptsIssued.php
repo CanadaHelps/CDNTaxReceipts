@@ -4,11 +4,9 @@ use CRM_Cdntaxreceipts_ExtensionUtil as E;
 
 class CRM_Cdntaxreceipts_Form_Report_ReceiptsIssued extends CRM_Report_Form {
 
-  protected $_where = NULL;
-
   function __construct() {
 
-    $this->_customGroupExtends = array('Contact', 'Individual', 'Organization', 'Contribution');
+    $this->_customGroupExtends = array('Contact', 'Individual', 'Organization');
     $this->_autoIncludeIndexedFieldsAsOrderBys = TRUE;
 
     $this->_columns = array(
@@ -43,6 +41,7 @@ class CRM_Cdntaxreceipts_Form_Report_ReceiptsIssued extends CRM_Report_Form {
         'fields' =>
         array(
           'issued_on' => array('title' => 'Issued On', 'default' => TRUE,'type' => CRM_Utils_Type::T_TIMESTAMP,),
+          'location_issued' => array('title' => 'Location Issued', 'default' => FALSE,),
           'receipt_amount' => array('title' => 'Receipt Amount', 'default' => TRUE, 'type' => CRM_Utils_Type::T_MONEY,),
           'receipt_no' => array('title' => 'Receipt No.', 'default' => TRUE),
           'issue_type' => array('title' => 'Issue Type', 'default' => TRUE),
@@ -59,6 +58,11 @@ class CRM_Cdntaxreceipts_Form_Report_ReceiptsIssued extends CRM_Report_Form {
             'title' => 'Issued On',
             'type' => CRM_Utils_Type::T_TIMESTAMP,
             'operatorType' => CRM_Report_Form::OP_DATE),
+          'location_issued' =>
+          array(
+            'title' => 'Location Issued',
+            'type' => CRM_Utils_Type::T_STRING,
+          ),
           'issue_type' =>
             array(
               'title' => ts('Issue Type'),
@@ -119,9 +123,45 @@ class CRM_Cdntaxreceipts_Form_Report_ReceiptsIssued extends CRM_Report_Form {
         ),
         'grouping' => 'tax-fields',
       ),
-      'civicrm_contribution' => // for joining custom contribution fields
-      array(
+      'civicrm_line_item' => array(
+        'dao' => 'CRM_Price_DAO_LineItem',
+        'fields' => array(
+          'financial_type_id' => array(
+            'title' => E::ts('Financial Type (current value)'),
+            'default' => FALSE,
+            'type' => CRM_Utils_Type::T_STRING,
+            // look up words in alterDisplay
+            'dbAlias' => "GROUP_CONCAT(DISTINCT line_item_civireport.financial_type_id ORDER BY line_item_civireport.contribution_id, line_item_civireport.financial_type_id SEPARATOR ',')",
+          ),
+        ),
+        'filters' => array(),
+        'grouping' => 'tax-fields',
+      ),
+      'civicrm_contribution' => array(
         'dao' => 'CRM_Contribute_DAO_Contribution',
+        'fields' => array(
+          'payment_instrument_id' => array(
+            'title' => E::ts('Payment Method (current value)'),
+            'default' => FALSE,
+            'type' => CRM_Utils_Type::T_STRING,
+            // look up words in alterDisplay
+            'dbAlias' => "GROUP_CONCAT(DISTINCT contribution_civireport.payment_instrument_id ORDER BY contribution_civireport.id, contribution_civireport.payment_instrument_id SEPARATOR ',')",
+          ),
+        ),
+        'filters' => array(
+          /* The problem with this is you then need to join on this table
+           * in the statistics section and it messes up the grouping because
+           * it's only expecting one table involved.
+           *
+          'payment_instrument_id' => array(
+            'title' => E::ts('Payment Method (current value)'),
+            'operatorType' => CRM_Report_Form::OP_MULTISELECT,
+            'options' => CRM_Contribute_BAO_Contribution::buildOptions('payment_instrument_id', 'get'),
+            'type' => CRM_Utils_Type::T_INT,
+          ),
+           */
+        ),
+        'grouping' => 'tax-fields',
       ),
     );
 
@@ -150,6 +190,8 @@ class CRM_Cdntaxreceipts_Form_Report_ReceiptsIssued extends CRM_Report_Form {
             $select[] = "{$field['dbAlias']} as {$alias}";
             $this->_columnHeaders["{$tableName}_{$fieldName}"]['type'] = CRM_Utils_Array::value('type', $field);
             $this->_columnHeaders["{$tableName}_{$fieldName}"]['title'] = $field['title'];
+            // @todo The right fix is probably in core in Table.tpl
+            $this->_columnHeaders["{$tableName}_{$fieldName}"]['group_by'] = NULL;
             $this->_selectAliases[] = $alias;
           }
         }
@@ -173,10 +215,114 @@ class CRM_Cdntaxreceipts_Form_Report_ReceiptsIssued extends CRM_Report_Form {
         LEFT  JOIN civicrm_contact {$this->_aliases['civicrm_contact']}
                 ON {$this->_aliases['civicrm_contact']}.id = {$this->_aliases['civicrm_cdntaxreceipts_log']}.contact_id
         LEFT  JOIN civicrm_contribution {$this->_aliases['civicrm_contribution']}
-                ON {$this->_aliases['civicrm_contribution']}.id = {$this->_aliases['civicrm_cdntaxreceipts_log_contributions']}.contribution_id 
-        ";
-
+                ON {$this->_aliases['civicrm_contribution']}.id = {$this->_aliases['civicrm_cdntaxreceipts_log_contributions']}.contribution_id
+        LEFT  JOIN civicrm_line_item {$this->_aliases['civicrm_line_item']}
+                ON {$this->_aliases['civicrm_line_item']}.contribution_id = {$this->_aliases['civicrm_cdntaxreceipts_log_contributions']}.contribution_id";
   }
+
+  function where() {
+    $whereClauses = $havingClauses = array();
+    foreach ($this->_columns as $tableName => $table) {
+      if (array_key_exists('filters', $table)) {
+        foreach ($table['filters'] as $fieldName => $field) {
+          $clause = NULL;
+          if (CRM_Utils_Array::value('type', $field) & (CRM_Utils_Type::T_DATE | CRM_Utils_Type::T_TIMESTAMP)) {
+            if (CRM_Utils_Array::value('operatorType', $field) == CRM_Report_Form::OP_MONTH) {
+              $op = CRM_Utils_Array::value("{$fieldName}_op", $this->_params);
+              $value = CRM_Utils_Array::value("{$fieldName}_value", $this->_params);
+              if (is_array($value) && !empty($value)) {
+                $clause = "(month({$field['dbAlias']}) $op (" . implode(', ', $value) . '))';
+              }
+            }
+            else {
+              $relative = CRM_Utils_Array::value("{$fieldName}_relative", $this->_params);
+              $from     = CRM_Utils_Array::value("{$fieldName}_from", $this->_params);
+              $to       = CRM_Utils_Array::value("{$fieldName}_to", $this->_params);
+              $fromTime = CRM_Utils_Array::value("{$fieldName}_from_time", $this->_params);
+              $toTime   = CRM_Utils_Array::value("{$fieldName}_to_time", $this->_params);
+              $clause   = $this->dateClause($field['dbAlias'], $relative, $from, $to, $field['type'], $fromTime, $toTime);
+            }
+          }
+          else {
+            $op = CRM_Utils_Array::value("{$fieldName}_op", $this->_params);
+            if ($op) {
+              $clause = $this->whereClause($field,
+                $op,
+                CRM_Utils_Array::value("{$fieldName}_value", $this->_params),
+                CRM_Utils_Array::value("{$fieldName}_min", $this->_params),
+                CRM_Utils_Array::value("{$fieldName}_max", $this->_params)
+              );
+            }
+          }
+
+          if (!empty($clause)) {
+            if (CRM_Utils_Array::value('having', $field)) {
+              $havingClauses[] = $clause;
+            }
+            else {
+              $whereClauses[] = $clause;
+            }
+          }
+        }
+      }
+    }
+
+    if (empty($whereClauses)) {
+      $this->_where = "WHERE ( 1 ) ";
+      $this->_having = "";
+    }
+    else {
+      $this->_where = "WHERE " . implode(' AND ', $whereClauses);
+    }
+
+    if ($this->_aclWhere) {
+      $this->_where .= " AND {$this->_aclWhere} ";
+    }
+
+    if (!empty($havingClauses)) {
+      // use this clause to construct group by clause.
+      $this->_having = "HAVING " . implode(' AND ', $havingClauses);
+    }
+    $this->_where .= " AND {$this->_aliases['civicrm_cdntaxreceipts_log']}.is_duplicate = 0 ";
+  }
+
+  function dateClause($fieldName,
+                      $relative, $from, $to, $type = NULL, $fromTime = NULL, $toTime = NULL
+  ) {
+    $clauses = array();
+    if (in_array($relative, array_keys(self::getOperationPair(CRM_Report_FORM::OP_DATE)))) {
+      $sqlOP = self::getSQLOperator($relative);
+      return "( {$fieldName} {$sqlOP} )";
+    }
+
+    list($from, $to) = self::getFromTo($relative, $from, $to, $fromTime, $toTime);
+
+    if ($from) {
+      $from = ($type == CRM_Utils_Type::T_DATE) ? substr($from, 0, 8) : $from;
+      if ($type == CRM_Utils_Type::T_TIMESTAMP) {
+        $time_array = date_parse_from_format ('YmdHis' ,  $from);
+        $from = mktime($time_array['hour'], $time_array['minute'], $time_array['second'], $time_array['month'], $time_array['day'], $time_array['year']);
+      }
+
+      $clauses[] = "( {$fieldName} >= $from )";
+    }
+
+    if ($to) {
+      $to = ($type == CRM_Utils_Type::T_DATE) ? substr($to, 0, 8) : $to;
+      if ($type == CRM_Utils_Type::T_TIMESTAMP) {
+        $time_array = date_parse_from_format ('YmdHis' ,  $to);
+        $to = mktime($time_array['hour'], $time_array['minute'], $time_array['second'], $time_array['month'], $time_array['day'], $time_array['year']);
+      }
+      $clauses[] = "( {$fieldName} <= {$to} )";
+    }
+
+    if (!empty($clauses)) {
+      return implode(' AND ', $clauses);
+    }
+
+    return NULL;
+  }
+
 
   function groupBy( ) {
     // required for GROUP_CONCAT
@@ -200,6 +346,9 @@ class CRM_Cdntaxreceipts_Form_Report_ReceiptsIssued extends CRM_Report_Form {
   function alterDisplay(&$rows) {
     // custom code to alter rows
     $entryFound = FALSE;
+    $defined_financial_types = CRM_Contribute_BAO_Contribution::buildOptions('financial_type_id', 'validate');
+    $defined_payment_methods = CRM_Contribute_BAO_Contribution::buildOptions('payment_instrument_id', 'validate');
+
     foreach ($rows as $rowNum => $row) {
 
       // change contact name with link
@@ -262,6 +411,24 @@ class CRM_Cdntaxreceipts_Form_Report_ReceiptsIssued extends CRM_Report_Form {
         }
       }
 
+      if (array_key_exists('civicrm_line_item_financial_type_id', $row)) {
+        $financial_types = explode(',', $row['civicrm_line_item_financial_type_id']);
+        $financial_types = array_map(function($t) use ($defined_financial_types) {
+          return $defined_financial_types[$t] ?? E::ts('Unknown');
+        }, $financial_types);
+        $rows[$rowNum]['civicrm_line_item_financial_type_id'] = implode(', ', $financial_types);
+        $entryFound = TRUE;
+      }
+
+      if (array_key_exists('civicrm_contribution_payment_instrument_id', $row)) {
+        $payment_methods = explode(',', $row['civicrm_contribution_payment_instrument_id']);
+        $payment_methods = array_map(function($t) use ($defined_payment_methods) {
+          return $defined_payment_methods[$t] ?? E::ts('Unknown');
+        }, $payment_methods);
+        $rows[$rowNum]['civicrm_contribution_payment_instrument_id'] = implode(', ', $payment_methods);
+        $entryFound = TRUE;
+      }
+
       // skip looking further in rows, if first row itself doesn't
       // have the column we need
       if (!$entryFound) {
@@ -281,9 +448,11 @@ class CRM_Cdntaxreceipts_Form_Report_ReceiptsIssued extends CRM_Report_Form {
                ROUND(AVG({$this->_aliases['civicrm_cdntaxreceipts_log']}.receipt_amount), 2) as avg
         ";
 
+    // @todo FIXME
+    $where = $this->getRidOfLineItemsAclWhere();
     $sql = "{$select}
-      {$this->_from}
-      {$this->_where}";
+      FROM cdntaxreceipts_log {$this->_aliases['civicrm_cdntaxreceipts_log']}
+      {$where}";
 
     $dao = CRM_Core_DAO::executeQuery($sql);
 
@@ -309,5 +478,23 @@ class CRM_Cdntaxreceipts_Form_Report_ReceiptsIssued extends CRM_Report_Form {
     );
     return $statistics;
   }
+
+  /**
+   * @todo FIXME Core contains a built-in ACL on line items where it restricts
+   * the entity_table, but it messes up our grouping here. So as a quickfix
+   * this removes it. In this report we know the line items are always related
+   * to contributions, but this is still a bit risky and not the right way to
+   * do this.
+   * @return string
+   */
+  private function getRidOfLineItemsAclWhere(): string {
+    $where = $this->_where;
+    $lineItemsAclWhere = implode(' AND ', CRM_Price_BAO_LineItem::getSelectWhereClause($this->_aliases['civicrm_line_item']));
+    if (!empty($lineItemsAclWhere) && strpos($where, "AND $lineItemsAclWhere") !== FALSE) {
+      $where = str_replace("AND $lineItemsAclWhere", ' ', $where);
+    }
+    return $where;
+  }
+
 }
 

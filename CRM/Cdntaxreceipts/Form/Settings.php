@@ -12,9 +12,12 @@ class CRM_Cdntaxreceipts_Form_Settings extends CRM_Core_Form {
 
   CONST SETTINGS = 'CDNTaxReceipts';
 
+  protected $unsavedChangesWarn = TRUE;
+
   function buildQuickForm() {
 
     CRM_Utils_System::setTitle(ts('Configure CDN Tax Receipts', array('domain' => 'org.civicrm.cdntaxreceipts')));
+    CRM_Core_Resources::singleton()->addStyleFile('org.civicrm.cdntaxreceipts', 'css/civicrm_cdntaxreceipts.css');
 
     $this->processOrgOptions('build');
     $this->processReceiptOptions('build');
@@ -36,10 +39,13 @@ class CRM_Cdntaxreceipts_Form_Settings extends CRM_Core_Form {
       ),
     ));
     // Set image defaults
-    $images = array('receipt_logo', 'receipt_signature');
+    $images = array('receipt_logo', 'receipt_signature'/* DISABLED, 'receipt_watermark', 'receipt_pdftemplate'*/);
     foreach ($images as $image) {
+      $this->assign($image, NULL);
+      $this->assign($image.'_class', FALSE);
       if (!empty($defaults[$image])) {
         $this->assign($image, $defaults[$image]);
+        // CH Customization: backward compatibility with full path
         $imagePath = $defaults[$image];
         if ( substr($imagePath, 0, 1) != "/" )
           $imagePath = CRM_Core_Config::singleton()->customFileUploadDir . $defaults[$image];
@@ -52,61 +58,6 @@ class CRM_Cdntaxreceipts_Form_Settings extends CRM_Core_Form {
     parent::buildQuickForm();
   }
 
-  //CRM-1944 Adding a custom rule to provide error message next to an invalid field on receipt settings form when submitting
-  public function addRules() {
-    $this->addFormRule(['CRM_Cdntaxreceipts_Form_Settings', 'receiptSettingCustomRules'], $this);
-  }
-
-  /**
-   * custom validation callback for CRM-1944
-   */
-  public static function receiptSettingCustomRules($params, $files, $self) {
-    $errors = array();
-    // Make receipt logo and signature mandatory fields
-    $defaults = $self->getVar('_defaultValues');
-    if(empty($defaults['receipt_logo']) && empty($files['receipt_logo']['name']))
-    $errors['receipt_logo'] = ts('Organization Logo is mandatory field');
-
-    if(empty($defaults['receipt_signature']) && empty($files['receipt_signature']['name']))
-    $errors['receipt_signature'] = ts('Signature Image is mandatory field');
-
-    //Add custom rule to check the extension for logo, signature, watermark and pdf template
-    foreach ($files as $field => $value) {
-      if (CRM_Utils_Array::value('name', $value)) {
-        $file = CRM_Utils_Array::value('tmp_name', $value);
-        $value = CRM_Utils_Array::value('name', $value);
-        $required = ($field == 'receipt_logo' || $field == 'receipt_signature');
-        $isValid = CRM_Canadahelps_Config_Verify::isReceiptSettingsFieldValid($field, $value, $required, $file);
-        if ( !$isValid || is_string($isValid))
-          $errors[$field] = $isValid; // isReceiptSettingsFieldValid returns error if not valid
-      }
-    }
-
-    //custom rule to check for default values for organization name, address, telephone, email, registration number
-    $receiptSettingsFields = [
-      'org_name',
-      'org_address_line1',
-      'org_address_line2',
-      'org_tel',
-      'org_email',
-      'org_web',
-      'org_charitable_no',
-      'receipt_prefix'];
-
-    foreach($receiptSettingsFields as $field) {
-      //CRM-1972: Remove trim to get the original value of receipt_prefix field
-      $value = $params[$field];
-      if (!isset($value))
-        $value = '';
-      //CRM-1972: Passing $required value as receipt_prefix is not mandatory field but if it has value then it should not contain any space.
-      $required = ($field == 'receipt_prefix') ? FALSE : TRUE;
-      $isValid = CRM_Canadahelps_Config_Verify::isReceiptSettingsFieldValid($field, $value, $required);
-      if ( !$isValid || is_string($isValid))
-        $errors[$field] = $isValid; // isReceiptSettingsFieldValid returns error if not valid
-    }
-    return empty($errors) ? TRUE : $errors;
-  }
-
   function processOrgOptions($mode) {
     if ( $mode == 'build' ) {
       $this->add('text', 'org_name', ts('Organization Name', array('domain' => 'org.civicrm.cdntaxreceipts')));
@@ -117,7 +68,10 @@ class CRM_Cdntaxreceipts_Form_Settings extends CRM_Core_Form {
       $this->add('text', 'org_email', ts('Email', array('domain' => 'org.civicrm.cdntaxreceipts')));
       $this->add('text', 'org_web', ts('Website', array('domain' => 'org.civicrm.cdntaxreceipts')));
       $this->add('text', 'org_charitable_no', ts('Charitable Registration Number', array('domain' => 'org.civicrm.cdntaxreceipts')));
+      $this->add('text', 'receipt_location_issued', ts('Location Issued', array('domain' => 'org.civicrm.cdntaxreceipts')));
 
+      // @todo: Do we need to do this - can't we just use the `required` param in add() above?
+      // If we do need to do this, shouldn't the labels be ts'd?
       $this->addRule('org_name', 'Enter Organization Name', 'required');
       $this->addRule('org_address_line1', 'Enter Address Line 1', 'required');
       $this->addRule('org_address_line2', 'Enter Address Line 2', 'required');
@@ -127,6 +81,7 @@ class CRM_Cdntaxreceipts_Form_Settings extends CRM_Core_Form {
       $this->addRule('org_email', ts('Please enter a valid email address.') . ' ', 'email');
       $this->addRule('org_web', 'Enter Website', 'required');
       $this->addRule('org_charitable_no', 'Enter Charitable Number', 'required');
+      // $this->addRule('receipt_location_issued', 'Location Issued', 'required');
     }
     else if ( $mode == 'defaults' ) {
       $defaults = array(
@@ -139,7 +94,10 @@ class CRM_Cdntaxreceipts_Form_Settings extends CRM_Core_Form {
         'org_web' => Civi::settings()->get('org_web'),
         'receipt_logo' => Civi::settings()->get('receipt_logo'),
         'receipt_signature' => Civi::settings()->get('receipt_signature'),
+        // DISABLED 'receipt_watermark' => Civi::settings()->get('receipt_watermark'),
+        // DISABLED 'receipt_pdftemplate' => Civi::settings()->get('receipt_pdftemplate'),
         'org_charitable_no' => Civi::settings()->get('org_charitable_no'),
+        'receipt_location_issued' => Civi::settings()->get('receipt_location_issued'),
       );
       return $defaults;
     }
@@ -153,6 +111,7 @@ class CRM_Cdntaxreceipts_Form_Settings extends CRM_Core_Form {
       Civi::settings()->set('org_email', $values['org_email']);
       Civi::settings()->set('org_web', $values['org_web']);
       Civi::settings()->set('org_charitable_no', $values['org_charitable_no']);
+      Civi::settings()->set('receipt_location_issued', $values['receipt_location_issued']);
     }
 
   }
@@ -160,7 +119,6 @@ class CRM_Cdntaxreceipts_Form_Settings extends CRM_Core_Form {
   function processReceiptOptions($mode) {
     if ( $mode == 'build' ) {
       $this->add('text', 'receipt_prefix', ts('Receipt Prefix', array('domain' => 'org.civicrm.cdntaxreceipts')));
-      $this->add('checkbox', 'receipt_serial', ts('Serial Receipt Numbers', array('domain' => 'org.civicrm.cdntaxreceipts')));
       $this->add('text', 'receipt_authorized_signature_text', ts('Authorized Signature Text', array('domain' => 'org.civicrm.cdntaxreceipts')));
 
       $uploadSize = cdntaxreceipts_getCiviSetting('maxFileSize');
@@ -182,22 +140,39 @@ class CRM_Cdntaxreceipts_Form_Settings extends CRM_Core_Form {
       $this->addRule('receipt_logo', ts('Please upload a signature.') . ' ', 'required');
       $this->addRule( 'receipt_signature', ts('File size should be less than %1 MBytes (%2 bytes)', array(1 => $uploadSize, 2 => $uploadFileSize)), 'maxfilesize', $uploadFileSize, array('domain' => 'org.civicrm.cdntaxreceipts') );
 
+      /* DISABLED
+      $this->addElement('file', 'receipt_watermark', ts('Watermark Image', array('domain' => 'org.civicrm.cdntaxreceipts')), 'size=30 maxlength=60');
+      $this->addUploadElement('receipt_watermark');
+      $this->addRule( 'receipt_watermark', ts('File size should be less than %1 MBytes (%2 bytes)', array(1 => $uploadSize, 2 => $uploadFileSize)), 'maxfilesize', $uploadFileSize, array('domain' => 'org.civicrm.cdntaxreceipts') );
+
+      $this->addElement('file', 'receipt_pdftemplate', ts('PDF Template', array('domain' => 'org.civicrm.cdntaxreceipts')), 'size=30 maxlength=60');
+      $this->addUploadElement('receipt_pdftemplate');
+      $this->addRule( 'receipt_pdftemplate', ts('File size should be less than %1 MBytes (%2 bytes)', array(1 => $uploadSize, 2 => $uploadFileSize)), 'maxfilesize', $uploadFileSize, array('domain' => 'org.civicrm.cdntaxreceipts') );
+      */
+
+      $tokenProcessor = new \Civi\Token\TokenProcessor(Civi::dispatcher(), ['schema' => ['contactId', 'contributionId']]);
+      $source_field_tokens = $tokenProcessor->listTokens();
+      $this->assign('tokens', CRM_Utils_Token::formatTokensForDisplay($source_field_tokens));
+      $this->addElement('text', 'source_field', ts('Source Field Value', array('domain' => 'org.civicrm.cdntaxreceipts')));
+      $this->addElement('text', 'source_label', ts('Source Field Label (%1)', array(1 => CRM_Core_I18n::getLocale(), 'domain' => 'org.civicrm.cdntaxreceipts')));
     }
     else if ( $mode == 'defaults' ) {
       $defaults = array(
         'receipt_prefix' => Civi::settings()->get('receipt_prefix'),
-        'receipt_serial' => Civi::settings()->get('receipt_serial'),
         'receipt_authorized_signature_text' => Civi::settings()->get('receipt_authorized_signature_text'),
+        'source_field' => Civi::settings()->get('cdntaxreceipts_source_field') ?? '',
+        'source_label' => Civi::settings()->get('cdntaxreceipts_source_label_' . CRM_Core_I18n::getLocale()) ?? '',
       );
       return $defaults;
     }
     else if ( $mode == 'post' ) {
       $values = $this->exportValues();
       Civi::settings()->set('receipt_prefix', $values['receipt_prefix']);
-      Civi::settings()->set('receipt_serial', $values['receipt_serial'] ?? 0);
       Civi::settings()->set('receipt_authorized_signature_text', $values['receipt_authorized_signature_text']);
+      Civi::settings()->set('cdntaxreceipts_source_field', $values['source_field']);
+      Civi::settings()->set('cdntaxreceipts_source_label_' . CRM_Core_I18n::getLocale(), $values['source_label']);
 
-      foreach ( array('receipt_logo', 'receipt_signature') as $key ) {
+      foreach ( array('receipt_logo', 'receipt_signature' /* DISABLED, 'receipt_watermark', 'receipt_pdftemplate' */) as $key ) {
         $upload_file = $this->getSubmitValue($key);
         if (is_array($upload_file)) {
           if ( $upload_file['error'] == 0 ) {
@@ -284,13 +259,75 @@ class CRM_Cdntaxreceipts_Form_Settings extends CRM_Core_Form {
     $this->processReceiptOptions('post');
     $this->processSystemOptions('post');
     $this->processEmailOptions('post');
-    //CRM-1861 Recheck settings and update flag when settings updated
+    // CH Customization: CRM-1861 Recheck settings and update flag when settings updated
     CRM_Canadahelps_Config_Verify::verifyReceiptSettings();
     setcookie('dismiss_settings_verification_taxreceipts', '', time()-3600,"/", $_SERVER["HTTP_HOST"]);
     $statusMsg = ts('Your settings have been saved.', array('domain' => 'org.civicrm.cdntaxreceipts'));
     CRM_Core_Session::setStatus( $statusMsg, '', 'success' );
     
-    //CRM-1860 Refresh page after successful receipt settings
+    // CH Customization: CRM-1860 Refresh page after successful receipt settings
     CRM_Utils_System::redirect($_SERVER['HTTP_REFERER']);
   }
+
+
+
+  /**************************************
+  * CH Custom Functions
+  ***************************************/
+
+  //CRM-1944 Adding a custom rule to provide error message next to an invalid field on receipt settings form when submitting
+  public function addRules() {
+    $this->addFormRule(['CRM_Cdntaxreceipts_Form_Settings', 'receiptSettingCustomRules'], $this);
+  }
+
+  /**
+   * custom validation callback for CRM-1944
+   */
+  public static function receiptSettingCustomRules($params, $files, $self) {
+    $errors = array();
+    // Make receipt logo and signature mandatory fields
+    $defaults = $self->getVar('_defaultValues');
+    if(empty($defaults['receipt_logo']) && empty($files['receipt_logo']['name']))
+    $errors['receipt_logo'] = ts('Organization Logo is mandatory field');
+
+    if(empty($defaults['receipt_signature']) && empty($files['receipt_signature']['name']))
+    $errors['receipt_signature'] = ts('Signature Image is mandatory field');
+
+    //Add custom rule to check the extension for logo, signature, watermark and pdf template
+    foreach ($files as $field => $value) {
+      if (CRM_Utils_Array::value('name', $value)) {
+        $file = CRM_Utils_Array::value('tmp_name', $value);
+        $value = CRM_Utils_Array::value('name', $value);
+        $required = ($field == 'receipt_logo' || $field == 'receipt_signature');
+        $isValid = CRM_Canadahelps_Config_Verify::isReceiptSettingsFieldValid($field, $value, $required, $file);
+        if ( !$isValid || is_string($isValid))
+          $errors[$field] = $isValid; // isReceiptSettingsFieldValid returns error if not valid
+      }
+    }
+
+    //custom rule to check for default values for organization name, address, telephone, email, registration number
+    $receiptSettingsFields = [
+      'org_name',
+      'org_address_line1',
+      'org_address_line2',
+      'org_tel',
+      'org_email',
+      'org_web',
+      'org_charitable_no',
+      'receipt_prefix'];
+
+    foreach($receiptSettingsFields as $field) {
+      //CRM-1972: Remove trim to get the original value of receipt_prefix field
+      $value = $params[$field];
+      if (!isset($value))
+        $value = '';
+      //CRM-1972: Passing $required value as receipt_prefix is not mandatory field but if it has value then it should not contain any space.
+      $required = ($field == 'receipt_prefix') ? FALSE : TRUE;
+      $isValid = CRM_Canadahelps_Config_Verify::isReceiptSettingsFieldValid($field, $value, $required);
+      if ( !$isValid || is_string($isValid))
+        $errors[$field] = $isValid; // isReceiptSettingsFieldValid returns error if not valid
+    }
+    return empty($errors) ? TRUE : $errors;
+  }
+
 }

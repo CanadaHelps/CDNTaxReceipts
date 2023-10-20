@@ -1,11 +1,8 @@
 <?php
 
-use CRM_Canadahelps_ExtensionUtils as EU;
+require_once('FPDI/src/autoload.php');
 
-require_once 'tcpdf/tcpdf.php';
-require_once('FPDI/fpdi.php');
-
-  class PDF extends FPDI {
+  class PDF extends \setasign\Fpdi\Tcpdf\Fpdi {
     /**
      * "Remembers" the template id of the imported page
      */
@@ -15,7 +12,7 @@ require_once('FPDI/fpdi.php');
      * include a background template for every page
      */
     function Header() {
-      /* Disable PDF Templates
+      /* CH Customization: Disable PDF Templates
       $pdf_template_file = _cdntaxreceipts_get_image_filepath('receipt_pdftemplate');
       if (!empty($pdf_template_file)) {
 
@@ -54,7 +51,7 @@ require_once('FPDI/fpdi.php');
  */
 function cdntaxreceipts_processTaxReceipt($receipt, &$collectedPdf = NULL, $mode = NULL, $method = NULL) {
 
-  // Add session / cookie to keep track of download status
+  // CH Customization: Add session / cookie to keep track of download status
   CRM_Canadahelps_TaxReceipts_Receipt::updateDownloadStatus("initiated");
 
   // Get contact details
@@ -66,9 +63,10 @@ function cdntaxreceipts_processTaxReceipt($receipt, &$collectedPdf = NULL, $mode
   _cdntaxreceipts_setReceiptanguage($preferred_language);
 
   // @todo Deprecate this function - see issue 103. This used to be on the settings form but has been removed. For now if it had been previously set we still use the same (broken) implementation from before.
-  $serial_receipt = Civi::settings()->get('receipt_serial');
-  //CRM-1820 Adding a conditional check to create new receipt number for replace
-  if ($serial_receipt && (empty($receipt['is_duplicate'])||!empty($receipt['replace_receipt']))) {
+  $serial_receipt = true; // Civi::settings()->get('receipt_serial');
+  // CH Customization: CRM-1820 Adding a conditional check to create new receipt number for replace
+  if ($serial_receipt 
+      && (empty($receipt['is_duplicate']) || !empty($receipt['replace_receipt']))) {
     // use my experimental alternative to generating serial receipt numbers, unless this is a re-issue
     $lock = new CRM_Core_Lock('cdntaxreceipts.processTaxReceipt');
     if (!$lock->acquire()) {
@@ -88,6 +86,7 @@ function cdntaxreceipts_processTaxReceipt($receipt, &$collectedPdf = NULL, $mode
   CRM_Utils_Hook::singleton()->invoke(['receipt'], $receipt, $_nullObject, $_nullObject, $_nullObject, $_nullObject, $_nullObject, 'cdntaxreceipts_alter_receipt');
 
 
+  // CH Customization:
   // Re-checking if issued, as we did add quite a bit of API calls since last check
   // If already issued, or partialled issued, we stop and return as error
   // CRM-1820 Bypass this condition while replace receipt
@@ -103,6 +102,7 @@ function cdntaxreceipts_processTaxReceipt($receipt, &$collectedPdf = NULL, $mode
     $sent = TRUE;
   }
   else {
+    // CH Customization:
     // generates custom PDF file
     // this completely replaces the following functions
     // - cdntaxreceipts_generateFormattedReceipt
@@ -136,10 +136,6 @@ function cdntaxreceipts_processTaxReceipt($receipt, &$collectedPdf = NULL, $mode
       // no email, just PDF
       $sent = TRUE;
     }
-
-    // @todo move this section to CRM_Canadahelps_TaxReceipts_Receipt
-    // -> sendToDonor
-    // -> archiveReceipt
     else {
       // generate an email to the tax archive and possibly to the donor
       $org_name = Civi::settings()->get('org_name');
@@ -170,6 +166,7 @@ function cdntaxreceipts_processTaxReceipt($receipt, &$collectedPdf = NULL, $mode
         'orgName' => $org_name,
         'contact' => $contact,
         'receipt' => $receipt,
+        'openTracking' => '',
       );
 
       $sendTemplateParams = array(
@@ -188,18 +185,19 @@ function cdntaxreceipts_processTaxReceipt($receipt, &$collectedPdf = NULL, $mode
         $sendTemplateParams['valueName'] = 'cdntaxreceipts_receipt_aggregate';
       }
 
+      // CH Customization
       // send a copy (without open tracking) to the tax archive
       $sendTemplateParams['toEmail'] = $email_archive;
       $sendTemplateParams['thankyou_email'] = FALSE;
-      if($receipt['thankyou_html']) {
+      if ($receipt['thankyou_html']) {
         $sendTemplateParams['thankyou_email'] = TRUE;
         $sendTemplateParams['html'] = $receipt['thankyou_html'];
       }
-      //CRM-1950 Duplicate receipt should not be sent to archive
-      if(($receipt['issue_method'] == 'email'|| $receipt['issue_method'] == 'print') && $receipt['is_duplicate'])
-      {
+      // CH Customization: CRM-1950 Duplicate receipt should not be sent to archive
+      if(($receipt['issue_method'] == 'email'|| $receipt['issue_method'] == 'print') && $receipt['is_duplicate']) {
         $sent = TRUE;
-      }else{
+      } else {
+        // TODO check if any different from core CRM_Core_BAO_MessageTemplate::sendTemplate
         list($sent, $subject, $message, $html) = ch_sendTemplate($sendTemplateParams);
       }
 
@@ -208,6 +206,7 @@ function cdntaxreceipts_processTaxReceipt($receipt, &$collectedPdf = NULL, $mode
         $sendTemplateParams['toEmail'] = $contact['email'];
         $sendTemplateParams['tplParams']['openTracking'] = "<img src=\"" . CRM_Utils_System::baseURL() .
           "civicrm/cdntaxreceipts/open?r={$receipt['email_tracking_id']}\" width='1' height='1' alt='' border='0'>";
+        // TODO check if any different from core CRM_Core_BAO_MessageTemplate::sendTemplate
         list($sent, $subject, $message, $html) = ch_sendTemplate($sendTemplateParams);
       }
     }
@@ -217,34 +216,20 @@ function cdntaxreceipts_processTaxReceipt($receipt, &$collectedPdf = NULL, $mode
   CRM_Core_I18n::singleton()->setLocale($old_locale);
 
   // log the receipt
-  // CRM-1820 New Receipt is issued in case of replace receipt
+  // CH Customization: CRM-1820 New Receipt is issued in case of replace receipt
   if ((!$customReceipt->isDuplicate()||$customReceipt->isReplaced()) && !$customReceipt->isPreview() && $sent) {
   //if (!$receipt['is_duplicate'] && $sent && $mode != CDNTAXRECEIPTS_MODE_PREVIEW) {
     cdntaxreceipts_log($receipt);
-    // @todo move this section to CRM_Canadahelps_TaxReceipts_Receipt
-    // -> updateContributionWithReceiptInfo
-    //CRM-1270
-    if ($receipt['issued_on']) {
+    // CH Customization: update contribution with receipt info
+    // CRM-1270, CRM-1057
+    if ($receipt['issued_on'] && $receipt['receipt_no']) {
       foreach($receipt['contributions'] as $contribution) {
-        $convert_date = date('Y-m-d H:i:s',$receipt['issued_on']);
-        $results = civicrm_api4('Contribution', 'update', [
-          'values' => [
-            'receipt_date' => $convert_date,
-          ],
-          'where' => [
-            ['id', '=', $contribution['contribution_id']],
-          ],
-        ]);
-      }
-    }
-    //CRM-1057: Update Receipt number and flag is_receipted custom field
-    if($receipt['receipt_no']) {
-      foreach($receipt['contributions'] as $contribution) {
-        civicrm_api3('CustomValue', 'create', [
-          'entity_id' => $contribution['contribution_id'],
-          EU::getCustomFieldID('Is_Receipted_') => 1,
-          EU::getCustomFieldID('Receipt_Number') => $receipt['receipt_no'],
-        ]);
+        $results = \Civi\Api4\Contribution::update(TRUE)
+        ->addValue('receipt_date', date('Y-m-d H:i:s',$receipt['issued_on']))
+        ->addValue('Contribution_Details.Is_Receipted_', 1)
+        ->addValue('Contribution_Details.Receipt_Number', $receipt['receipt_no'])
+        ->addWhere('id', '=', $contribution['contribution_id'])
+        ->execute();
       }
     }
     // TODO: log an activity
@@ -255,6 +240,8 @@ function cdntaxreceipts_processTaxReceipt($receipt, &$collectedPdf = NULL, $mode
   }
 
   if (isset($collectedPdf) && $pdf_file) {
+
+    // CH Customization: remove temp files for duplicate/preview
     if (!$receipt['is_duplicate'] 
       && ($mode === true || $mode == CDNTAXRECEIPTS_MODE_PREVIEW)) {
       //Unlink preview Tax receipts reciepts
@@ -288,9 +275,6 @@ function cdntaxreceipts_processTaxReceipt($receipt, &$collectedPdf = NULL, $mode
  * that each receipt generated by the system gets logged and archived properly.
  */
 function cdntaxreceipts_generateFormattedReceipt($receipt, &$collectedPdf = NULL, $mode = NULL) {
-
-  // !!! this entire code is no longer used
-  // shoulb be reverted back to core
 
   $pdf_img_files_path = dirname(__FILE__) . '/img/';
 
@@ -681,21 +665,19 @@ function _cdntaxreceipts_writeReceipt(&$pdf, $pdf_variables) {
  */
 
 function cdntaxreceipts_configure_inkind_fields() {
+  // CH Customization: In Kind (instead of In-Kind)
   // check if the In-kind contribution type exists.  if not, create it.
-  require_once 'CRM/Financial/DAO/FinancialType.php';
-  $dao = new CRM_Financial_DAO_FinancialType();
-  $dao->name = 'In Kind';
-
-  if ( ! $dao->find(true) ) {
-    $dao->name = 'In Kind';
-    $dao->is_deductible = TRUE;
-    $dao->is_active = TRUE;
-    $dao->save();
+  $inkind_financial_type = \Civi\Api4\FinancialType::get(FALSE)->addSelect('id')->addWhere('name', '=', 'In Kind')->execute()->first();
+  if (empty($inkind_financial_type)) {
+    $inkind_financial_type = \Civi\Api4\FinancialType::create(FALSE)
+      ->addValue('name', 'In Kind')
+      ->addValue('is_deductible', TRUE)
+      ->addValue('is_reserved', FALSE)
+      ->addValue('is_active', TRUE)
+      ->execute()->first();
   }
 
-  E::createDefaultFinancialAccounts($dao);
-
-  $contrib_type_id = $dao->id;
+  $contrib_type_id = $inkind_financial_type['id'];
 
   // check if the custom group exists.  if not, create it.
   $params = array(
@@ -768,7 +750,8 @@ function cdntaxreceipts_issueTaxReceipt($contribution, &$collectedPdf = NULL, $m
   // check if a Tax Receipt has already been issued previously for this Contribution
   // user input could be tainted! we want this method to check everything for validity...
   list($issued_on, $receipt_id) = cdntaxreceipts_issued_on($contribution->id);
-  //CRM-1822 cdntaxreceipts_issued_on method fetches detail of latest issued receipt_no linked with that contribution
+  // CH Customization
+  // CRM-1822 cdntaxreceipts_issued_on method fetches detail of latest issued receipt_no linked with that contribution
   if(isset($contribution->previewCancelReceiptId)){
     //$issued_on = $contribution->previewCancelReceiptNumber;
     $receipt_id = $contribution->previewCancelReceiptId;
@@ -785,6 +768,7 @@ function cdntaxreceipts_issueTaxReceipt($contribution, &$collectedPdf = NULL, $m
   if ( $is_duplicate ) {
     // if this was issued as part of an annual receipt, then jump over to the Annual method
     $receiptInfo = cdntaxreceipts_load_receipt($receipt_id);
+    // CH Customization: treat annual same way as aggregate
     if ( $receiptInfo['issue_type'] == 'annual' || $receiptInfo['issue_type'] == 'aggregate' ) {
       $contactId = $receiptInfo['contact_id'];
       $year = substr($receiptInfo['contributions'][0]['receive_date'], 0, 4);
@@ -813,11 +797,12 @@ function cdntaxreceipts_issueTaxReceipt($contribution, &$collectedPdf = NULL, $m
   list($method, $email) = cdntaxreceipts_sendMethodForContact($contribution->contact_id, $printOverride);
 
  // set method to print if user wants to download
-  if($is_duplicate && isset($contribution->pdfDownloadReceipt) && $method != 'data'){
+  if($is_duplicate && isset($contribution->pdfDownloadReceipt) && $method != 'data') {
     $method = 'print';
   }
+
   // "Attach" receipts are email (we save the file & attach to an email)
-  if ((int)$mode == CDNTAXRECEIPTS_MODE_WORKFLOW) {
+  if ((int)$mode == CDNTAXRECEIPTS_MODE_WORKFLOW || $mode == CDNTAXRECEIPTS_MODE_API) {
     $method = 'email';
   }
 
@@ -827,6 +812,7 @@ function cdntaxreceipts_issueTaxReceipt($contribution, &$collectedPdf = NULL, $m
 
   $inkind_values = array();
   // check if this is an 'In-kind" contribution.
+  // CH Customization: In Kind (instead of In-kind)
   $fund_name_check = preg_replace("/[^a-zA-Z0-9]+/", "", $contributiontype->name);
   if ( stripos($fund_name_check,"inkind") !== false) {
     // in this case get the custom field values:
@@ -863,9 +849,9 @@ function cdntaxreceipts_issueTaxReceipt($contribution, &$collectedPdf = NULL, $m
     $values = CRM_Core_BAO_CustomValueTable::getValues($params);
     $inkind_values[] = $values[$custom_id];
   }
-  //CRM-2051
-  // Get description advantage field
+  // CH Customization: Get description advantage field
   cdntaxreceipts_advantage($contribution->id, NULL, $advantage, TRUE);
+  // CH Customization: CRM-2051
   $receipt = array(
     'receipt_no' => $receipt_no,
     'issued_on' => CRM_Cdntaxreceipts_Utils_Time::time(),
@@ -898,11 +884,11 @@ function cdntaxreceipts_issueTaxReceipt($contribution, &$collectedPdf = NULL, $m
     )
   );
 
-  // CRM-1820 While replacing a receipt, passing receipt number
+  // CH Customization: CRM-1820 While replacing a receipt, passing receipt number
   if ($is_replaced) {
     //CRM-1993 , CRM-1977 If we get cancelled receipt number value only
     if($contribution->cancelled_replace_receipt_number)
-    $receipt['cancelled_replace_receipt_number'] = $contribution->cancelled_replace_receipt_number;
+      $receipt['cancelled_replace_receipt_number'] = $contribution->cancelled_replace_receipt_number;
     $receipt['is_replaced'] = 1;
   }
 
@@ -959,7 +945,7 @@ function cdntaxreceipts_eligibleForReceipt( $contributionId ) {
     }
   }
 
-  // CRM-738: Make receipt accessible for 'refunded' & 'cancelled' Contributions as well
+  // CH Customization: CRM-738: Make receipt accessible for 'refunded' & 'cancelled' Contributions as well
   // Removing the condition $contributionStatus == '1' from below
   if ( $contribution->is_test == 0 && $deductibleAmount > 0 && $hookOk ) {
     $cache[$contributionId] = TRUE;
@@ -1049,7 +1035,7 @@ function cdntaxreceipts_eligibleAmount( $contributionId ) {
 function cdntaxreceipts_issueAnnualTaxReceipt( $contactId, $year, $contributions, $method, &$collectedPdf = NULL, 
 $mode = CDNTAXRECEIPTS_MODE_BACKOFFICE, $thankyou_html = NULL ) {
 
-  // Annual receipts are identical to aggregate
+  // CH Customization: Annual receipts are identical to aggregate
   // Use same code, but mark as "annual"
   return cdntaxreceipts_issueAggregateTaxReceipt($contactId, $year, $contributions, $method, $collectedPdf, $mode, $thankyou_html, 'annual');
 
@@ -1059,7 +1045,6 @@ $mode = CDNTAXRECEIPTS_MODE_BACKOFFICE, $thankyou_html = NULL ) {
   // query for duplicate receipt
   list( $issued_on, $receipt_id ) = cdntaxreceipts_annual_issued_on($contactId, $year);
 
-
   // When returning issued_on field:
   //   returns false for non existing $contribution ID
   //   returns 0 for existing but old data
@@ -1067,12 +1052,6 @@ $mode = CDNTAXRECEIPTS_MODE_BACKOFFICE, $thankyou_html = NULL ) {
   $is_duplicate = empty($issued_on) ? 0 : 1;
 
   if ( $is_duplicate ) {
-
-    // in case we're not getting the receipt id (CRM-2058)
-    if (empty($receipt_id)) {
-      return array(FALSE, $method, NULL);
-    }
-
     // issue an identical receipt
     $receipt = cdntaxreceipts_load_receipt($receipt_id);
     // Cancelled receipts are not sent via email
@@ -1186,12 +1165,12 @@ function cdntaxreceipts_issueAggregateTaxReceipt($contactId, $year, $contributio
     $is_duplicate = (empty($issued_on)||isset($check_contribution['replace_receipt'])) ? 0 : 1;
   }
 
-  // CRM-1820 check replace status
+  // CH Customization: CRM-1820 check replace status
   $is_replaced =  isset($check_contribution['replace_receipt'])? 1 : 0;
   
   if ( $is_duplicate ) {
     $receipt = cdntaxreceipts_load_receipt($receipt_id);
-    //CRM-1060 Added "In-Kind Donation" details for re-issued aggregated tax receipts
+    // CH Customization: CRM-1060 Added "In-Kind Donation" details for re-issued aggregated tax receipts
     // @todo refactor so that we get inkind/advantage from initial query in cdntaxreceipts_load_receipt
     $inkind_aggregate = FALSE;
     $total_advantage_amount = 0;
@@ -1249,8 +1228,7 @@ function cdntaxreceipts_issueAggregateTaxReceipt($contactId, $year, $contributio
       if($c['non_deductible_amount']) {
         $total_advantage_amount += $c['non_deductible_amount'];
       }
-      if($c['replace_receipt'])
-      {
+      if($c['replace_receipt']) {
         $is_replaced = 1;
         $cancelled_replace_receipt_number = $c['cancelled_replace_receipt_number'];
       }
@@ -1266,7 +1244,7 @@ function cdntaxreceipts_issueAggregateTaxReceipt($contactId, $year, $contributio
       'contact_id' => $contactId,
       'receipt_amount' => $totalReceipt,
       'is_duplicate' => 0,
-      'issue_type' => $issue_type,
+      'issue_type' => $issue_type, // CH Customization: annual receipt as well
       'issue_method' => $method,
       'receive_date' => $year,
       'receipt_status' => 'issued',
@@ -1278,7 +1256,7 @@ function cdntaxreceipts_issueAggregateTaxReceipt($contactId, $year, $contributio
       'is_replaced' => 0,
     );
   }
-  // CRM-1820 While replacing a receipt, passing receipt number
+  // CH Customization: CRM-1820 While replacing a receipt, passing receipt number
   if ($is_replaced) {
      //CRM-1993 , CRM-1977 If we get cancelled receipt number value only
     if($cancelled_replace_receipt_number)
@@ -1354,7 +1332,7 @@ function cdntaxreceipts_openCollectedPDF() {
     //define ('K_PATH_IMAGES', '');
 
     $pdf = new PDF(PDF_PAGE_ORIENTATION, PDF_UNIT, 'LETTER', TRUE, 'UTF-8', FALSE);
-    //CRM-1640: Update PDF security and make it non-editable
+    // CH Customization: CRM-1640: Update PDF security and make it non-editable
     $pdf->SetProtection(array('modify', 'copy', 'annot-forms', 'fill-forms', 'assemble', 'print-high'), '', null, 1, null);
     $pdf->Open();
 
@@ -1385,6 +1363,7 @@ function cdntaxreceipts_sendCollectedPDF(&$pdf, $filename) {
     }
     else {
       $pdf->Output($filename, 'D');
+      // CH Customization: download status
       CRM_Canadahelps_TaxReceipts_Receipt::updateDownloadStatus("sent");
     }
     CRM_Utils_System::civiExit();
@@ -1555,7 +1534,6 @@ function _cdntaxreceipts_setReceiptanguage($language) {
 
 }
 
-// BACKPORTED from 1.7.1
 /**
  * Get file name with path of file/image field.
  *
@@ -1566,33 +1544,21 @@ function _cdntaxreceipts_setReceiptanguage($language) {
 function _cdntaxreceipts_get_image_filepath($imageSettingName) {
   $fileName = Civi::settings()->get($imageSettingName);
   if ($fileName) {
-    //CRM-1861 checking if existing receipt signature, logo and watermark have diffrent extension then .png,.jpg,.jpeg
-    $ext = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
-    $allowed = ['png', 'jpg', 'jpeg'];
-    //mime type verification when image is getting added to PDF
-    $allowedMimeType = ['image/png','image/jpeg'];
-    if (!in_array($ext, $allowed)) {
-      return NULL;
-    }
-    // Backward compatibilty for full path
-    if ( strpos($fileName, "/") === 0 )
-    {
-      if(is_file($fileName)) {
-        $mimeType = mime_content_type($fileName);
-        if (!in_array($mimeType, $allowedMimeType)) {
-          return NULL;
-        }
-      return $fileName;
+
+    // CH Customization: Backward compatibilty for full path
+    if ( strpos($fileName, "/") === 0 ) {
+      if ( ! _cdntaxreceipts_isValidImage($fileName) ) {
+        return NULL;
       }
+      return $fileName;
     }
 
-    // @todo https://lab.civicrm.org/extensions/cdntaxreceipts/-/commit/8ebaf88064323b1e20c005084caabd8846f8de25
     $fileNameWithPath = CRM_Core_Config::singleton()->customFileUploadDir . $fileName;
     if (file_exists($fileNameWithPath)) {
-      $mimeType = mime_content_type($fileNameWithPath);
-        if (!in_array($mimeType, $allowedMimeType)) {
-          return NULL;
-        }
+      // CH Customization: check image type
+      if ( ! _cdntaxreceipts_isValidImage($fileNameWithPath) ) {
+        return NULL;
+      }
       return $fileNameWithPath;
     }
   }
@@ -1628,22 +1594,22 @@ function _cdntaxreceipts_custom_field_exists($custom_group_id, $field_label) {
  * @return string
  */
 function _cdntaxreceipts_get_location(): string {
-  /*$city = \Civi::settings()->get('receipt_location_issued');
+  $city = \Civi::settings()->get('receipt_location_issued');
   if (empty($city)) {
-    CRM_Core_Error::statusBounce(
+    /*CRM_Core_Error::statusBounce(
       ts('Location Issued is not set. Please set it under Administer - CiviContribute - CDN Tax Receipts.', array('domain' => 'org.civicrm.cdntaxreceipts')),
       CRM_Utils_System::url('civicrm/cdntaxreceipts/settings', 'reset=1')
-    );
+    );*/
+    // CH Customization: Use main contact address if Location setting is not set
+    $address = CRM_Core_BAO_Location::getValues(['contact_id' => CRM_Core_Config::domainID()], TRUE)['address'][1];
+    $address['province'] = CRM_Core_PseudoConstant::stateProvince($address['state_province_id']);
+    if ($address && $address['state_province_id']) {
+      $city = $address['city'].", ".$address['province'];
+    }
   }
-  return $city;*/
-  // @todo, use setting field as per extension
-  // https://lab.civicrm.org/extensions/cdntaxreceipts/-/commit/6d2de1a3067cee936a92838af2d6a42aafa1df3d
-  $address = CRM_Core_BAO_Location::getValues(['contact_id' => CRM_Core_Config::domainID()], TRUE)['address'][1];
-  $address['province'] = CRM_Core_PseudoConstant::stateProvince($address['state_province_id']);
-  if ($address && $address['state_province_id']) {
-    return $address['city'].", ".$address['province'];
-  }
-  return '';
+  if ($city == NULL)
+    $city = '';
+  return $city;
 }
 
 /**
@@ -1664,7 +1630,26 @@ function _cdntaxreceipts_check_requirements(): void {
  * @return string
  */
 function _cdntaxreceipts_get_contribution_source($contribution): string {
-  return 'Source: ' . $contribution->source;
+  $setting = \Civi::settings()->get('cdntaxreceipts_source_field') ?? '';
+  if ($setting === '') {
+    return '';
+  }
+  $source = '';
+
+  // @todo do we want to allow smarty and/or html
+  $tokenProcessor = new \Civi\Token\TokenProcessor(\Civi::dispatcher(), ['smarty' => FALSE, 'schema' => ['contactId', 'contributionId']]);
+  $tokenProcessor->addMessage('source', $setting, 'text/plain');
+  $tokenProcessor->addRow(['contactId' => $contribution->contact_id, 'contributionId' => $contribution->id]);
+  $tokenProcessor->evaluate();
+  foreach ($tokenProcessor->getRows() as $row) {
+    $source = $row->render('source');
+  }
+  if ($source === '') {
+    return '';
+  }
+  $source_label = \Civi::settings()->get('cdntaxreceipts_source_label_' . CRM_Core_I18n::getLocale()) ?? '';
+  // Note this requires putting the spacing into the setting, but I don't see how else to make translation-friendly, e.g. English is "Source: " but French puts a space before the colon.
+  return $source_label . $source;
 }
 
 /**
@@ -1706,6 +1691,27 @@ function _cdntaxreceipts_check_lineitems($contribution_id) {
 * CH Custom Functions
 ***************************************/
 
+function _cdntaxreceipts_isValidImage($fileName) {
+
+  $allowedExtensions  = ['png', 'jpg', 'jpeg'];
+  $allowedMimeTypes   = ['image/png','image/jpeg'];
+
+  $extension = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
+  if (!in_array($extension, $allowedExtensions)) {
+    return FALSE;
+  }
+
+  if (is_file($fileName) ) {
+    $mimeType = mime_content_type($fileName);
+    if (!in_array($mimeType, $allowedMimeTypes)) {
+      return FALSE;
+    }
+
+    return TRUE;
+  }
+
+  return FALSE;
+}
 
 /**
  * cdnaxreceipts_manageVoidPDF()

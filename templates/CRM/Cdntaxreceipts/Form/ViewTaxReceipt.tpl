@@ -9,7 +9,7 @@ cj(document).ready(
 );
 </script>
 {/if}
-
+{* CH Customization: Template diverge from original *}
 {if $reissue eq 1 and $receipt}
 <div class="crm-block crm-content-block crm-contribution-view-form-block crm-stripes">
 <h3>Receipt Details</h3>
