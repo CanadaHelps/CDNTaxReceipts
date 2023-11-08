@@ -44,6 +44,10 @@ class CRM_Cdntaxreceipts_Task_IssueAggregateTaxReceipts extends CRM_Contribute_F
     );
 
     $this->_contributions_status = cdntaxreceipts_contributions_get_status($this->_contributionIds);
+    if (empty($this->_contributions_status)) {
+      // e.g. if all the contributions selected were in-kind
+      CRM_Core_Error::statusBounce(ts('No eligible contributions selected. E.g. In-kind must be receipted individually.', array('domain' => 'org.civicrm.cdntaxreceipts')));
+    }
 
     // Get the number of years selected
     foreach ($this->_contributions_status as $contrib_status) {
