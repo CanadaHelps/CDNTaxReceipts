@@ -386,8 +386,12 @@ function cdntaxreceipts_contributions_for_annual($contactId, $year) {
     FROM civicrm_contribution contrib
     INNER JOIN civicrm_financial_type contrib_type
             ON contrib.financial_type_id = contrib_type.id
-    LEFT  JOIN cdntaxreceipts_log_contributions c
-            ON contrib.id = c.contribution_id
+    LEFT JOIN (
+    	SELECT *
+    	FROM cdntaxreceipts_log_contributions 
+    	ORDER BY id DESC 
+    	LIMIT 1  
+    ) as c ON contrib.id = c.contribution_id
     LEFT  JOIN cdntaxreceipts_log l
             ON l.id = c.receipt_id 
     WHERE 
@@ -395,7 +399,7 @@ function cdntaxreceipts_contributions_for_annual($contactId, $year) {
       AND contrib.contact_id = $contactId 
       AND YEAR(contrib.receive_date) = $year
     GROUP BY contrib.id
-    ORDER BY contrib.contact_id, contrib.id, c.receipt_id DESC";
+    ORDER BY contrib.contact_id, contrib.id";
 
   $dao = CRM_Core_DAO::executeQuery($sql);
   $contributions = [];
