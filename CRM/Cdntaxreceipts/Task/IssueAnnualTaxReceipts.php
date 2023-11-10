@@ -419,9 +419,10 @@ class CRM_Cdntaxreceipts_Task_IssueAnnualTaxReceipts extends CRM_Contact_Form_Ta
             list( $ret, $method ) = cdntaxreceipts_issueTaxReceipt( $contribution, $receiptsForPrintingPDF, $previewMode );
             
             if( $ret !== 0 && !$previewMode ) {
+             
               //CRM-918: Mark Contribution as thanked if checked
               CRM_Cdntaxreceipts_Task_IssueSingleTaxReceipts::markContributionAsReceipted(
-                $contributionIds['contribution_id'],
+                $contributionId,
                 $this->getElement('thankyou_date')->getValue(),
                 FALSE
               );
