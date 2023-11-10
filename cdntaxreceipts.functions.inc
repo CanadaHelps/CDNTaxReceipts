@@ -1,5 +1,5 @@
 <?php
-
+use CRM_Canadahelps_ExtensionUtils as EU;
 require_once('FPDI/src/autoload.php');
 
   class PDF extends \setasign\Fpdi\Tcpdf\Fpdi {
