@@ -512,3 +512,46 @@ function cdntaxreceipts_civicrm_alterMailParams(&$params, $context) {
 
 }
 
+/**
+ * On upgrade to 1.9 we try to determine the financial type for in-kind, but if
+ * they had changed the name we won't be able to. So direct them to the settings
+ * page to pick it manually.
+ */
+function cdntaxreceipts_civicrm_check(&$messages, $statusNames = [], $includeDisabled = FALSE) {
+  if (!empty($statusNames) && !isset($statusNames['cdntaxreceiptsInkind'])) {
+    return;
+  }
+  if (!$includeDisabled) {
+    $disabled = \Civi\Api4\StatusPreference::get()
+      ->setCheckPermissions(FALSE)
+      ->addWhere('is_active', '=', FALSE)
+      ->addWhere('domain_id', '=', 'current_domain')
+      ->addWhere('name', '=', 'cdntaxreceiptsInkind')
+      ->execute()->count();
+    if ($disabled) {
+      return;
+    }
+  }
+  // If we know the financial type, we're good.
+  if (Civi::settings()->get('cdntaxreceipts_inkind')) {
+    return;
+  }
+  // If the custom fields don't exist, then inkind was never set up, so we're
+  // good.
+  $inkind_custom = \Civi\Api4\CustomGroup::get(FALSE)
+    ->addSelect('id')
+    ->addWhere('name', '=', 'In_kind_donation_fields')
+    ->execute()->first();
+  if (empty($inkind_custom['id'])) {
+    return;
+  }
+  $messages[] = new CRM_Utils_Check_Message(
+    'cdntaxreceiptsInkind',
+    '<p>'
+    . E::ts('In-kind receipts appear to have been configured, but the financial type may have changed and it can not be determined automatically. Please visit <a %1>the settings page</a> and select the financial type being used for In-kind.', [1 => 'href="' . CRM_Utils_System::url('civicrm/cdntaxreceipts/settings', 'reset=1') . '"'])
+    . '</p>',
+    E::ts('In-kind financial type is unknown'),
+    \Psr\Log\LogLevel::ERROR,
+    'fa-money'
+  );
+}
