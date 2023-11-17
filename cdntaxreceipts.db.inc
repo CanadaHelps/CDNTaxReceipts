@@ -370,6 +370,16 @@ function cdntaxreceipts_log_next_id() {
 
 
 function cdntaxreceipts_contributions_for_annual($contactId, $year) {
+  
+  // Custom fields
+  require_once 'CRM/Core/BAO/CustomField.php';
+  require_once 'CRM/Core/BAO/CustomValueTable.php';
+  $field_name_description       = 'custom_' . CRM_Core_BAO_CustomField::getCustomFieldID( 'Description of property', 'In Kind donation fields' );
+  $field_name_appraisedby       = 'custom_' . CRM_Core_BAO_CustomField::getCustomFieldID( 'Appraised by', 'In Kind donation fields' );
+  $field_name_appraiseraddress  = 'custom_' . CRM_Core_BAO_CustomField::getCustomFieldID( 'Address of Appraiser', 'In Kind donation fields' );
+  $field_name_cost              = 'custom_' . CRM_Core_BAO_CustomField::getCustomFieldID( 'Original cost', 'In Kind donation fields' );
+
+
   // select contributions info (received selected year) + receipt info for a contact
   // only latest receipt info, whether annual/aggregate/single, and whether issued/cancelled
   $sql = "SELECT 
@@ -398,9 +408,9 @@ function cdntaxreceipts_contributions_for_annual($contactId, $year) {
     LEFT  JOIN cdntaxreceipts_log l
             ON l.id = c.receipt_id 
     WHERE 
-      contrib_type.name NOT IN ('In-kind', 'In Kind')
-      AND contrib.contact_id = $contactId 
+      contrib.contact_id = $contactId 
       AND YEAR(contrib.receive_date) = $year
+    --  AND contrib_type.name NOT IN ('In-kind', 'In Kind')
     GROUP BY contrib.id
     ORDER BY contrib.contact_id, contrib.id";
 
@@ -432,6 +442,28 @@ function cdntaxreceipts_contributions_for_annual($contactId, $year) {
         'receipt_id' => $receipt_id,
         'inkind' => false,
       );
+      
+
+      // In Kind?
+      $fund_name_check = preg_replace("/[^a-zA-Z0-9]+/", "", $dao->name);
+      if ( stripos($fund_name_check, "inkind") !== false ) {
+        $values = CRM_Core_BAO_CustomValueTable::getValues([
+          'entityID' => $id,
+          $field_name_description => 1,
+          $field_name_appraisedby => 1,
+          $field_name_appraiseraddress => 1,
+          $field_name_cost => 1
+        ]);
+
+        $contributions[$id]['inkind'] = true;
+        $contributions[$id]['inkind_values'] = [
+          'Description of Property Received'  => !empty($values[$field_name_description]) ? $values[$field_name_description] : 'N/A',
+          'Fair Market Value Appraised by'    => $values[$field_name_appraisedby],
+          'Address of Appraiser'              => $values[$field_name_appraiseraddress],
+          'Original Cost'                     => $values[$field_name_cost],
+        ];
+      }
+
     }
   }
 
