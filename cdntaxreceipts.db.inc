@@ -387,10 +387,13 @@ function cdntaxreceipts_contributions_for_annual($contactId, $year) {
     INNER JOIN civicrm_financial_type contrib_type
             ON contrib.financial_type_id = contrib_type.id
     LEFT JOIN (
-    	SELECT *
-    	FROM cdntaxreceipts_log_contributions 
-    	ORDER BY id DESC 
-    	LIMIT 1  
+    	-- Notes: using MAX + GROUP BY to get latest receipt, as ORDER BY + GROUP BY has no impact
+      SELECT 
+     	MAX(receipt_id) as receipt_id,
+      contribution_id
+      FROM cdntaxreceipts_log_contributions
+      GROUP BY contribution_id
+    	ORDER BY receipt_id DESC  
     ) as c ON contrib.id = c.contribution_id
     LEFT  JOIN cdntaxreceipts_log l
             ON l.id = c.receipt_id 
@@ -407,7 +410,7 @@ function cdntaxreceipts_contributions_for_annual($contactId, $year) {
     $id = $dao->contribution_id;
 
     $exclude = FALSE;
-
+    
     // Exclude previously issued single/aggregate
     if ($dao->receipt_status == "issued" && $dao->issue_type != "annual" ) {
       $exclude = TRUE;
