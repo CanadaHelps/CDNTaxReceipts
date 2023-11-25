@@ -23,9 +23,6 @@ require_once('FPDI/src/autoload.php');
         }
         $this->useTemplate($this->_tplIdx);
       }
-      else {
-        $this->parsers = array();
-      }
     }
 
     function Footer() {}
