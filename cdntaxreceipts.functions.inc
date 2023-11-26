@@ -300,25 +300,11 @@ function _cdntaxreceipts_writePage(&$f, $pdf_variables, $receipt) {
   // this when testing their particular installs.
   //
 
-  $pdf_variables['thankyou_note'] = true; 
-  $results = CRM_Utils_Hook::singleton()->invoke(3, $f, $pdf_variables, $receipt, CRM_Utils_Hook::$_nullObject, CRM_Utils_Hook::$_nullObject, CRM_Utils_Hook::$_nullObject, 'cdntaxreceipts_writeReceipt');
-  $pdf_variables['thankyou_note'] = false; 
+  $results = CRM_Utils_Hook::singleton()->invoke(['f', 'pdf_variables', 'receipt'], $f, $pdf_variables, $receipt, CRM_Utils_Hook::$_nullObject, CRM_Utils_Hook::$_nullObject, CRM_Utils_Hook::$_nullObject, 'cdntaxreceipts_writeReceipt');
 
-  // if custom rewrite is implemented
-  // don't execute _cdntaxreceipts_writeReceipt 
-  // as it will overwrite the pdf
-  if(isset($pdf_variables) && $pdf_variables['is_custom_rewrite'] == TRUE) {
-    if(!$pdf_variables['is_duplicate'] && $pdf_variables["mode"] !== CDNTAXRECEIPTS_MODE_PREVIEW) {
-      $pdf_variables['duplicate_offset'] = TRUE;
-      CRM_Utils_Hook::singleton()->invoke(3, $f, $pdf_variables, $receipt, CRM_Utils_Hook::$_nullObject, CRM_Utils_Hook::$_nullObject, CRM_Utils_Hook::$_nullObject, 'cdntaxreceipts_writeReceipt');
-    }
-    if($pdf_variables['is_duplicate']) {
-      $pdf_variables['is_duplicate'] = TRUE;
-      $pdf_variables['duplicate_offset'] = TRUE;
-      CRM_Utils_Hook::singleton()->invoke(3, $f, $pdf_variables, $receipt, CRM_Utils_Hook::$_nullObject, CRM_Utils_Hook::$_nullObject, CRM_Utils_Hook::$_nullObject, 'cdntaxreceipts_writeReceipt');
-    }   
+  // This is a custom behaviour of this fork. We keep it for legacy.
+  if (!empty($pdf_variables['is_custom_rewrite'])) {
     return;
-    
   }
 
   if (is_array($results)) {
