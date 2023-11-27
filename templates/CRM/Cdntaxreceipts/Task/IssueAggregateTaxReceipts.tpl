@@ -44,8 +44,8 @@
       <td class="content">{$form.thankyou_email.html}</td>
       <td class="label">{$form.thankyou_email.label}</td>
     </tr>
-    {include file="CRM/Cdntaxreceipts/Task/PDFLetterCommon.tpl"}
   </table>
+  {include file="CRM/Cdntaxreceipts/Task/PDFLetterCommon.tpl"}
 </div>
 
 <div class="crm-block crm-content-block">

@@ -49,42 +49,7 @@ function cdntaxreceipts_annual_issued_on($contactId, $year) {
     return array(NULL, NULL);
   }
 
-}/**
- * cdntaxreceipts_all_issued_on
- *
- * Return all records of when the contribution was receipted
- * This checks 'single', 'annual' and 'aggregate' receipts.
- *
- * @param $contribution_id - the contribution being looked up
- */
-
-function cdntaxreceipts_all_issued_on($contribution_id) {
-
-  $issued_on = array();
-
-  $sql = "
-    SELECT l.issued_on, l.id as receipt_id, l.is_duplicate, l.issue_type, l.issue_method
-    FROM cdntaxreceipts_log l
-    INNER JOIN cdntaxreceipts_log_contributions c ON l.id = c.receipt_id
-    WHERE contribution_id = {$contribution_id}
-    GROUP BY l.issued_on, l.is_duplicate, l.id as receipt_id, l.issue_type, l.issue_method";
-
-  $dao = CRM_Core_DAO::executeQuery($sql);
-  $count = 0;
-  while ($dao->fetch()) {
-    $issued_on['receipts'][$count] = array(
-      $dao->issued_on,
-      $dao->issue_method,
-      $dao->receipt_id,
-      $dao->is_duplicate,
-      $dao->issue_type
-    );
-    $count++;
-  }
-  $issued_on['count'] = $count;
-  return $issued_on;
 }
-
 
 function cdntaxreceipts_contributions_not_receipted($contactId, $year) {
 
@@ -395,6 +360,116 @@ function cdntaxreceipts_log_next_id() {
   $last_id = CRM_Core_DAO::singleValueQuery($sql);
   return $last_id + 1;
 }
+
+
+
+
+/**************************************
+* CH Custom Functions
+***************************************/
+
+
+function cdntaxreceipts_contributions_for_annual($contactId, $year) {
+  
+  // Custom fields
+  require_once 'CRM/Core/BAO/CustomField.php';
+  require_once 'CRM/Core/BAO/CustomValueTable.php';
+  $field_name_description       = 'custom_' . CRM_Core_BAO_CustomField::getCustomFieldID( 'Description of property', 'In Kind donation fields' );
+  $field_name_appraisedby       = 'custom_' . CRM_Core_BAO_CustomField::getCustomFieldID( 'Appraised by', 'In Kind donation fields' );
+  $field_name_appraiseraddress  = 'custom_' . CRM_Core_BAO_CustomField::getCustomFieldID( 'Address of Appraiser', 'In Kind donation fields' );
+  $field_name_cost              = 'custom_' . CRM_Core_BAO_CustomField::getCustomFieldID( 'Original cost', 'In Kind donation fields' );
+
+
+  // select contributions info (received selected year) + receipt info for a contact
+  // only latest receipt info, whether annual/aggregate/single, and whether issued/cancelled
+  $sql = "SELECT 
+      contrib.contact_id,
+      contrib.id as contribution_id, 
+      contrib.total_amount,
+      IFNULL(contrib.non_deductible_amount, 0) as non_deductible_amount, 
+      contrib.receive_date,
+      YEAR(contrib.receive_date) as receive_year,
+      c.receipt_id,
+      l.issued_on,
+      l.issue_type,
+      l.receipt_status
+    FROM civicrm_contribution contrib
+    INNER JOIN civicrm_financial_type contrib_type
+            ON contrib.financial_type_id = contrib_type.id
+    LEFT JOIN (
+    	-- Notes: using MAX + GROUP BY to get latest receipt, as ORDER BY + GROUP BY has no impact
+      SELECT 
+     	MAX(receipt_id) as receipt_id,
+      contribution_id
+      FROM cdntaxreceipts_log_contributions
+      GROUP BY contribution_id
+    	ORDER BY receipt_id DESC  
+    ) as c ON contrib.id = c.contribution_id
+    LEFT  JOIN cdntaxreceipts_log l
+            ON l.id = c.receipt_id 
+    WHERE 
+      contrib.contact_id = $contactId 
+      AND YEAR(contrib.receive_date) = $year
+    --  AND contrib_type.name NOT IN ('In-kind', 'In Kind')
+    GROUP BY contrib.id
+    ORDER BY contrib.contact_id, contrib.id";
+
+  $dao = CRM_Core_DAO::executeQuery($sql);
+  $contributions = [];
+  while ( $dao->fetch() ) {
+    $id = $dao->contribution_id;
+
+    $exclude = FALSE;
+    
+    // Exclude previously issued single/aggregate
+    if ($dao->receipt_status == "issued" && $dao->issue_type != "annual" ) {
+      $exclude = TRUE;
+    }
+
+    $receipt_id = $dao->receipt_id;
+    // treat cancelled aggregate / single as un-receipted
+    if ($dao->receipt_status == "cancelled" && $dao->issue_type != "annual" ) {
+      $receipt_id = NULL;
+    }
+
+    if (!$exclude) {
+      $contributions[$id] = array(
+        'contribution_id' => $id,
+        'contact_id' => $dao->contact_id,
+        'total_amount' => $dao->total_amount,
+        'receive_date' => $dao->receive_date,
+        'receive_year' => $dao->receive_year,
+        'receipt_id' => $receipt_id,
+        'inkind' => false,
+      );
+      
+
+      // In Kind?
+      $fund_name_check = preg_replace("/[^a-zA-Z0-9]+/", "", $dao->name);
+      if ( stripos($fund_name_check, "inkind") !== false ) {
+        $values = CRM_Core_BAO_CustomValueTable::getValues([
+          'entityID' => $id,
+          $field_name_description => 1,
+          $field_name_appraisedby => 1,
+          $field_name_appraiseraddress => 1,
+          $field_name_cost => 1
+        ]);
+
+        $contributions[$id]['inkind'] = true;
+        $contributions[$id]['inkind_values'] = [
+          'Description of Property Received'  => !empty($values[$field_name_description]) ? $values[$field_name_description] : 'N/A',
+          'Fair Market Value Appraised by'    => $values[$field_name_appraisedby],
+          'Address of Appraiser'              => $values[$field_name_appraiseraddress],
+          'Original Cost'                     => $values[$field_name_cost],
+        ];
+      }
+
+    }
+  }
+
+  return $contributions;
+}
+
 
 // Advantage fields
 // @todo CRM-1721

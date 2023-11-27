@@ -24,7 +24,7 @@ class CRM_Cdntaxreceipts_Task_IssueSingleTaxReceipts extends CRM_Contribute_Form
 
     //check for permission to edit contributions
     if ( ! CRM_Core_Permission::check('issue cdn tax receipts') ) {
-      CRM_Core_Error::fatal(ts('You do not have permission to access this page', array('domain' => 'org.civicrm.cdntaxreceipts')));
+      throw new CRM_Core_Exception("You do not have permission to access this page");
     }
 
     parent::preProcess();
@@ -211,7 +211,7 @@ class CRM_Cdntaxreceipts_Task_IssueSingleTaxReceipts extends CRM_Contribute_Form
       $contribution = new CRM_Contribute_DAO_Contribution();
       $contribution->id = $contributionId;
       if ( ! $contribution->find( TRUE ) ) {
-        CRM_Core_Error::fatal( "CDNTaxReceipts: Could not find corresponding contribution id." );
+        throw new CRM_Core_Exception("CDNTaxReceipts: Could not find corresponding contribution id.");
       }
 
       // Only process Contributions of selected Year
@@ -250,18 +250,12 @@ class CRM_Cdntaxreceipts_Task_IssueSingleTaxReceipts extends CRM_Contribute_Form
           }
 
           list( $ret, $method ) = cdntaxreceipts_issueTaxReceipt( $contribution, $receiptsForPrinting, $previewMode );
-          if( $ret !== 0 ) {
+          if( $ret !== 0 && !$previewMode ) {
             //CRM-918: Mark Contribution as thanked if checked
-            if($this->getElement('thankyou_date')->getValue()) {
-              $contribution->thankyou_date = date('Y-m-d H:i:s', CRM_Utils_Time::time());
-            }
-            //CRM-1959
-            $contributionReceiptDate = cdnaxreceipts_getReceiptDate($contributionId);
-            if($contributionReceiptDate && !empty($contributionReceiptDate))
-            {
-              $contribution->receipt_date = $contributionReceiptDate;
-              $contribution->save();
-            }
+            CRM_Cdntaxreceipts_Task_IssueSingleTaxReceipts::markContributionAsReceipted(
+              $contribution->id,
+              $this->getElement('thankyou_date')->getValue()
+            );
           }
 
           if ( $ret == 0 ) {
@@ -306,6 +300,11 @@ class CRM_Cdntaxreceipts_Task_IssueSingleTaxReceipts extends CRM_Contribute_Form
     // NB: This exits if a file is sent.
     cdntaxreceipts_sendCollectedPDF($receiptsForPrinting, 'Receipts-To-Print-' . (int) $_SERVER['REQUEST_TIME'] . '.pdf');  // EXITS.
   }
+
+
+  /**************************************
+  * CH Custom Functions
+  ***************************************/
 
   //CRM-920: Thank-you Email Tool
   private function getThankYouHTML(array $contributionIds, $sender, $params) {
@@ -606,5 +605,28 @@ class CRM_Cdntaxreceipts_Task_IssueSingleTaxReceipts extends CRM_Contribute_Form
       );
     }
 
+  }
+
+  /**
+   * Mark contribution as thanked and update receipt date
+   *
+   * @return void
+   */
+  static function markContributionAsReceipted(int $contributionId, $thanked = TRUE, $updateReceiptDate = TRUE): void {
+    $contribution = new CRM_Contribute_DAO_Contribution();
+    $contribution->id = $contributionId;
+    if ( ! $contribution->find( TRUE ) ) {
+      throw new CRM_Core_Exception("CDNTaxReceipts: Could not find corresponding contribution id.");
+    }
+    if ($thanked) {
+      $contribution->thankyou_date = date('Y-m-d H:i:s', CRM_Utils_Time::time());
+    }
+    if ($updateReceiptDate) {
+      $contributionReceiptDate = cdnaxreceipts_getReceiptDate($contribution->id);
+      if ($contributionReceiptDate && !empty($contributionReceiptDate)) {
+        $contribution->receipt_date = $contributionReceiptDate;
+      }
+    }
+    $contribution->save();
   }
 }
