@@ -412,7 +412,7 @@ class CRM_Cdntaxreceipts_Task_IssueSingleTaxReceipts extends CRM_Contribute_Form
                 break;
 
               case 'Currency Not Supported':
-                $result['eligibility_fix'] = "Only ".CRM_Core_Config::singleton()->defaultCurrency." amounts can be receipted. Please convert currency to ".CRM_Core_Config::singleton()->defaultCurrency." to issue tax receipt.";
+                $result['eligibility_fix'] = "Please convert currency to ".CRM_Core_Config::singleton()->defaultCurrency." to issue tax receipt.";
                 break;
             }
           }
