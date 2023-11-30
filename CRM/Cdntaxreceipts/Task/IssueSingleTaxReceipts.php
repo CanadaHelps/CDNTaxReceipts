@@ -410,6 +410,10 @@ class CRM_Cdntaxreceipts_Task_IssueSingleTaxReceipts extends CRM_Contribute_Form
               case 'Receipted Outside of DMS':
                 $result['eligibility_fix'] = "Receipted Outside of DMS.";
                 break;
+
+              case 'Currency Not Supported':
+                $result['eligibility_fix'] = "Please convert currency to ".CRM_Core_Config::singleton()->defaultCurrency." to issue tax receipt.";
+                break;
             }
           }
         }
