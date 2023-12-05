@@ -195,35 +195,6 @@ AND COLUMN_NAME = 'receipt_status'");
     return TRUE;
   }
 
-  public function upgrade_1513() {
-    $this->ctx->log->info('Added (French) CDN Tax Receipts - Thank you Note template');
-    $email_message = "Cher(e) {contact.display_name},\r\n\r\nMerci de donner généreusement. Votre soutien est essentiel pour nous aider à remplir notre mission. \r\n\r\nPour vous aider dans la tenue de vos registres, veuillez trouver votre reçu d'impôt officiel. Si vous avez des questions sur votre don, veuillez envoyer un courriel à  {domain.email} ou appelez le {domain.phone}. \r\n\r\nMerci,\r\n{domain.name}";
-    $email_subject = "CDN Tax Receipts - Thank you Note";
-    $html_message = "<p>Cher(e)&nbsp;{contact.display_name},</p>\r\n\r\n<p>Merci de donner généreusement. Votre soutien est essentiel pour nous aider à remplir notre mission.</p>\r\n\r\n<p>Pour vous aider dans la tenue de vos registres, veuillez trouver votre reçu d'impôt officiel. Si vous avez des questions sur votre don, veuillez envoyer un courriel à &nbsp; {domain.email} ou appelez le &nbsp;{domain.phone}.</p>\r\n\r\n<p>Merci,<br />\r\n{domain.name}</p>";
-
-    $optionValues = civicrm_api4('OptionValue', 'get', [
-      'where' => [
-        ['name', '=', 'cdntaxreceipts_receipt_aggregate'],
-      ],
-      'limit' => 25,
-    ]);
-    if($optionValues[0]['id']) {
-
-      $params = array(
-        'msg_title' => '(French) CDN Tax Receipts - Thank you Note',
-        'msg_subject' => $email_subject,
-        'msg_text' => $email_message,
-        'msg_html' => $html_message,
-        'workflow_id' => $optionValues[0]['id'],
-        'workflow_name' => $optionValues[0]['name'],
-        'is_default' => 1,
-        'is_reserved' => 0,
-      );
-      civicrm_api3('MessageTemplate', 'create', $params);
-    }
-    return TRUE;
-  }
-
   public function upgrade_1514() {
     $this->ctx->log->info('Added (French) CDN Tax Receipts - Email Annual/Aggregate Receipt template');
     $email_message = "{contact.email_greeting_display},\n\nVous trouverez ci-joint votre reçu officiel aux fins de l'impôt sur le revenu.\n\n{$orgName}";
@@ -292,6 +263,35 @@ AND COLUMN_NAME = 'receipt_status'");
 
       $params = array(
         'msg_title' => '(French) CDN Tax Receipts - Email Single Receipt',
+        'msg_subject' => $email_subject,
+        'msg_text' => $email_message,
+        'msg_html' => $html_message,
+        'workflow_id' => $optionValues[0]['id'],
+        'workflow_name' => $optionValues[0]['name'],
+        'is_default' => 1,
+        'is_reserved' => 0,
+      );
+      civicrm_api3('MessageTemplate', 'create', $params);
+    }
+    return TRUE;
+  }
+
+  public function upgrade_1515() {
+    $this->ctx->log->info('Added (French) CDN Tax Receipts - Thank you Note template');
+    $email_message = "Cher(e) {contact.display_name},\r\n\r\nMerci de donner généreusement. Votre soutien est essentiel pour nous aider à remplir notre mission. \r\n\r\nPour vous aider dans la tenue de vos registres, veuillez trouver votre reçu d'impôt officiel. Si vous avez des questions sur votre don, veuillez envoyer un courriel à  {domain.email} ou appelez le {domain.phone}. \r\n\r\nMerci,\r\n{domain.name}";
+    $email_subject = "CDN Tax Receipts - Thank you Note";
+    $html_message = "<p>Cher(e)&nbsp;{contact.display_name},</p>\r\n\r\n<p>Merci de donner généreusement. Votre soutien est essentiel pour nous aider à remplir notre mission.</p>\r\n\r\n<p>Pour vous aider dans la tenue de vos registres, veuillez trouver votre reçu d'impôt officiel. Si vous avez des questions sur votre don, veuillez envoyer un courriel à &nbsp; {domain.email} ou appelez le &nbsp;{domain.phone}.</p>\r\n\r\n<p>Merci,<br />\r\n{domain.name}</p>";
+
+    $optionValues = civicrm_api4('OptionValue', 'get', [
+      'where' => [
+        ['name', '=', 'cdntaxreceipts_receipt_aggregate'],
+      ],
+      'limit' => 25,
+    ]);
+    if($optionValues[0]['id']) {
+
+      $params = array(
+        'msg_title' => '(French) CDN Tax Receipts - Thank you Note',
         'msg_subject' => $email_subject,
         'msg_text' => $email_message,
         'msg_html' => $html_message,
