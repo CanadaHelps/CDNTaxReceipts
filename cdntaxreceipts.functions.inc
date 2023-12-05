@@ -1937,7 +1937,7 @@ function ch_loadTemplate(string $workflowName, bool $isTest, int $messageTemplat
   );
   //CRM-2124 if language is french then get template with (French) keyword within
   if ($language == 'fr_CA')
-    $msgTemplateParams['msg_title'] = array('LIKE' => "(French)");
+    $msgTemplateParams['msg_title'] = array('LIKE' => "%(French)%");
   $messageTemplate = civicrm_api3('MessageTemplate', 'get', $msgTemplateParams)['values'];
   if (empty($messageTemplate)) {
     if ($messageTemplateID) {
