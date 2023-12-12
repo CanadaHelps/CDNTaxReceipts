@@ -187,9 +187,9 @@ class CRM_Cdntaxreceipts_Task_IssueSingleTaxReceipts extends CRM_Contribute_Form
     //CRM-920: Thank-you Email Tool
     $sendThankYouEmail = false;
     if ($this->getElement('thankyou_email')->getValue()
-      && $this->getElement('html_message')->getValue()
-      && isset($params['template'])
-      && $params['template'] !== 'default') {
+    && ($this->getElement('html_message_en')->getValue() || $this->getElement('html_message_fr')->getValue())
+    && ((isset($params['template']) && $params['template'] !== 'default') || 
+        (isset($params['template_FR']) && $params['template_FR'] !== 'default') )) {
 
       $from_email_address = current(CRM_Core_BAO_Domain::getNameAndEmail(FALSE, TRUE));
       if ($from_email_address) {
@@ -244,6 +244,7 @@ class CRM_Cdntaxreceipts_Task_IssueSingleTaxReceipts extends CRM_Contribute_Form
         if ( empty($issued_on) || ! $originalOnly ) {
           //CRM-920: Thank-you Email Tool
           if ($sendThankYouEmail) {
+            $params['contactID'] = $contribution->contact_id;
             $thankyou_html = $this->getThankYouHTML([$contribution->id], $from_email_address, $params);
             if ($thankyou_html != NULL)
               $contribution->thankyou_html = $thankyou_html;
@@ -308,13 +309,15 @@ class CRM_Cdntaxreceipts_Task_IssueSingleTaxReceipts extends CRM_Contribute_Form
 
   //CRM-920: Thank-you Email Tool
   private function getThankYouHTML(array $contributionIds, $sender, $params) {
-
+    //CRM-2124 choose html_message section according to contact's preferred language
+    $preferred_language = _cdntaxreceipts_userPreferredLanguage($params['contactID']);
+    $html_message = ($preferred_language == 'fr_CA') ? 'html_message_fr' : 'html_message_en';
     $this->_contributionIds = $contributionIds;
     $data = &$this->controller->container();
     $data['values']['ViewTaxReceipt']['from_email_address'] = $sender;
     $data['values']['ViewTaxReceipt']['subject'] = $this->getElement('subject')->getValue();
-    $data['values']['ViewTaxReceipt']['html_message'] = $this->getElement('html_message')->getValue();
-
+    $data['values']['ViewTaxReceipt']['html_message'] = $this->getElement($html_message)->getValue();
+    $params['html_message'] = $this->getElement($html_message)->getValue();
     //CRM-1792 Adding 'group_by' parameter for token processor to process grouped contributions
     if (count($contributionIds) > 1) {
       $params['group_by'] = 'contact_id';
@@ -603,9 +606,33 @@ class CRM_Cdntaxreceipts_Task_IssueSingleTaxReceipts extends CRM_Contribute_Form
     if($this->elementExists('template')) {
       $this->removeElement('template');
       $this->assign('templates', TRUE);
-      $this->add('select', "template", ts('Use Template'),
+      //Adding English template
+      $this->add('select', 'template', ts('English'),
         ['default' => 'Default Message'] + $templates + ['0' => ts('Other Custom')], FALSE,
-        ['onChange' => "selectValue( this.value, '');"]
+        ['onChange' => "selectTemplateValue( this.value, 'EN');"]
+      );
+      //Adding English HTML message section
+      $this->add('wysiwyg', 'html_message_en',
+        ts('HTML English Format'),
+        [
+          'cols' => '80',
+          'rows' => '8',
+          'onkeyup' => "return verify(this)",
+        ]
+      );
+      //Adding french template
+      $this->add('select', 'template_FR', ts('French'),
+        ['default' => 'Default Message'] + $templates + ['0' => ts('Other Custom')], FALSE,
+        ['onChange' => "selectTemplateValue( this.value, 'FR');"]
+      );
+      //Adding French HTML message section
+      $this->add('wysiwyg', 'html_message_fr',
+        ts('HTML French Format'),
+        [
+          'cols' => '80',
+          'rows' => '8',
+          'onkeyup' => "return verify(this)",
+        ]
       );
     }
 

@@ -12,10 +12,26 @@
 <table class="form-layout-compressed">
     <tr>
       <td class="label-left">
+        {$form.template.label}
         {help id="template" title=$form.template.label file="CRM/Contact/Form/Task/PDFLetterCommon.hlp"}
       </td>
       <td class="tab-left">
         {$form.template.html}
+      </td>
+      <td class="href-left">
+        <a class="html_view_toggle" data-id="crm-html_email-accordion" href="#">Edit</a>
+      </td>
+    </tr>
+    <tr>
+      <td class="label-left">
+        {$form.template_FR.label}
+        {help id="template_FR" title=$form.template_FR.label file="CRM/Contact/Form/Task/PDFLetterCommon.hlp"}
+      </td>
+      <td class="tab-left">
+        {$form.template_FR.html}
+      </td>
+      <td class="href-left">
+        <a class="html_view_toggle" data-id="crm-html_email-accordion-fr" href="#">Edit</a>
       </td>
     </tr>
     <tr class="hidden-receipt-page">
@@ -94,18 +110,18 @@
   </div>
 </div>
 
-<div class="crm-accordion-wrapper crm-html_email-accordion">
+<div class="crm-accordion-wrapper crm-html_email-accordion crm-html-ch">
   <div class="crm-accordion-header">
-      {$form.html_message.label}
+      {$form.html_message_en.label}
   </div><!-- /.crm-accordion-header -->
   <div class="crm-accordion-body">
     <div class="helpIcon" id="helphtml">
-      <input class="crm-token-selector big" data-field="html_message" />
+      <input class="crm-token-selector big" data-field="html_message_en" />
       {help id="id-token-html" tplFile=$tplFile isAdmin=$isAdmin file="CRM/Contact/Form/Task/Email.hlp"}
     </div>
     <div class="clear"></div>
     <div class='html'>
-      {$form.html_message.html}<br />
+      {$form.html_message_en.html}<br />
     </div>
     <div id="editMessageDetails" class="hidden-receipt-page">
       <div id="updateDetails" >
@@ -122,6 +138,33 @@
   </div><!-- /.crm-accordion-body -->
 </div><!-- /.crm-accordion-wrapper -->
 
+<div class="crm-accordion-wrapper crm-html_email-accordion-fr crm-html-ch">
+  <div class="crm-accordion-header">
+      {$form.html_message_fr.label}
+  </div><!-- /.crm-accordion-header french-->
+  <div class="crm-accordion-body">
+    <div class="helpIcon" id="helphtml">
+      <input class="crm-token-selector big" data-field="html_message_fr" />
+      {help id="id-token-html" tplFile=$tplFile isAdmin=$isAdmin file="CRM/Contact/Form/Task/Email.hlp"}
+    </div>
+    <div class="clear"></div>
+    <div class='html'>
+      {$form.html_message_fr.html}<br />
+    </div>
+    <div id="editMessageDetails" class="hidden-receipt-page">
+      <div id="updateDetails" >
+        {$form.updateTemplate.html}&nbsp;{$form.updateTemplate.label}
+      </div>
+      <div>
+        {$form.saveTemplate.html}&nbsp;{$form.saveTemplate.label}
+      </div>
+    </div>
+    <div id="saveDetails" class="section hidden-receipt-page">
+      <div class="label">{$form.saveTemplateName.label}</div>
+      <div class="content">{$form.saveTemplateName.html|crmAddClass:huge}</div>
+    </div>
+  </div><!-- /.crm-accordion-body -->
+</div><!-- /.crm-accordion-wrapper -->
 <table class="form-layout-compressed">
   <tr class="hidden-receipt-page">
     <td class="label-left">{$form.document_type.label}</td>
@@ -178,26 +221,43 @@ CRM.$(function($) {
 
   //CRM-921: Hide HTML box on checkbox
   $('.crm-html_email-accordion').hide();
+  $('.crm-html_email-accordion-fr').hide();
+  $('.html_view_toggle').hide();
   $('#template').parents().eq(2).hide();
+  $('#template_FR').parents().eq(2).hide();
   $('#thankyou_email').on('change', function() {
     if($('#thankyou_email').prop('checked') == true) {
-      $('.crm-html_email-accordion').show();
       $('#template').parents().eq(2).show();
-      if($('#template').find('option:selected').val() == 'default') {
-        $('.crm-html_email-accordion').hide();
-      } else {
-        $('.crm-html_email-accordion').show();
-      }
+      $('#template_FR').parents().eq(2).show();
     } else {
       $('.crm-html_email-accordion').hide();
+      $('.crm-html_email-accordion-fr').hide();
       $('#template').parents().eq(2).hide();
+      $('#template_FR').parents().eq(2).hide();
     }
   });
+
+  $('.html_view_toggle').on('click', function(e) {
+    e.preventDefault();
+    $('.crm-html-ch').hide();
+    let language_selector = $(this).data("id");
+      $( '.'+language_selector ).show();
+  });
+
   $('#template').on('change', function() {
     if($(this).find('option:selected').val() == 'default') {
       $('.crm-html_email-accordion').hide();
+      $(this).parent().next('td').find('a').hide();
     } else {
-      $('.crm-html_email-accordion').show();
+      $(this).parent().next('td').find('a').show();
+    }
+  })
+  $('#template_FR').on('change', function() {
+    if($(this).find('option:selected').val() == 'default') {
+      $('.crm-html_email-accordion-fr').hide();
+      $(this).parent().next('td').find('a').hide();
+    } else {
+      $(this).parent().next('td').find('a').show();
     }
   })
 });
@@ -354,6 +414,26 @@ function showSaveDetails(chkbox)  {
             document.getElementById("bind_format").checked = false;
         }
     }
+}
+
+function selectTemplateValue( val, language) {
+  var html_container = 'html_message_en';
+  if(language == 'FR')
+  html_container = 'html_message_fr';
+
+  if ( !val ) {
+    if (document.getElementById("subject").length) {
+      document.getElementById("subject").value ="";
+    }
+    CRM.wysiwyg.setVal('#'+ html_container , '');
+    return;
+  }
+
+  var url = CRM.url('civicrm/ajax/loadTemplate');
+  $.post( url, {tid: val}, function( data ) {
+    cj("#subject").val( data.subject );
+    CRM.wysiwyg.setVal('#' + html_container , data.msg_html || '');
+  }, 'json');
 }
 
 </script>

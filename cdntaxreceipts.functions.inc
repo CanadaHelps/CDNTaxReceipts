@@ -1557,6 +1557,21 @@ function _cdntaxreceipts_setReceiptanguage($language) {
 
 }
 
+/**
+ * get the language for generating the receipt in contact preferred language.
+ *
+ * @language string $language preferred_language (i.e. en_US or fr_CA)
+ */
+function _cdntaxreceipts_userPreferredLanguage($contactID) {
+  $preferred_language = CRM_Core_DAO::getFieldValue('CRM_Contact_DAO_Contact', $contactID, 'preferred_language');
+  if(in_array($preferred_language,['fr_CA','fr_FR'])){
+    $language = 'fr_CA';
+  }else{
+    $language = 'en_US';
+  }
+  return $language;
+}
+
 // BACKPORTED from 1.7.1
 /**
  * Get file name with path of file/image field.
@@ -1821,7 +1836,9 @@ function ch_sendTemplate($params) {
     CRM_Core_Error::deprecatedWarning('message template id should be an integer');
     $params['messageTemplateID'] = (int) $params['messageTemplateID'];
   }
-  $mailContent = ch_loadTemplate((string) $params['valueName'], $params['isTest'], $params['messageTemplateID'] ?? NULL, $params['groupName'] ?? '');
+  //CRM-2124 load template according to user's preferred language
+  $preferred_language = _cdntaxreceipts_userPreferredLanguage($params['contactId']);
+  $mailContent = ch_loadTemplate((string) $params['valueName'], $params['isTest'], $params['messageTemplateID'] ?? NULL, $params['groupName'] ?? '',$preferred_language);
 
   // Overwrite subject from form field
   if (!empty($params['subject'])) {
@@ -1915,12 +1932,15 @@ function ch_sendTemplate($params) {
   return [$sent, $mailContent['subject'], $mailContent['text'], $mailContent['html']];
 }
 
-function ch_loadTemplate(string $workflowName, bool $isTest, int $messageTemplateID = NULL, $groupName = NULL): array {
-
-  $messageTemplate = civicrm_api3('MessageTemplate', 'get', [
+function ch_loadTemplate(string $workflowName, bool $isTest, int $messageTemplateID = NULL, $groupName = NULL,string $language): array {
+  $msgTemplateParams = array(
     'sequential' => 1,
     'workflow_name' => $workflowName,
-  ])['values'];
+  );
+  //CRM-2124 if language is french then get template with (French) keyword within
+  if ($language == 'fr_CA')
+    $msgTemplateParams['msg_title'] = array('LIKE' => "%(French)%");
+  $messageTemplate = civicrm_api3('MessageTemplate', 'get', $msgTemplateParams)['values'];
   if (empty($messageTemplate)) {
     if ($messageTemplateID) {
       throw new CRM_Core_Exception(ts('No such message template: id=%1.', [1 => $messageTemplateID]));
