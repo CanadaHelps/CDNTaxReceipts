@@ -62,7 +62,8 @@ function cdntaxreceipts_processTaxReceipt($receipt, &$collectedPdf = NULL, $mode
 
   // add support for preferred language
   $old_locale = CRM_Core_I18n::singleton()->getLocale();
-  $preferred_language = CRM_Core_DAO::getFieldValue('CRM_Contact_DAO_Contact', $receipt['contact_id'], 'preferred_language');
+  //$preferred_language = CRM_Core_DAO::getFieldValue('CRM_Contact_DAO_Contact', $receipt['contact_id'], 'preferred_language');
+  $preferred_language = _cdntaxreceipts_userPreferredLanguage($receipt['contact_id']);
   _cdntaxreceipts_setReceiptanguage($preferred_language);
 
   // @todo Deprecate this function - see issue 103. This used to be on the settings form but has been removed. For now if it had been previously set we still use the same (broken) implementation from before.
@@ -116,6 +117,7 @@ function cdntaxreceipts_processTaxReceipt($receipt, &$collectedPdf = NULL, $mode
       $customReceipt->setCollectedPDF($collectedPdf);
     $customReceipt->setDefaultImagesDir( dirname(__FILE__) . '/img/' );
     $customReceipt->setFontsDir( dirname(__FILE__) . '/fonts/' );
+    $customReceipt->setLanguage($preferred_language);
     //CRM-1864 if there is some issue in generatePDF then system will terminate receipt generation
     if(!$customReceipt->generatePDF()){
       return array(FALSE, $receipt['issue_method'], NULL);
