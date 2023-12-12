@@ -262,8 +262,6 @@ class CRM_Cdntaxreceipts_Form_ViewTaxReceipt extends CRM_Core_Form {
       $this->removeElement('template');
       $this->assign('templates', TRUE);
       //CRM-2124 Add template and html_message section according to contact's preferred language
-      $preferred_language = _cdntaxreceipts_userPreferredLanguage($this->_receipt['contact_id']);
-      if($preferred_language == 'fr_CA'){
         //Adding french template
         $this->add('select', 'template_FR', ts('French'),
           ['default' => 'Default Message'] + $templates + ['0' => ts('Other Custom')], FALSE,
@@ -278,7 +276,6 @@ class CRM_Cdntaxreceipts_Form_ViewTaxReceipt extends CRM_Core_Form {
             'onkeyup' => "return verify(this)",
           ]
         );
-      }else{
         //Adding English template
         $this->add('select', 'template', ts('English'),
           ['default' => 'Default Message'] + $templates + ['0' => ts('Other Custom')], FALSE,
@@ -293,7 +290,6 @@ class CRM_Cdntaxreceipts_Form_ViewTaxReceipt extends CRM_Core_Form {
             'onkeyup' => "return verify(this)",
           ]
         );
-      }
     }
   }
 
