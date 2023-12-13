@@ -197,8 +197,8 @@ AND COLUMN_NAME = 'receipt_status'");
 
   public function upgrade_1514() {
     $this->ctx->log->info('Added (French) CDN Tax Receipts - Email Annual/Aggregate Receipt template');
-    $email_message = "{contact.email_greeting_display},\n\nVous trouverez ci-joint votre reçu officiel aux fins de l'impôt sur le revenu.\n\n{$orgName}";
-    $email_subject = "Votre reçu fiscal {receipt.receipt_no}";
+    $email_message = '{$contact.email_greeting_display}'.",\n\nVous trouverez ci-joint votre reçu officiel aux fins de l'impôt sur le revenu.\n\n".'{$orgName}';
+    $email_subject = 'Votre reçu fiscal {$receipt.receipt_no}';
     $html_message = '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
       <html xmlns="http://www.w3.org/1999/xhtml">
       <head>

@@ -8,9 +8,9 @@
  +--------------------------------------------------------------------+
 *}
 {*common template for compose PDF letters*}
-{if $form.template.html}
+{if ($form.template.html || $form.template_FR.html)}
 <table class="form-layout-compressed">
-    <tr>
+    <tr class="language_en">
       <td class="label-left">
         {$form.template.label}
         {help id="template" title=$form.template.label file="CRM/Contact/Form/Task/PDFLetterCommon.hlp"}
@@ -22,7 +22,7 @@
         <a class="html_view_toggle" data-id="crm-html_email-accordion" href="#">Edit</a>
       </td>
     </tr>
-    <tr>
+    <tr class="language_fr">
       <td class="label-left">
         {$form.template_FR.label}
         {help id="template_FR" title=$form.template_FR.label file="CRM/Contact/Form/Task/PDFLetterCommon.hlp"}
@@ -260,6 +260,12 @@ CRM.$(function($) {
       $(this).parent().next('td').find('a').show();
     }
   })
+  {/literal}{if $view_receipt_language eq 'fr_CA'}{literal}
+    $('.language_en').hide();
+  {/literal}{/if}{literal}
+  {/literal}{if $view_receipt_language eq 'en_US'}{literal}
+    $('.language_fr').hide();
+  {/literal}{/if}{literal}
 });
 
 var currentWidth;
