@@ -1376,7 +1376,7 @@ function cdntaxreceipts_openCollectedPDF() {
 
 }
 
-function cdntaxreceipts_sendCollectedPDF(&$pdf, $filename) {
+function cdntaxreceipts_sendCollectedPDF(&$pdf, $filename, $receiptCount = []) {
   if ( $pdf->getNumPages() > 0 ) {
     if (defined('CIVICRM_TEST')) {
       // Put it in uploadDir the same as the other places we put a file, then
@@ -1387,7 +1387,7 @@ function cdntaxreceipts_sendCollectedPDF(&$pdf, $filename) {
     }
     else {
       $pdf->Output($filename, 'D');
-      CRM_Canadahelps_TaxReceipts_Receipt::updateDownloadStatus("sent");
+      CRM_Canadahelps_TaxReceipts_Receipt::updateDownloadStatus("sent", $receiptCount);
     }
     CRM_Utils_System::civiExit();
   }
