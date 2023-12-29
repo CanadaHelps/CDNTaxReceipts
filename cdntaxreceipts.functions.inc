@@ -1733,10 +1733,12 @@ function cdnaxreceipts_manageVoidPDF($receipt_id,$contributionId) {
    $receipt['contribution_amount'] = $receipt['receipt_amount'];
    $receipt['receive_date'] = $receipt['contributions'][0]['receive_date'];
  }
+  $preferred_language = _cdntaxreceipts_userPreferredLanguage($receipt['contact_id']);
   $customReceipt = new CRM_Canadahelps_TaxReceipts_Receipt($receipt['receipt_no'], $receipt);
   $customReceipt->setMode(CDNTAXRECEIPTS_MODE_BACKOFFICE );
   $customReceipt->setDefaultImagesDir( dirname(__FILE__) . '/img/' );
   $customReceipt->setFontsDir( dirname(__FILE__) . '/fonts/' );
+  $customReceipt->setLanguage($preferred_language);
   $customReceipt->generatePDF(); // this should create the original pdf - to be confirmed
 
   //CRM-1948 -Add function to set is_receipted and receipt number field void after void receipt 
