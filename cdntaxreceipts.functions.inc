@@ -1232,29 +1232,28 @@ function cdntaxreceipts_issueAggregateTaxReceipt($contactId, $year, $contributio
     $totalReceipt = 0;
     $inkind_aggregate = FALSE;
     $total_advantage_amount = 0;
-    foreach ( $contributions as $c ) {
-      $eligibleAmount =  cdntaxreceipts_eligibleAmount($c['contribution_id']);
+    foreach ( $contributions as $contrib ) {
+      $eligibleAmount =  cdntaxreceipts_eligibleAmount($contrib['contribution_id']);
       $receiptContributions[] = array(
-        'contribution_id' => $c['contribution_id'],
-        'contribution_amount' => $c['total_amount'],
+        'contribution_id' => $contrib['contribution_id'],
+        'contribution_amount' => $contrib['total_amount'],
         'receipt_amount' => $eligibleAmount,
-        'receive_date' => $c['receive_date'],
-        'inkind' => $c['inkind'],
-        'inkind_values' => $c['inkind_values'] ?? FALSE,
-        'advantage_amount' => $c['non_deductible_amount'],
-        'advantage_description' => $c['advantage_description'],
+        'receive_date' => $contrib['receive_date'],
+        'inkind' => $contrib['inkind'],
+        'inkind_values' => $contrib['inkind_values'] ?? FALSE,
+        'advantage_amount' => $contrib['non_deductible_amount'],
+        'advantage_description' => $contrib['advantage_description'],
       );
-      if($c['inkind']) {
+      if($contrib['inkind']) {
         $inkind_aggregate = TRUE;
       }
       $totalReceipt += $eligibleAmount;
-      if($c['non_deductible_amount']) {
-        $total_advantage_amount += $c['non_deductible_amount'];
+      if($contrib['non_deductible_amount']) {
+        $total_advantage_amount += $contrib['non_deductible_amount'];
       }
-      if($c['replace_receipt'])
-      {
+      if(isset($contrib['replace_receipt']) && $contrib['replace_receipt']) {
         $is_replaced = 1;
-        $cancelled_replace_receipt_number = $c['cancelled_replace_receipt_number'];
+        $cancelled_replace_receipt_number = $contrib['cancelled_replace_receipt_number'];
       }
     }
 
@@ -1655,10 +1654,13 @@ function _cdntaxreceipts_get_location(): string {
   return $city;*/
   // @todo, use setting field as per extension
   // https://lab.civicrm.org/extensions/cdntaxreceipts/-/commit/6d2de1a3067cee936a92838af2d6a42aafa1df3d
-  $address = CRM_Core_BAO_Location::getValues(['contact_id' => CRM_Core_Config::domainID()], TRUE)['address'][1];
-  $address['province'] = CRM_Core_PseudoConstant::stateProvince($address['state_province_id']);
-  if ($address && $address['state_province_id']) {
-    return $address['city'].", ".$address['province'];
+  $address = CRM_Core_BAO_Location::getValues(['contact_id' => CRM_Core_Config::domainID()], TRUE)['address'];
+  if ( count((array)$address) > 0 ) {
+    $address = $address[1];
+    $address['province'] = CRM_Core_PseudoConstant::stateProvince($address['state_province_id']);
+    if ($address && $address['state_province_id']) {
+      return $address['city'].", ".$address['province'];
+    }
   }
   return '';
 }
