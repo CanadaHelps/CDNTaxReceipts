@@ -64,18 +64,14 @@ class CRM_Cdntaxreceipts_Task_PDFLetterCommon extends CRM_Contact_Form_Task_PDFL
     }
     // a placeholder in case the separator is common in the string - e.g ', '
     $separator = '****~~~~';
-    $groupBy = $formValues['group_by'];
+    $groupBy = $formValues['group_by'] ?? 0;
 
     // skip some contacts ?
     $skipOnHold = $form->skipOnHold ?? FALSE;
     $skipDeceased = $form->skipDeceased ?? TRUE;
     $contributionIDs = $form->getVar('_contributionIds');
 
-    if ($form->_includesSoftCredits) {
-      //@todo - comment on what is stored there
-      $contributionIDs = $form->getVar('_contributionContactIds');
-    }
-    [$contributions, $contacts] = self::buildContributionArray($groupBy, $contributionIDs, $returnProperties, $skipOnHold, $skipDeceased, $messageToken, $task, $separator, $form->_includesSoftCredits);
+    [$contributions, $contacts] = self::buildContributionArray($groupBy, $contributionIDs, $returnProperties, $skipOnHold, $skipDeceased, $messageToken, $task, $separator, false);
     $html = [];
     $contactHtml = $emailedHtml = [];
     foreach ($contributions as $contributionId => $contribution) {
