@@ -195,6 +195,116 @@ AND COLUMN_NAME = 'receipt_status'");
     return TRUE;
   }
 
+  public function upgrade_1514() {
+    $this->ctx->log->info('Added (French) CDN Tax Receipts - Email Annual/Aggregate Receipt template');
+    $email_message = '{$contact.email_greeting_display}'.",\n\nVous trouverez ci-joint votre reçu officiel aux fins de l'impôt sur le revenu.\n\n".'{$orgName}';
+    $email_subject = 'Votre reçu fiscal {$receipt.receipt_no}';
+    $html_message = '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+      <html xmlns="http://www.w3.org/1999/xhtml">
+      <head>
+      <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+      <title></title>
+      </head>
+      <body>
+      {capture assign=headerStyle}colspan="2" style="text-align: left; padding: 4px; border-bottom: 1px solid #999; background-color: #eee;"{/capture}
+      {capture assign=labelStyle }style="padding: 4px; border-bottom: 1px solid #999; background-color: #f7f7f7;"{/capture}
+      {capture assign=valueStyle }style="padding: 4px; border-bottom: 1px solid #999;"{/capture}
+
+      <center>
+      <table width="620" border="0" cellpadding="0" cellspacing="0" style="font-family: Arial, Verdana, sans-serif; text-align: left;">
+
+        <!-- BEGIN HEADER -->
+        <!-- You can add table row(s) here with logo or other header elements -->
+        <!-- END HEADER -->
+
+        <!-- BEGIN CONTENT -->
+
+        <tr>
+        <td>
+          <p>' . nl2br(htmlspecialchars($email_message)) . '</p>
+        </td>
+        </tr>
+        <tr>
+      </table>
+      </center>
+      {$openTracking}
+      </body>
+      </html>';
+    //'Added (French) CDN Tax Receipts - Email Annual/Aggregate Receipt'
+    $optionValues = civicrm_api4('OptionValue', 'get', [
+      'where' => [
+        ['name', '=', 'cdntaxreceipts_receipt_aggregate'],
+      ],
+      'limit' => 25,
+    ]);
+    if($optionValues[0]['id']) {
+
+      $params = array(
+        'msg_title' => '(French) CDN Tax Receipts - Email Annual/Aggregate Receipt',
+        'msg_subject' => $email_subject,
+        'msg_text' => $email_message,
+        'msg_html' => $html_message,
+        'workflow_id' => $optionValues[0]['id'],
+        'workflow_name' => $optionValues[0]['name'],
+        'is_default' => 1,
+        'is_reserved' => 0,
+      );
+      civicrm_api3('MessageTemplate', 'create', $params);
+    }
+    //'Added (French) CDN Tax Receipts - Email Single Receipt'
+    $optionValues = civicrm_api4('OptionValue', 'get', [
+      'where' => [
+        ['name', '=', 'cdntaxreceipts_receipt_single'],
+      ],
+      'limit' => 25,
+    ]);
+    
+    if($optionValues[0]['id']) {
+
+      $params = array(
+        'msg_title' => '(French) CDN Tax Receipts - Email Single Receipt',
+        'msg_subject' => $email_subject,
+        'msg_text' => $email_message,
+        'msg_html' => $html_message,
+        'workflow_id' => $optionValues[0]['id'],
+        'workflow_name' => $optionValues[0]['name'],
+        'is_default' => 1,
+        'is_reserved' => 0,
+      );
+      civicrm_api3('MessageTemplate', 'create', $params);
+    }
+    return TRUE;
+  }
+
+  public function upgrade_1515() {
+    $this->ctx->log->info('Added (French) CDN Tax Receipts - Thank you Note template');
+    $email_message = "Cher(e) {contact.display_name},\r\n\r\nMerci de donner généreusement. Votre soutien est essentiel pour nous aider à remplir notre mission. \r\n\r\nPour vous aider dans la tenue de vos registres, veuillez trouver votre reçu d'impôt officiel. Si vous avez des questions sur votre don, veuillez envoyer un courriel à  {domain.email} ou appelez le {domain.phone}. \r\n\r\nMerci,\r\n{domain.name}";
+    $email_subject = "CDN Tax Receipts - Thank you Note";
+    $html_message = "<p>Cher(e)&nbsp;{contact.display_name},</p>\r\n\r\n<p>Merci de donner généreusement. Votre soutien est essentiel pour nous aider à remplir notre mission.</p>\r\n\r\n<p>Pour vous aider dans la tenue de vos registres, veuillez trouver votre reçu d'impôt officiel. Si vous avez des questions sur votre don, veuillez envoyer un courriel à &nbsp; {domain.email} ou appelez le &nbsp;{domain.phone}.</p>\r\n\r\n<p>Merci,<br />\r\n{domain.name}</p>";
+
+    $optionValues = civicrm_api4('OptionValue', 'get', [
+      'where' => [
+        ['name', '=', 'cdntaxreceipts_receipt_aggregate'],
+      ],
+      'limit' => 25,
+    ]);
+    if($optionValues[0]['id']) {
+
+      $params = array(
+        'msg_title' => '(French) CDN Tax Receipts - Thank you Note',
+        'msg_subject' => $email_subject,
+        'msg_text' => $email_message,
+        'msg_html' => $html_message,
+        'workflow_id' => $optionValues[0]['id'],
+        'workflow_name' => $optionValues[0]['name'],
+        'is_default' => 1,
+        'is_reserved' => 0,
+      );
+      civicrm_api3('MessageTemplate', 'create', $params);
+    }
+    return TRUE;
+  }
+
   function _create_message_template($email_message, $email_subject) {
 
     $html_message = '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
