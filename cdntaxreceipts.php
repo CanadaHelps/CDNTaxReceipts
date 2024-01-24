@@ -35,16 +35,6 @@ function cdntaxreceipts_civicrm_buildForm($formName, &$form) {
     // if the Tax Receipt has already been issued -> display a red maple leaf icon
     $contributionId = $form->get('id');
 
-    // CH Customization: Advantage fields
-    $form->assign('isView', TRUE);
-    cdntaxreceipts_advantage($contributionId, NULL, $defaults, TRUE);
-    if (!empty($defaults['advantage_description'])) {
-      $form->assign('advantage_description', $defaults['advantage_description']);
-    }
-    CRM_Core_Region::instance('page-body')->add(array(
-      'template' => 'CRM/Cdntaxreceipts/Form/AddAdvantage.tpl',
-    ));
-
     if (isset($contributionId) && cdntaxreceipts_eligibleForReceipt($contributionId)) {
       Civi::resources()->addStyleFile('org.civicrm.cdntaxreceipts', 'css/civicrm_cdntaxreceipts.css');
       list($issued_on, $receipt_id) = cdntaxreceipts_issued_on($contributionId);
@@ -73,20 +63,6 @@ function cdntaxreceipts_civicrm_buildForm($formName, &$form) {
 
       $form->addButtons($buttons);
     }
-  }
-
-  // CH Customization: Advantage fields
-  if (is_a($form, 'CRM_Contribute_Form_Contribution') && in_array($form->_action, [CRM_Core_Action::ADD, CRM_Core_Action::UPDATE])) {
-    $form->add('text', 'non_deductible_amount', ts('Advantage Amount'), NULL);
-    $form->add('text', 'advantage_description', ts('Advantage Description'), NULL);
-    if ($form->_action & CRM_Core_Action::UPDATE) {
-      cdntaxreceipts_advantage($form->_id, NULL, $defaults, TRUE);
-      $form->setDefaults($defaults);
-    }
-
-    CRM_Core_Region::instance('page-body')->add(array(
-      'template' => 'CRM/Cdntaxreceipts/Form/AddAdvantage.tpl',
-    ));
   }
 
   // CH Customization:
@@ -443,62 +419,6 @@ function cdntaxreceipts_civicrm_alterMailParams(&$params, $context) {
  * @param CRM_Core_Form $form
  * @param array $errors
  */
-// Advantage fields
-// @todo CRM-1721
-// @todo code can be moved to main extension
-function cdntaxreceipts_civicrm_validateForm($formName, &$fields, &$files, &$form, &$errors) {
-
-  // Require description for advantage amount if advantage amount is filled in.
-  if (is_a($form, 'CRM_Contribute_Form_Contribution')
-    && (CRM_Utils_Array::value('non_deductible_amount', $fields) > 0) && !CRM_Utils_Array::value('advantage_description', $fields)) {
-    $errors['advantage_description'] = ts('Please enter a description for advantage amount');
-  }
-  if (is_a($form, 'CRM_Contribute_Form_Contribution')) {
-    // Limit number of characters to 50 for description of advantage.
-    if (CRM_Utils_Array::value('advantage_description', $fields)) {
-      if (strlen(CRM_Utils_Array::value('advantage_description', $fields)) > 80) {
-        $errors['advantage_description'] = ts('Advantage Description should not be more than 80 characters');
-      }
-    }
-    if (!empty($fields['financial_type_id'])) {
-      $ftName = civicrm_api3('FinancialType', 'getvalue', [
-        'return' => "name",
-        'id' => $fields['financial_type_id'],
-      ]);
-      if ($ftName  == "In-kind" || $ftName == "In Kind") {
-        $customFields = [
-          60 => "Appraised by",
-          80 => "Description of property",
-          60 => "Address of Appraiser",
-        ];
-        $groupTitle = 'In Kind donation fields';
-        foreach ($customFields as $length => $name) {
-          $id = CRM_Core_BAO_CustomField::getCustomFieldID($name, $groupTitle);
-          foreach ($fields as $key => $value) {
-            if (strpos($key, 'custom_' . $id) !== false && !empty($value)) {
-              if (strlen($value) > $length) {
-                $errors[$key] = ts('%1 should not be more than %2 characters', [1 => $name, 2 => $length]);
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-}
-
-// Advantage fields
-// @todo CRM-1721
-// @todo code can be moved to main extension
-function cdntaxreceipts_civicrm_post($op, $objectName, $objectId, &$objectRef) {
-
-  // Handle saving of description of advantage
-  if ($objectName == "Contribution" && ($op == 'create' || $op == 'edit')) {
-    if (CRM_Utils_Array::value('advantage_description', $_POST)) {
-      cdntaxreceipts_advantage($objectId, $_POST['advantage_description']);
-    }
-  }
-}
 
 function cdntaxreceipts_checkReceiptImages($formName) {
   //CRM-1860 If receipt logo is not set pass empty value

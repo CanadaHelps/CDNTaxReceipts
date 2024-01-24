@@ -1,5 +1,7 @@
 <?php
 use CRM_Canadahelps_ExtensionUtils as EU;
+use CRM_Canadahelps_Contributions as Contributions;
+
 require_once('FPDI/src/autoload.php');
 
   class PDF extends \setasign\Fpdi\Tcpdf\Fpdi {
@@ -849,8 +851,10 @@ function cdntaxreceipts_issueTaxReceipt($contribution, &$collectedPdf = NULL, $m
     $values = CRM_Core_BAO_CustomValueTable::getValues($params);
     $inkind_values[] = $values[$custom_id];
   }
+
   // CH Customization: Get description advantage field
-  cdntaxreceipts_advantage($contribution->id, NULL, $advantage, TRUE);
+  Contributions::updateAdvantageDescription($contribution->id, NULL, $advantage, TRUE);
+  
   // CH Customization: CRM-2051
   $receipt = array(
     'receipt_no' => $receipt_no,
