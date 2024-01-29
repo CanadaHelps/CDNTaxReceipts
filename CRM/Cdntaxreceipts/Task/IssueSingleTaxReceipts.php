@@ -246,7 +246,7 @@ class CRM_Cdntaxreceipts_Task_IssueSingleTaxReceipts extends CRM_Contribute_Form
           if ($sendThankYouEmail) {
             $params['contactID'] = $contribution->contact_id;
             $thankyou_html = $this->getThankYouHTML([$contribution->id], $from_email_address, $params);
-            if ($thankyou_html != NULL)
+            if ($thankyou_html != NULL && !$previewMode)
               $contribution->thankyou_html = $thankyou_html;
           }
 

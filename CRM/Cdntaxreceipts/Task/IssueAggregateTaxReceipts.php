@@ -370,7 +370,7 @@ class CRM_Cdntaxreceipts_Task_IssueAggregateTaxReceipts extends CRM_Contribute_F
             //CRM-920: Thank-you Email Tool
             if ($sendThankYouEmail) {
               $thankyou_html = $this->getThankYouHTML([$contribution->id], $from_email_address, $params);
-              if ($thankyou_html != NULL)
+              if ($thankyou_html != NULL && !$previewMode)
                 $contribution->thankyou_html = $thankyou_html;
             }
 
@@ -427,7 +427,7 @@ class CRM_Cdntaxreceipts_Task_IssueAggregateTaxReceipts extends CRM_Contribute_F
             //CRM-920: Thank-you Email Tool
             if ($sendThankYouEmail) {
               $thankyou_html = $this->getThankYouHTML([$contribution->id], $from_email_address, $params);
-              if ($thankyou_html != NULL)
+              if ($thankyou_html != NULL && !$previewMode)
                 $contribution->thankyou_html = $thankyou_html;
             }
 

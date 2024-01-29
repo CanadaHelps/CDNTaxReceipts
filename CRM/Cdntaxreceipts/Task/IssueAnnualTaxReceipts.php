@@ -356,7 +356,7 @@ class CRM_Cdntaxreceipts_Task_IssueAnnualTaxReceipts extends CRM_Contact_Form_Ta
 
         //CRM-920: Thank-you Email Tool
         $thankyou_html = NULL;
-        if ($sendThankYouEmail) {
+        if ($sendThankYouEmail && !$previewMode) {
           $thankyou_html = $this->getThankYouHTML(array_column($contributions, 'contribution_id'), $from_email_address, $params);
         }
 
@@ -409,7 +409,7 @@ class CRM_Cdntaxreceipts_Task_IssueAnnualTaxReceipts extends CRM_Contact_Form_Ta
             //CRM-920: Thank-you Email Tool
             if ($sendThankYouEmail) {
               $thankyou_html = $this->getThankYouHTML([$contribution->id], $from_email_address, $params);
-              if ($thankyou_html != NULL)
+              if ($thankyou_html != NULL && !$previewMode)
                 $contribution->thankyou_html = $thankyou_html;
             }
 
@@ -467,7 +467,7 @@ class CRM_Cdntaxreceipts_Task_IssueAnnualTaxReceipts extends CRM_Contact_Form_Ta
             //CRM-920: Thank-you Email Tool
             if ($sendThankYouEmail) {
               $thankyou_html = $this->getThankYouHTML([$contribution->id], $from_email_address, $params);
-              if ($thankyou_html != NULL)
+              if ($thankyou_html != NULL && !$previewMode)
                 $contribution->thankyou_html = $thankyou_html;
             }
 
