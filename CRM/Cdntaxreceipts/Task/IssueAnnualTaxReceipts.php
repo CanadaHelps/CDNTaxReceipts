@@ -356,7 +356,7 @@ class CRM_Cdntaxreceipts_Task_IssueAnnualTaxReceipts extends CRM_Contact_Form_Ta
 
         //CRM-920: Thank-you Email Tool
         $thankyou_html = NULL;
-        if ($sendThankYouEmail && !$previewMode) {
+        if ($sendThankYouEmail) {
           $thankyou_html = $this->getThankYouHTML(array_column($contributions, 'contribution_id'), $from_email_address, $params);
         }
 
