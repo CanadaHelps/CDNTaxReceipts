@@ -192,7 +192,7 @@ class CRM_Cdntaxreceipts_Task_IssueSingleTaxReceipts extends CRM_Contribute_Form
         (isset($params['template_FR']) && $params['template_FR'] !== 'default') )) {
 
       $from_email_address = current(CRM_Core_BAO_Domain::getNameAndEmail(FALSE, TRUE));
-      if ($from_email_address) {
+      if ($from_email_address && !$previewMode) {
         $sendThankYouEmail = true;
       }
     }
@@ -246,7 +246,7 @@ class CRM_Cdntaxreceipts_Task_IssueSingleTaxReceipts extends CRM_Contribute_Form
           if ($sendThankYouEmail) {
             $params['contactID'] = $contribution->contact_id;
             $thankyou_html = $this->getThankYouHTML([$contribution->id], $from_email_address, $params);
-            if ($thankyou_html != NULL && !$previewMode)
+            if ($thankyou_html != NULL)
               $contribution->thankyou_html = $thankyou_html;
           }
 

@@ -255,7 +255,7 @@ class CRM_Cdntaxreceipts_Task_IssueAggregateTaxReceipts extends CRM_Contribute_F
           (isset($params['template_FR']) && $params['template_FR'] !== 'default') )) {
 
       $from_email_address = current(CRM_Core_BAO_Domain::getNameAndEmail(FALSE, TRUE));
-      if ($from_email_address) {
+      if ($from_email_address && !$previewMode) {
         $sendThankYouEmail = true;
       }
     }
@@ -370,7 +370,7 @@ class CRM_Cdntaxreceipts_Task_IssueAggregateTaxReceipts extends CRM_Contribute_F
             //CRM-920: Thank-you Email Tool
             if ($sendThankYouEmail) {
               $thankyou_html = $this->getThankYouHTML([$contribution->id], $from_email_address, $params);
-              if ($thankyou_html != NULL && !$previewMode)
+              if ($thankyou_html != NULL)
                 $contribution->thankyou_html = $thankyou_html;
             }
 
@@ -427,7 +427,7 @@ class CRM_Cdntaxreceipts_Task_IssueAggregateTaxReceipts extends CRM_Contribute_F
             //CRM-920: Thank-you Email Tool
             if ($sendThankYouEmail) {
               $thankyou_html = $this->getThankYouHTML([$contribution->id], $from_email_address, $params);
-              if ($thankyou_html != NULL && !$previewMode)
+              if ($thankyou_html != NULL)
                 $contribution->thankyou_html = $thankyou_html;
             }
 
