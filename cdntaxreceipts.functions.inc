@@ -77,7 +77,9 @@ function cdntaxreceipts_processTaxReceipt($receipt, &$collectedPdf = NULL, $mode
       CRM_Core_Session::setStatus($userAlert, ts('Warning'), 'alert');
       return array(FALSE,'',NULL);
     }
-    $next_id = cdntaxreceipts_log_next_id();
+    // CRM-2192: creating new receipt_no from last receipt and not ID
+    // Previously $next_id was fetched from `cdntaxreceipts_log_next_id()` method
+    $next_id = CRM_Canadahelps_TaxReceipts_Receipt::getNewReceiptNumber(($mode === true || $mode == CDNTAXRECEIPTS_MODE_PREVIEW) ? TRUE : FALSE);
     $receipt['receipt_no'] = Civi::settings()->get('receipt_prefix') . str_pad($next_id, 8, 0, STR_PAD_LEFT);
   }
   // allow modules to alter any details
@@ -1060,7 +1062,6 @@ $mode = CDNTAXRECEIPTS_MODE_BACKOFFICE, $thankyou_html = NULL ) {
 
   // query for duplicate receipt
   list( $issued_on, $receipt_id ) = cdntaxreceipts_annual_issued_on($contactId, $year);
-
 
   // When returning issued_on field:
   //   returns false for non existing $contribution ID
