@@ -37,9 +37,9 @@ class CRM_Cdntaxreceipts_Task_IssueSingleTaxReceipts extends CRM_Contribute_Form
     // count and categorize contributions
     // CH Customization: include ineligible and duplicates
     foreach ( $this->_contributionIds as $id ) {
-      _cdntaxreceipts_check_lineitems($id);
       $key = 'ineligibles';
       if ( cdntaxreceipts_eligibleForReceipt($id) ) {
+        _cdntaxreceipts_check_lineitems($id);
         list($issued_on, $receipt_id, $receipt_status) = cdntaxreceipts_issued_on($id);
         $key = (empty($issued_on) || $receipt_status == 'cancelled') ? 'original' : 'duplicate';
         list( $method, $email ) = cdntaxreceipts_sendMethodForContribution($id);

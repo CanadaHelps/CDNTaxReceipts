@@ -210,6 +210,23 @@ AND COLUMN_NAME = 'receipt_status'");
     return TRUE;
   }
 
+  /**
+   * Set the setting if in-kind financial type exists.
+   * If they've changed the name, there's not much we can do since we don't
+   * know which one it could be.
+   */
+  public function upgrade_1414() {
+    $financial_type_id = \Civi::settings()->get('cdntaxreceipts_inkind');
+    if (!$financial_type_id) {
+      //$financial_type = \Civi\Api4\FinancialType::get(FALSE)->addSelect('id')->addWhere('name', '=', 'In-kind')->execute()->first();
+      $financial_type = \Civi\Api4\FinancialType::get(FALSE)->addSelect('id')->addWhere('name', '=', 'In Kind')->execute()->first(); // CH Customization
+      if (!empty($financial_type['id'])) {
+        \Civi::settings()->set('cdntaxreceipts_inkind', $financial_type['id']);
+      }
+    }
+    return TRUE;
+  }
+
   public function _create_message_template($email_message, $email_subject) {
 
     $html_message = '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
@@ -544,6 +561,16 @@ AND COLUMN_NAME = 'receipt_status'");
     // So we need to run any subsequent core extension upgrade
     $this->upgrade_1412();
     $this->upgrade_1413();
+  
+    return TRUE;
+  }
+
+  public function upgrade_109001() {
+    $this->ctx->log->info('CDNTaxReceipts v1.9.0 (#001): backporting extension updates');
+
+    // Our previous version of the code had custom upgrader post upgrade_1411
+    // So we need to run any subsequent core extension upgrade
+    $this->upgrade_1414();
   
     return TRUE;
   }

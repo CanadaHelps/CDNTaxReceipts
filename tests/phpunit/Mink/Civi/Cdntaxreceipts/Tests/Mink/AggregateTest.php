@@ -58,6 +58,9 @@ class AggregateTest extends CdntaxreceiptsBase {
     $this->getSession()->executeScript("CRM.$('#task').val('406').trigger('change');");
     $this->assertPageHasNoErrorMessages();
 
+    // see if waiting a little bit helps with random fails.
+    $this->getSession()->wait(5000, 'CRM.$("input[name=\'receipt_year\']").length > 0');
+
     // Pick the receipt year and issue receipt
     $this->getSession()->getPage()->selectFieldOption('receipt_year', "issue_2020");
     $this->getSession()->getPage()->pressButton('_qf_IssueAggregateTaxReceipts_next');

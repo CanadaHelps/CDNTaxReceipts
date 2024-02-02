@@ -670,17 +670,19 @@ function _cdntaxreceipts_writeReceipt(&$pdf, $pdf_variables) {
 function cdntaxreceipts_configure_inkind_fields() {
   // CH Customization: In Kind (instead of In-Kind)
   // check if the In-kind contribution type exists.  if not, create it.
-  $inkind_financial_type = \Civi\Api4\FinancialType::get(FALSE)->addSelect('id')->addWhere('name', '=', 'In Kind')->execute()->first();
-  if (empty($inkind_financial_type)) {
+  // Using `name` isn't reliable for financial types because people can change
+  // it, so we have our own setting.
+  $contrib_type_id = \Civi::settings()->get('cdntaxreceipts_inkind');
+  if (!$contrib_type_id) {
     $inkind_financial_type = \Civi\Api4\FinancialType::create(FALSE)
       ->addValue('name', 'In Kind')
       ->addValue('is_deductible', TRUE)
       ->addValue('is_reserved', FALSE)
       ->addValue('is_active', TRUE)
       ->execute()->first();
+    $contrib_type_id = $inkind_financial_type['id'];
+    \Civi::settings()->set('cdntaxreceipts_inkind', $contrib_type_id);
   }
-
-  $contrib_type_id = $inkind_financial_type['id'];
 
   // check if the custom group exists.  if not, create it.
   $params = array(

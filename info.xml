@@ -11,10 +11,10 @@
     <author>CanadaHelps</author>
   </maintainer>
   <releaseDate>2023-11-01</releaseDate>
-  <version>1.8.0.1</version>
-  <develStage>alpha</develStage>
+  <version>1.9.0.1</version>
+  <develStage>stable</develStage>
   <compatibility>
-    <ver>5.57</ver>
+    <ver>5.63</ver>
   </compatibility>
   <requires>
     <ext>com.cividesk.client.canadahelps</ext>
