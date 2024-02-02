@@ -198,14 +198,14 @@ AND COLUMN_NAME = 'receipt_status'");
   /**
    * Add location issued column
    */
-  public function upgrade_1812() {
+  public function upgrade_1412() {
     $this->ctx->log->info('Applying update 1412: add location issued column');
     // We don't extend the incremental base class, so we can't add a task and need to call directly.
     CRM_Upgrade_Incremental_Base::addColumn($this->ctx, 'cdntaxreceipts_log', 'location_issued', "varchar(32) NOT NULL DEFAULT '' COMMENT 'City where receipt was issued.'");
     return TRUE;
   }
 
-  public function upgrade_1813() {
+  public function upgrade_1413() {
     $this->_setSourceDefaults();
     return TRUE;
   }
@@ -339,7 +339,7 @@ AND COLUMN_NAME = 'receipt_status'");
     CRM_Core_DAO::executeQuery($sql);
     return TRUE;
   }
-
+ 
   public function upgrade_1511() {
     $this->ctx->log->info('Applying update 1511: adding missing financial accounts to "In-Kind" fund');
 
@@ -372,7 +372,7 @@ AND COLUMN_NAME = 'receipt_status'");
     }
 
     return TRUE;
-  }
+  } 
 
   public function upgrade_1512() {
     $this->ctx->log->info('Applying update 1512: renaming in-kind to In Kind');
@@ -416,19 +416,135 @@ AND COLUMN_NAME = 'receipt_status'");
     return TRUE;
   }
 
+  public function upgrade_1514() {
+    $this->ctx->log->info('Added (French) CDN Tax Receipts - Email Annual/Aggregate Receipt template');
+    
+    $subject    = 'Votre reçu fiscal {$receipt.receipt_no}';
+    $email_text = '{$contact.email_greeting_display}'.",\n\nVous trouverez ci-joint votre reçu officiel aux fins de l'impôt sur le revenu.\n\n".'{$orgName}';
+    $email_html = '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+      <html xmlns="http://www.w3.org/1999/xhtml">
+      <head>
+      <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+      <title></title>
+      </head>
+      <body>
+      {capture assign=headerStyle}colspan="2" style="text-align: left; padding: 4px; border-bottom: 1px solid #999; background-color: #eee;"{/capture}
+      {capture assign=labelStyle }style="padding: 4px; border-bottom: 1px solid #999; background-color: #f7f7f7;"{/capture}
+      {capture assign=valueStyle }style="padding: 4px; border-bottom: 1px solid #999;"{/capture}
 
-  /**
-   * Example: Run an external SQL script
-   *
-   * @return TRUE on success
-   * @throws Exception
-   */
-  /*
-  public function upgrade_4201() {
-  $this->ctx->log->info('Applying update 4201');
-  // this path is relative to the extension base dir
-  $this->executeSqlFile('sql/upgrade_4201.sql');
-  return TRUE;
-  } */
+      <center>
+      <table width="620" border="0" cellpadding="0" cellspacing="0" style="font-family: Arial, Verdana, sans-serif; text-align: left;">
 
+        <!-- BEGIN HEADER -->
+        <!-- You can add table row(s) here with logo or other header elements -->
+        <!-- END HEADER -->
+
+        <!-- BEGIN CONTENT -->
+
+        <tr>
+        <td>
+          <p>' . nl2br(htmlspecialchars($email_text)) . '</p>
+        </td>
+        </tr>
+        <tr>
+      </table>
+      </center>
+      {$openTracking}
+      </body>
+      </html>';
+
+    //'Added (French) CDN Tax Receipts - Email Annual/Aggregate Receipt'
+    $result = $this->_cdntaxreceipts_createMessageTemplate(
+      "fr", 
+      "cdntaxreceipts_receipt_aggregate", 
+      "CDN Tax Receipts - Email Annual/Aggregate Receipt", 
+      $subject, 
+      $email_html,
+      $email_text
+    );
+
+    // Failed w/ first template, no need to continue
+    if (!$result) {
+      return FALSE;
+    }
+
+    //'Added (French) CDN Tax Receipts - Email Single Receipt'
+    $result = $this->_cdntaxreceipts_createMessageTemplate(
+      "fr", 
+      "cdntaxreceipts_receipt_single", 
+      "CDN Tax Receipts - Email Single Receipt", 
+      $subject, 
+      $email_html,
+      $email_text
+    );
+    return $result;
+  }
+
+  public function upgrade_1515() {
+    $this->ctx->log->info('Added (French) CDN Tax Receipts - Thank you Note template');
+
+    $subject    = "CDN Tax Receipts - Thank you Note";
+    $email_text = "Cher(e) {contact.display_name},\r\n\r\nMerci de donner généreusement. Votre soutien est essentiel pour nous aider à remplir notre mission. \r\n\r\nPour vous aider dans la tenue de vos registres, veuillez trouver votre reçu d'impôt officiel. Si vous avez des questions sur votre don, veuillez envoyer un courriel à  {domain.email} ou appelez le {domain.phone}. \r\n\r\nMerci,\r\n{domain.name}";
+    $email_html = "<p>Cher(e)&nbsp;{contact.display_name},</p>\r\n\r\n<p>Merci de donner généreusement. Votre soutien est essentiel pour nous aider à remplir notre mission.</p>\r\n\r\n<p>Pour vous aider dans la tenue de vos registres, veuillez trouver votre reçu d'impôt officiel. Si vous avez des questions sur votre don, veuillez envoyer un courriel à &nbsp; {domain.email} ou appelez le &nbsp;{domain.phone}.</p>\r\n\r\n<p>Merci,<br />\r\n{domain.name}</p>";
+
+    $result = $this->_cdntaxreceipts_createMessageTemplate(
+      "fr", 
+      "cdntaxreceipts_receipt_aggregate", 
+      "CDN Tax Receipts - Thank you Note", 
+      $subject, 
+      $email_html,
+      $email_text
+    );
+    return $result;
+  }
+
+  private function _cdntaxreceipts_createMessageTemplate(string $language, string $template, string $title, string $subject, string $email_html, string $email_text = ''): bool {
+    
+    $title = ($language == "fr") ? '(French) ' . $title : $title;
+    $messageTemplate = \Civi\Api4\MessageTemplate::get()
+      ->addSelect('id')
+      ->addWhere('workflow_name', '=', $template)
+      ->addWhere('msg_title', 'CONTAINS',  $title)
+      ->execute()
+      ->first();
+
+    // Skip as it already exists  
+    if ($messageTemplate) {
+      return TRUE;
+    }
+    
+    $optionValue = \Civi\Api4\OptionValue::get()
+      ->addSelect('id')
+      ->addWhere('name', '=', $template)
+      ->execute()
+      ->first();
+    
+    if($optionValue) {
+      $results = \Civi\Api4\MessageTemplate::create()
+        ->addValue('msg_title', '(French) CDN Tax Receipts - Thank you Note')
+        ->addValue('msg_subject', $subject)
+        ->addValue('msg_html', $email_html)
+        ->addValue('msg_text', $email_text)
+        ->addValue('workflow_name', $template)
+        ->addValue('is_default', TRUE)
+        ->addValue('is_reserved', FALSE)
+        ->addValue('workflow_id', $optionValue['id'])
+        ->execute();
+    }
+    return TRUE;
+  }
+
+  ### BELOW THIS POINT: use new format. ### 
+  ### Example: upgrade_108001 => 1.8.x, upgrade function 001 ###
+
+  public function upgrade_108001() {
+    $this->ctx->log->info('CDNTaxReceipts v1.8.0 (#001): backporting extension updates');
+
+    // Our previous version of the code had custom upgrader post upgrade_1411
+    // So we need to run any subsequent core extension upgrade
+    $this->upgrade_1412();
+    $this->upgrade_1413();
+  
+    return TRUE;
+  }
 }

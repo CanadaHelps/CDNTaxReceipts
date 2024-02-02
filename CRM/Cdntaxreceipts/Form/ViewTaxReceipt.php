@@ -260,10 +260,40 @@ class CRM_Cdntaxreceipts_Form_ViewTaxReceipt extends CRM_Core_Form {
     if($this->elementExists('template')) {
       $this->removeElement('template');
       $this->assign('templates', TRUE);
-      $this->add('select', "template", ts('Use Template'),
-        ['default' => 'Default Message'] + $templates + ['0' => ts('Other Custom')], FALSE,
-        ['onChange' => "selectValue( this.value, '');"]
-      );
+      //CRM-2124 Add template and html_message section according to contact's preferred language
+        $contact_id = CRM_Utils_Array::value('cid', $_GET);
+        if(isset($contact_id)) {
+          $preferred_language = _cdntaxreceipts_userPreferredLanguage($contact_id);
+          $this->assign('view_receipt_language', $preferred_language);
+        }
+        //Adding french template
+        $this->add('select', 'template_FR', ts('French'),
+          ['default' => 'Default Message'] + $templates + ['0' => ts('Other Custom')], FALSE,
+          ['onChange' => "selectTemplateValue( this.value, 'FR');"]
+        );
+        //Adding French HTML message section
+        $this->add('wysiwyg', 'html_message_fr',
+          ts('HTML French Format'),
+          [
+            'cols' => '80',
+            'rows' => '8',
+            'onkeyup' => "return verify(this)",
+          ]
+        );
+        //Adding English template
+        $this->add('select', 'template', ts('English'),
+          ['default' => 'Default Message'] + $templates + ['0' => ts('Other Custom')], FALSE,
+          ['onChange' => "selectTemplateValue( this.value, 'EN');"]
+        );
+        //Adding English HTML message section
+        $this->add('wysiwyg', 'html_message_en',
+          ts('HTML English Format'),
+          [
+            'cols' => '80',
+            'rows' => '8',
+            'onkeyup' => "return verify(this)",
+          ]
+        );
     }
   }
 
@@ -367,17 +397,23 @@ class CRM_Cdntaxreceipts_Form_ViewTaxReceipt extends CRM_Core_Form {
       } else {
         $params = $this->controller->exportValues($this->_name);
 
-        if ($this->getElement('thankyou_email')->getValue()) {
-          if ($this->getElement('html_message')->getValue()) {
-            if (isset($params['template'])) {
-              if ($params['template'] !== 'default') {
+        if($this->getElement('thankyou_email')->getValue()) {
+          //CRM-2124 choose html_message section according to contact's preferred language
+          $preferred_language = _cdntaxreceipts_userPreferredLanguage($this->get('contact_id'));
+          $html_message = ($preferred_language == 'fr_CA') ? 'html_message_fr' : 'html_message_en';
+          $template = ($preferred_language == 'fr_CA') ? 'template_FR' : 'template';
+          if($this->getElement($html_message)->getValue()) {
+            if(isset($params[$template])) {
+              if($params[$template] !== 'default') {
                 $this->_contributionIds = [$contribution->id];
                 $from_email_address = current(CRM_Core_BAO_Domain::getNameAndEmail(FALSE, TRUE));
                 if ($from_email_address) {
                   $data = &$this->controller->container();
                   $data['values']['ViewTaxReceipt']['from_email_address'] = $from_email_address;
                   $data['values']['ViewTaxReceipt']['subject'] = $this->getElement('subject')->getValue();
-                  $data['values']['ViewTaxReceipt']['html_message'] = $this->getElement('html_message')->getValue();
+                  $data['values']['ViewTaxReceipt']['html_message'] = $this->getElement($html_message)->getValue();
+                  //Assigning html_message according to language preferrence
+                  $params['html_message'] = $this->getElement($html_message)->getValue();
                   $thankyou_html = CRM_Cdntaxreceipts_Task_PDFLetterCommon::postProcessForm($this, $params);
                   if ($thankyou_html) {
                     if(is_array($thankyou_html)) {

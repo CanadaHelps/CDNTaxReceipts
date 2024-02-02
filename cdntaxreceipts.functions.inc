@@ -1,5 +1,4 @@
 <?php
-use CRM_Canadahelps_ExtensionUtils as EU;
 use CRM_Canadahelps_Contributions as Contributions;
 
 require_once('FPDI/src/autoload.php');
@@ -61,7 +60,8 @@ function cdntaxreceipts_processTaxReceipt($receipt, &$collectedPdf = NULL, $mode
 
   // add support for preferred language
   $old_locale = CRM_Core_I18n::singleton()->getLocale();
-  $preferred_language = CRM_Core_DAO::getFieldValue('CRM_Contact_DAO_Contact', $receipt['contact_id'], 'preferred_language');
+  //$preferred_language = CRM_Core_DAO::getFieldValue('CRM_Contact_DAO_Contact', $receipt['contact_id'], 'preferred_language');
+  $preferred_language = _cdntaxreceipts_userPreferredLanguage($receipt['contact_id']);
   _cdntaxreceipts_setReceiptanguage($preferred_language);
 
   // @todo Deprecate this function - see issue 103. This used to be on the settings form but has been removed. For now if it had been previously set we still use the same (broken) implementation from before.
@@ -118,6 +118,7 @@ function cdntaxreceipts_processTaxReceipt($receipt, &$collectedPdf = NULL, $mode
       $customReceipt->setCollectedPDF($collectedPdf);
     $customReceipt->setDefaultImagesDir( dirname(__FILE__) . '/img/' );
     $customReceipt->setFontsDir( dirname(__FILE__) . '/fonts/' );
+    $customReceipt->setLanguage($preferred_language);
     //CRM-1864 if there is some issue in generatePDF then system will terminate receipt generation
     if(!$customReceipt->generatePDF()){
       return array(FALSE, $receipt['issue_method'], NULL);
@@ -1213,28 +1214,28 @@ function cdntaxreceipts_issueAggregateTaxReceipt($contactId, $year, $contributio
     $totalReceipt = 0;
     $inkind_aggregate = FALSE;
     $total_advantage_amount = 0;
-    foreach ( $contributions as $c ) {
-      $eligibleAmount =  cdntaxreceipts_eligibleAmount($c['contribution_id']);
+    foreach ( $contributions as $contrib ) {
+      $eligibleAmount =  cdntaxreceipts_eligibleAmount($contrib['contribution_id']);
       $receiptContributions[] = array(
-        'contribution_id' => $c['contribution_id'],
-        'contribution_amount' => $c['total_amount'],
+        'contribution_id' => $contrib['contribution_id'],
+        'contribution_amount' => $contrib['total_amount'],
         'receipt_amount' => $eligibleAmount,
-        'receive_date' => $c['receive_date'],
-        'inkind' => $c['inkind'],
-        'inkind_values' => $c['inkind_values'] ?? FALSE,
-        'advantage_amount' => $c['non_deductible_amount'],
-        'advantage_description' => $c['advantage_description'],
+        'receive_date' => $contrib['receive_date'],
+        'inkind' => $contrib['inkind'],
+        'inkind_values' => $contrib['inkind_values'] ?? FALSE,
+        'advantage_amount' => $contrib['non_deductible_amount'],
+        'advantage_description' => $contrib['advantage_description'],
       );
-      if($c['inkind']) {
+      if($contrib['inkind']) {
         $inkind_aggregate = TRUE;
       }
       $totalReceipt += $eligibleAmount;
-      if($c['non_deductible_amount']) {
-        $total_advantage_amount += $c['non_deductible_amount'];
+      if($contrib['non_deductible_amount']) {
+        $total_advantage_amount += $contrib['non_deductible_amount'];
       }
-      if($c['replace_receipt']) {
+      if(isset($contrib['replace_receipt']) && $contrib['replace_receipt']) {
         $is_replaced = 1;
-        $cancelled_replace_receipt_number = $c['cancelled_replace_receipt_number'];
+        $cancelled_replace_receipt_number = $contrib['cancelled_replace_receipt_number'];
       }
     }
 
@@ -1695,6 +1696,21 @@ function _cdntaxreceipts_check_lineitems($contribution_id) {
 * CH Custom Functions
 ***************************************/
 
+/**
+ * get the language for generating the receipt in contact preferred language.
+ *
+ * @language string $language preferred_language (i.e. en_US or fr_CA)
+ */
+function _cdntaxreceipts_userPreferredLanguage($contactID) {
+  $preferred_language = CRM_Core_DAO::getFieldValue('CRM_Contact_DAO_Contact', $contactID, 'preferred_language');
+  if(in_array($preferred_language,['fr_CA','fr_FR'])){
+    $language = 'fr_CA';
+  }else{
+    $language = 'en_US';
+  }
+  return $language;
+}
+
 function _cdntaxreceipts_isValidImage($fileName) {
 
   $allowedExtensions  = ['png', 'jpg', 'jpeg'];
@@ -1733,10 +1749,12 @@ function cdnaxreceipts_manageVoidPDF($receipt_id,$contributionId) {
    $receipt['contribution_amount'] = $receipt['receipt_amount'];
    $receipt['receive_date'] = $receipt['contributions'][0]['receive_date'];
  }
+  $preferred_language = _cdntaxreceipts_userPreferredLanguage($receipt['contact_id']);
   $customReceipt = new CRM_Canadahelps_TaxReceipts_Receipt($receipt['receipt_no'], $receipt);
   $customReceipt->setMode(CDNTAXRECEIPTS_MODE_BACKOFFICE );
   $customReceipt->setDefaultImagesDir( dirname(__FILE__) . '/img/' );
   $customReceipt->setFontsDir( dirname(__FILE__) . '/fonts/' );
+  $customReceipt->setLanguage($preferred_language);
   $customReceipt->generatePDF(); // this should create the original pdf - to be confirmed
 
   //CRM-1948 -Add function to set is_receipted and receipt number field void after void receipt 
@@ -1752,15 +1770,16 @@ function cdnaxreceipts_manageVoidPDF($receipt_id,$contributionId) {
 }
 
 function cdntaxreceipts_setReceiptNumberIsReceiptedField($receipt, $contributionId) {
-   if($receipt['receipt_no']) {
-     foreach($receipt['contributions'] as $contribution) {
-       civicrm_api3('CustomValue', 'create', [
-         'entity_id' => $contribution['contribution_id'],
-         EU::getCustomFieldID('Is_Receipted_') => NULL,
-         EU::getCustomFieldID('Receipt_Number') => NULL,
-       ]);
-     }
-   }
+  if ($receipt['receipt_no']) {
+    $contributionIds = array_column($receipt['contributions'], 'contribution_id');
+    if (count($contributionIds) > 0) {
+      $results = \Civi\Api4\Contribution::update()
+        ->addValue('Contribution_Details.Is_Receipted_', 0)
+        ->addValue('Contribution_Details.Receipt_Number', '')
+        ->addWhere('id', 'IN', $contributionIds)
+        ->execute();
+    }
+  }
 }
 
 //CRM-1959 - 'Issued On' value is not getting updated in 'Edit Contribution Form' if the contribution's tax receipt was replaced with a new one
@@ -1824,12 +1843,9 @@ function ch_sendTemplate($params) {
     $params['from'] = CRM_Utils_Mail::formatFromAddress($params['from']);
   }
 
-  CRM_Utils_Hook::alterMailParams($params, 'messageTemplate');
-  if (!is_int($params['messageTemplateID']) && !is_null($params['messageTemplateID'])) {
-    CRM_Core_Error::deprecatedWarning('message template id should be an integer');
-    $params['messageTemplateID'] = (int) $params['messageTemplateID'];
-  }
-  $mailContent = ch_loadTemplate((string) $params['valueName'], $params['isTest'], $params['messageTemplateID'] ?? NULL, $params['groupName'] ?? '');
+  //CRM-2124 load template according to user's preferred language
+  $preferred_language = _cdntaxreceipts_userPreferredLanguage($params['contactId']);
+  $mailContent = ch_loadTemplate((string) $params['valueName'], $preferred_language);
 
   // Overwrite subject from form field
   if (!empty($params['subject'])) {
@@ -1923,19 +1939,27 @@ function ch_sendTemplate($params) {
   return [$sent, $mailContent['subject'], $mailContent['text'], $mailContent['html']];
 }
 
-function ch_loadTemplate(string $workflowName, bool $isTest, int $messageTemplateID = NULL, $groupName = NULL): array {
-
-  $messageTemplate = civicrm_api3('MessageTemplate', 'get', [
+function ch_loadTemplate(string $workflowName, string $language): array {
+  $msgTemplateParams = array(
     'sequential' => 1,
     'workflow_name' => $workflowName,
-  ])['values'];
-  if (empty($messageTemplate)) {
-    if ($messageTemplateID) {
-      throw new CRM_Core_Exception(ts('No such message template: id=%1.', [1 => $messageTemplateID]));
-    }
+  );
+  //CRM-2124 if language is french then get template with (French) keyword within
+  if ($language == 'fr_CA')
+    $msgTemplateParams['msg_title'] = array('LIKE' => "%(French)%");
+  $messageTemplate = civicrm_api3('MessageTemplate', 'get', $msgTemplateParams)['values'];
+
+  $messageTemplate = \Civi\Api4\MessageTemplate::get()
+    ->addWhere('msg_title', 'CONTAINS', '(French)')
+    ->addWhere('workflow_name', '=', 'cdntaxreceipts_receipt_aggregate');
+
+  if ($language == 'fr_CA')
+    $messageTemplate->addWhere('msg_title', 'CONTAINS', '(French)');
+  
+  $messageTemplate->execute()->first();
+  
+  if (!$messageTemplate) {
     throw new CRM_Core_Exception(ts('No message template with workflow name %2.', [2 => $workflowName]));
-  } else {
-    $messageTemplate = $messageTemplate[0];
   }
 
   $mailContent = [
@@ -1943,34 +1967,10 @@ function ch_loadTemplate(string $workflowName, bool $isTest, int $messageTemplat
     'text' => $messageTemplate['msg_text'],
     'html' => $messageTemplate['msg_html'],
     'format' => $messageTemplate['pdf_format_id'],
-    // Workflow name is the field in the message templates table that denotes the
-    // workflow the template is used for. This is intended to eventually
-    // replace the non-standard option value/group implementation - see
-    // https://github.com/civicrm/civicrm-core/pull/17227 and the longer
-    // discussion on https://github.com/civicrm/civicrm-core/pull/17180
-    'workflow_name' => $workflowName,
-    // Note messageTemplateID is the id but when present we also know it was specifically requested.
-    'messageTemplateID' => $messageTemplateID,
-    // Group name & valueName are deprecated parameters. At some point it will not be passed out.
-    // https://github.com/civicrm/civicrm-core/pull/17180
-    'groupName' => $groupName,
     'valueName' => $workflowName,
   ];
 
   CRM_Utils_Hook::alterMailContent($mailContent);
-
-  // add the test banner (if requested)
-  if ($isTest) {
-    $testText = MessageTemplate::get(FALSE)
-      ->setSelect(['msg_subject', 'msg_text', 'msg_html'])
-      ->addWhere('workflow_name', '=', 'test_preview')
-      ->addWhere('is_default', '=', TRUE)
-      ->execute()->first();
-
-    $mailContent['subject'] = $testText['msg_subject'] . $mailContent['subject'];
-    $mailContent['text'] = $testText['msg_text'] . $mailContent['text'];
-    $mailContent['html'] = preg_replace('/<body(.*)$/im', "<body\\1\n{$testText['msg_html']}", $mailContent['html']);
-  }
   return $mailContent;
 }
 

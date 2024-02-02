@@ -392,17 +392,20 @@ function cdntaxreceipts_contributions_for_annual($contactId, $year) {
     INNER JOIN civicrm_financial_type contrib_type
             ON contrib.financial_type_id = contrib_type.id
     LEFT JOIN (
-    	SELECT *
-    	FROM cdntaxreceipts_log_contributions 
-    	ORDER BY id DESC 
-    	LIMIT 1  
+    	-- Notes: using MAX + GROUP BY to get latest receipt, as ORDER BY + GROUP BY has no impact
+      SELECT 
+     	MAX(receipt_id) as receipt_id,
+      contribution_id
+      FROM cdntaxreceipts_log_contributions
+      GROUP BY contribution_id
+    	ORDER BY receipt_id DESC  
     ) as c ON contrib.id = c.contribution_id
     LEFT  JOIN cdntaxreceipts_log l
             ON l.id = c.receipt_id 
     WHERE 
-      contrib_type.name NOT IN ('In-kind', 'In Kind')
-      AND contrib.contact_id = $contactId 
+      contrib.contact_id = $contactId 
       AND YEAR(contrib.receive_date) = $year
+    --  AND contrib_type.name NOT IN ('In-kind', 'In Kind')
     GROUP BY contrib.id
     ORDER BY contrib.contact_id, contrib.id";
 
@@ -434,6 +437,26 @@ function cdntaxreceipts_contributions_for_annual($contactId, $year) {
         'receipt_id' => $receipt_id,
         'inkind' => false,
       );
+      
+
+      // In Kind?
+      $fund_name_check = preg_replace("/[^a-zA-Z0-9]+/", "", $dao->name);
+      if ( stripos($fund_name_check, "inkind") !== false ) {
+        $contribution = \Civi\Api4\Contribution::get(TRUE)
+          ->addSelect('custom.*')
+          ->addWhere('id', '=', $id)
+          ->execute()
+          ->first();
+
+        $contributions[$id]['inkind'] = true;
+        $contributions[$id]['inkind_values'] = [
+          'Description of Property Received'  => !empty($contribution['In_kind_donation_fields.Description_of_property']) ? $contribution['In_kind_donation_fields.Description_of_property'] : 'N/A',
+          'Fair Market Value Appraised by'    => $contribution['In_kind_donation_fields.Appraised_by'],
+          'Address of Appraiser'              => $contribution['In_kind_donation_fields.Address_of_Appraiser'],
+          'Original Cost'                     => $contribution['In_kind_donation_fields.Original_cost'],
+        ];
+      }
+
     }
   }
 
