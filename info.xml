@@ -17,7 +17,7 @@
     <ver>5.49</ver>
   </compatibility>
   <requires>
-    <ext version="~4.24">com.cividesk.client.canadahelps</ext>
+    <ext version="~4.25">com.cividesk.client.canadahelps</ext>
   </requires>
   <urls>
     <url desc="documentation">https://github.com/CanadaHelps/CDNTaxReceipts/blob/master/README.md</url>
