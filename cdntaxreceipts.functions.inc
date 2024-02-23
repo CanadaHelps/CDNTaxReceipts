@@ -145,6 +145,20 @@ function cdntaxreceipts_processTaxReceipt($receipt, &$collectedPdf = NULL, $mode
     // -> sendToDonor
     // -> archiveReceipt
     else {
+
+      $sendToEmailArchive = true;
+      // CRM-2234 Don't send to archve if mail settings are missing
+      if (!CRM_Canadahelps_Config_Verify::hasSMTPEmail()) {
+        $sendToEmailArchive = false;
+        $receipt['issue_method'] = "print"; // force print method
+      
+      //CRM-1950 Duplicate receipt should not be sent to archive
+      } else if (
+          ($receipt['issue_method'] == 'email'|| $receipt['issue_method'] == 'print') 
+          && $receipt['is_duplicate']) {
+        $sendToEmailArchive = false;
+      }
+
       // generate an email to the tax archive and possibly to the donor
       $org_name = Civi::settings()->get('org_name');
       $email_from = Civi::settings()->get('email_from');
@@ -199,12 +213,11 @@ function cdntaxreceipts_processTaxReceipt($receipt, &$collectedPdf = NULL, $mode
         $sendTemplateParams['thankyou_email'] = TRUE;
         $sendTemplateParams['html'] = $receipt['thankyou_html'];
       }
-      //CRM-1950 Duplicate receipt should not be sent to archive
-      if(($receipt['issue_method'] == 'email'|| $receipt['issue_method'] == 'print') && $receipt['is_duplicate'])
-      {
-        $sent = TRUE;
-      }else{
+      
+      if ($sendToEmailArchive) {
         list($sent, $subject, $message, $html) = ch_sendTemplate($sendTemplateParams);
+      } else {
+        $sent = TRUE;
       }
 
       // send a copy (with open tracking) to the donor
