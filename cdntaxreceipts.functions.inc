@@ -1671,7 +1671,7 @@ function _cdntaxreceipts_get_location(): string {
   $address = CRM_Core_BAO_Location::getValues(['contact_id' => CRM_Core_Config::domainID()], TRUE)['address'];
   if ( count((array)$address) > 0 ) {
     $address = $address[1];
-    $address['province'] = CRM_Core_PseudoConstant::stateProvince($address['state_province_id']);
+    $address['province'] = CRM_Core_PseudoConstant::stateProvinceAbbreviation($address['state_province_id']);
     if ($address && $address['state_province_id']) {
       return $address['city'].", ".$address['province'];
     }
