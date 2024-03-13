@@ -106,7 +106,7 @@ function cdntaxreceipts_load_receipt($receipt_id) {
         l.is_duplicate, l.uid, l.ip, l.issue_type, l.issue_method, l.receipt_status,
         l.email_tracking_id, l.email_opened,
         c.contribution_id, c.contribution_amount, c.receipt_amount, c.receive_date,
-        contrib.contribution_status_id, contrib.source
+        contrib.contribution_status_id, contrib.source, contrib.financial_type_id
     FROM cdntaxreceipts_log l
     INNER JOIN cdntaxreceipts_log_contributions c ON l.id = c.receipt_id
     LEFT JOIN civicrm_contribution contrib ON contrib.id = c.contribution_id
@@ -144,6 +144,7 @@ function cdntaxreceipts_load_receipt($receipt_id) {
         'receive_date' => $dao->receive_date,
         'contribution_status_id' => $dao->contribution_status_id,
         'source' => $dao->source,
+        'financial_type_id' => $dao->financial_type_id,
       );
     } while ( $dao->fetch() );
 

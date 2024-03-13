@@ -252,7 +252,8 @@ class CRM_Cdntaxreceipts_Form_ViewTaxReceipt extends CRM_Core_Form {
     $this->addButtons($buttons);
 
     // CH Customization: Add Tokens
-    $tokens = CRM_Cdntaxreceipts_Task_PDFLetterCommon::listTokens();
+    $pdfLetterForm = new CRM_Cdntaxreceipts_Task_PDFLetterCommon();
+    $tokens = $pdfLetterForm->listTokens();
     $this->assign('tokens', CRM_Utils_Token::formatTokensForDisplay($tokens));
 
     // CH Customization: Thank You Message Templates
@@ -414,7 +415,8 @@ class CRM_Cdntaxreceipts_Form_ViewTaxReceipt extends CRM_Core_Form {
                   $data['values']['ViewTaxReceipt']['html_message'] = $this->getElement($html_message)->getValue();
                   //Assigning html_message according to language preferrence
                   $params['html_message'] = $this->getElement($html_message)->getValue();
-                  $thankyou_html = CRM_Cdntaxreceipts_Task_PDFLetterCommon::postProcessForm($this, $params);
+                  $pdfLetterForm = new CRM_Cdntaxreceipts_Task_PDFLetterCommon();
+                  $thankyou_html = $pdfLetterForm->getThankYouHTML($this);
                   if ($thankyou_html) {
                     if(is_array($thankyou_html)) {
                       $contribution->thankyou_html = array_values($thankyou_html)[0];
@@ -519,6 +521,13 @@ class CRM_Cdntaxreceipts_Form_ViewTaxReceipt extends CRM_Core_Form {
       $statusMsg = ts('File has expired. Please retrieve receipt from the email archive.', array('domain' => 'org.civicrm.cdntaxreceipts'));
       CRM_Core_Session::setStatus( $statusMsg, '', 'error' );
     }
+  }
+
+  function setDefaultValues() {
+    // CH Customization:
+    return array(
+      'email_options' => ''
+    );
   }
 
 }
