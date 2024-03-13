@@ -200,7 +200,7 @@ class CRM_Cdntaxreceipts_Task_IssueSingleTaxReceipts extends CRM_Contribute_Form
         (isset($params['template_FR']) && $params['template_FR'] !== 'default') )) {
 
       $from_email_address = current(CRM_Core_BAO_Domain::getNameAndEmail(FALSE, TRUE));
-      if ($from_email_address) {
+      if ($from_email_address && !$previewMode) {
         $sendThankYouEmail = true;
       }
     }
@@ -285,14 +285,17 @@ class CRM_Cdntaxreceipts_Task_IssueSingleTaxReceipts extends CRM_Contribute_Form
     }
 
     // 3. Set session status
+    $receiptCount = [];
     if(!$previewMode) {
       if ($emailCount > 0) {
         $status = ts('%1 tax receipt(s) were sent by email.', array(1=>$emailCount, 'domain' => 'org.civicrm.cdntaxreceipts'));
         CRM_Core_Session::setStatus($status, '', 'success');
+        $receiptCount['email'] = $emailCount;
       }
       if ($printCount > 0) {
         $status = ts('%1 tax receipt(s) need to be printed.', array(1=>$printCount, 'domain' => 'org.civicrm.cdntaxreceipts'));
         CRM_Core_Session::setStatus($status, '', 'success');
+        $receiptCount['print'] = $printCount;
       }
       if ($dataCount > 0) {
         $status = ts('Data for %1 tax receipt(s) is available in the Tax Receipts Issued report.', array(1=>$dataCount, 'domain' => 'org.civicrm.cdntaxreceipts'));
@@ -307,7 +310,7 @@ class CRM_Cdntaxreceipts_Task_IssueSingleTaxReceipts extends CRM_Contribute_Form
 
     // 4. send the collected PDF for download
     // NB: This exits if a file is sent.
-    cdntaxreceipts_sendCollectedPDF($receiptsForPrinting, 'Receipts-To-Print-' . (int) $_SERVER['REQUEST_TIME'] . '.pdf');  // EXITS.
+    cdntaxreceipts_sendCollectedPDF($receiptsForPrinting, 'Receipts-To-Print-' . (int) $_SERVER['REQUEST_TIME'] . '.pdf', $receiptCount);  // EXITS.
   }
 
 
@@ -438,7 +441,8 @@ class CRM_Cdntaxreceipts_Task_IssueSingleTaxReceipts extends CRM_Contribute_Form
         // Count the totals
         // By type + year
         $receiptList[$receiptType][$year]['total_contrib']++;
-        $receiptList[$receiptType][$year]['total_amount'] += $result['total_amount'];
+        //CRM-2133 updated total_amount with Eligible contribution amount (considering non deductable amount) not total amount
+        $receiptList[$receiptType][$year]['total_amount'] += cdntaxreceipts_eligibleAmount($id);
         $receiptList[$receiptType][$year]['total_amount']   = round($receiptList[$receiptType][$year]['total_amount'], 2);
         $receiptList[$receiptType][$year]['total_contacts'] = count($receiptList[$receiptType][$year]['contact_ids']);
         if ($receiptType == 'duplicate')

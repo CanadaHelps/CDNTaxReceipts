@@ -76,7 +76,9 @@ function cdntaxreceipts_processTaxReceipt($receipt, &$collectedPdf = NULL, $mode
       CRM_Core_Session::setStatus($userAlert, ts('Warning'), 'alert');
       return array(FALSE,'',NULL);
     }
-    $next_id = cdntaxreceipts_log_next_id();
+    // CH Customization: CRM-2192: creating new receipt_no from last receipt and not ID
+    // Previously $next_id was fetched from `cdntaxreceipts_log_next_id()` method
+    $next_id = CRM_Canadahelps_TaxReceipts_Receipt::getNewReceiptNumber(($mode === true || $mode == CDNTAXRECEIPTS_MODE_PREVIEW) ? TRUE : FALSE);
     $receipt['receipt_no'] = Civi::settings()->get('receipt_prefix') . str_pad($next_id, 8, 0, STR_PAD_LEFT);
   }
   // allow modules to alter any details
@@ -140,6 +142,21 @@ function cdntaxreceipts_processTaxReceipt($receipt, &$collectedPdf = NULL, $mode
       $sent = TRUE;
     }
     else {
+
+      // CH Customization: Archive email
+      $sendToEmailArchive = true;
+      // CRM-2234 Don't send to archve if mail settings are missing
+      if (!CRM_Canadahelps_Config_Verify::hasSMTPEmail()) {
+        $sendToEmailArchive = false;
+        $receipt['issue_method'] = "print"; // force print method
+      
+      //CRM-1950 Duplicate receipt should not be sent to archive
+      } else if (
+          ($receipt['issue_method'] == 'email'|| $receipt['issue_method'] == 'print') 
+          && $receipt['is_duplicate']) {
+        $sendToEmailArchive = false;
+      }
+
       // generate an email to the tax archive and possibly to the donor
       $org_name = Civi::settings()->get('org_name');
       $email_from = Civi::settings()->get('email_from');
@@ -196,12 +213,11 @@ function cdntaxreceipts_processTaxReceipt($receipt, &$collectedPdf = NULL, $mode
         $sendTemplateParams['thankyou_email'] = TRUE;
         $sendTemplateParams['html'] = $receipt['thankyou_html'];
       }
-      // CH Customization: CRM-1950 Duplicate receipt should not be sent to archive
-      if(($receipt['issue_method'] == 'email'|| $receipt['issue_method'] == 'print') && $receipt['is_duplicate']) {
-        $sent = TRUE;
-      } else {
-        // TODO check if any different from core CRM_Core_BAO_MessageTemplate::sendTemplate
+      
+      if ($sendToEmailArchive) {
         list($sent, $subject, $message, $html) = ch_sendTemplate($sendTemplateParams);
+      } else {
+        $sent = TRUE;
       }
 
       // send a copy (with open tracking) to the donor
@@ -1359,7 +1375,7 @@ function cdntaxreceipts_openCollectedPDF() {
 
 }
 
-function cdntaxreceipts_sendCollectedPDF(&$pdf, $filename) {
+function cdntaxreceipts_sendCollectedPDF(&$pdf, $filename, $receiptCount = []) {
   if ( $pdf->getNumPages() > 0 ) {
     if (defined('CIVICRM_TEST')) {
       // Put it in uploadDir the same as the other places we put a file, then
@@ -1370,8 +1386,8 @@ function cdntaxreceipts_sendCollectedPDF(&$pdf, $filename) {
     }
     else {
       $pdf->Output($filename, 'D');
-      // CH Customization: download status
-      CRM_Canadahelps_TaxReceipts_Receipt::updateDownloadStatus("sent");
+      // CH Customization: receipt count
+      CRM_Canadahelps_TaxReceipts_Receipt::updateDownloadStatus("sent", $receiptCount);
     }
     CRM_Utils_System::civiExit();
   }
@@ -1609,7 +1625,7 @@ function _cdntaxreceipts_get_location(): string {
     );*/
     // CH Customization: Use main contact address if Location setting is not set
     $address = CRM_Core_BAO_Location::getValues(['contact_id' => CRM_Core_Config::domainID()], TRUE)['address'][1];
-    $address['province'] = CRM_Core_PseudoConstant::stateProvince($address['state_province_id']);
+    $address['province'] = CRM_Core_PseudoConstant::stateProvinceAbbreviation($address['state_province_id']);
     if ($address && $address['state_province_id']) {
       $city = $address['city'].", ".$address['province'];
     }

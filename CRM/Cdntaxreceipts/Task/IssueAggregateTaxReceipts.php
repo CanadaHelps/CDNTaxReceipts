@@ -266,7 +266,7 @@ class CRM_Cdntaxreceipts_Task_IssueAggregateTaxReceipts extends CRM_Contribute_F
           (isset($params['template_FR']) && $params['template_FR'] !== 'default') )) {
 
       $from_email_address = current(CRM_Core_BAO_Domain::getNameAndEmail(FALSE, TRUE));
-      if ($from_email_address) {
+      if ($from_email_address && !$previewMode) {
         $sendThankYouEmail = true;
       }
     }
@@ -473,6 +473,7 @@ class CRM_Cdntaxreceipts_Task_IssueAggregateTaxReceipts extends CRM_Contribute_F
     }
 
     // 3. Set session status
+    $receiptCount = [];
     if ( $previewMode ) {
       $status = ts('%1 tax receipt(s) have been previewed.  No receipts have been issued.', array(1=>$printCount, 'domain' => 'org.civicrm.cdntaxreceipts'));
       CRM_Core_Session::setStatus($status, '', 'success');
@@ -481,10 +482,12 @@ class CRM_Cdntaxreceipts_Task_IssueAggregateTaxReceipts extends CRM_Contribute_F
       if ($emailCount > 0) {
         $status = ts('%1 tax receipt(s) were sent by email.', array(1=>$emailCount, 'domain' => 'org.civicrm.cdntaxreceipts'));
         CRM_Core_Session::setStatus($status, '', 'success');
+        $receiptCount['email'] = $emailCount;
       }
       if ($printCount > 0) {
         $status = ts('%1 tax receipt(s) need to be printed.', array(1=>$printCount, 'domain' => 'org.civicrm.cdntaxreceipts'));
         CRM_Core_Session::setStatus($status, '', 'success');
+        $receiptCount['print'] = $printCount;
       }
       if ($dataCount > 0) {
         $status = ts('Data for %1 tax receipt(s) is available in the Tax Receipts Issued report.', array(1=>$dataCount, 'domain' => 'org.civicrm.cdntaxreceipts'));
@@ -499,7 +502,7 @@ class CRM_Cdntaxreceipts_Task_IssueAggregateTaxReceipts extends CRM_Contribute_F
 
     // 4. send the collected PDF for download
     // NB: This exits if a file is sent.
-    cdntaxreceipts_sendCollectedPDF($receiptsForPrintingPDF, 'Receipts-To-Print-' . CRM_Cdntaxreceipts_Utils_Time::time() . '.pdf');  // EXITS.
+    cdntaxreceipts_sendCollectedPDF($receiptsForPrintingPDF, 'Receipts-To-Print-' . CRM_Cdntaxreceipts_Utils_Time::time() . '.pdf', $receiptCount);  // EXITS.
   }
 
 
