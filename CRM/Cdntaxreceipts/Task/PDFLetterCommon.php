@@ -152,7 +152,7 @@ class CRM_Cdntaxreceipts_Task_PDFLetterCommon extends CRM_Contribute_Form_Task_P
    *
    * @return string
    * Copied from CRM_Contribute_Form_Task_PDFLetter
-   * Reason for overriding : For aggregated and Annual tax receipt few token values (total_amount,net_amount etc ) were fetching incorrect data
+   * Reason for overriding : CH Customization---> For aggregated and Annual tax receipt few token values (total_amount,net_amount etc ) were fetching incorrect data
    */
   public function resolveTokens(string $html_message, int $contactID, $contributionID, $grouped, $separator, $contributions): string {
     $tokenContext = [
@@ -184,6 +184,7 @@ class CRM_Cdntaxreceipts_Task_PDFLetterCommon extends CRM_Contribute_Form_Task_P
         foreach ($tokenProcessor->getRows() as $row) {
           $resolvedTokens[$token][$row->context['contributionId']] = $row->render($token);
         }
+        /*-----CH Customization-----*/
         switch ($token) {
           case 'total_amount':
           case 'net_amount':
@@ -203,6 +204,7 @@ class CRM_Cdntaxreceipts_Task_PDFLetterCommon extends CRM_Contribute_Form_Task_P
             }
           }
         }
+        /*-----End Of CH Customization-----*/
         $html_message = str_replace('{contribution.' . $token . '}', implode($separator, $resolvedTokens[$token]), $html_message);
       }
     }
