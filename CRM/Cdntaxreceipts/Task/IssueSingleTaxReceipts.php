@@ -325,7 +325,6 @@ class CRM_Cdntaxreceipts_Task_IssueSingleTaxReceipts extends CRM_Contribute_Form
     $data['values']['IssueSingleTaxReceipts']['from_email_address'] = $sender;
     $data['values']['IssueSingleTaxReceipts']['subject'] = $this->getElement('subject')->getValue();
     $data['values']['IssueSingleTaxReceipts']['html_message'] = $this->getElement($html_message)->getValue();
-    watchdog('cdntaxreceipt',"<pre>message html".print_r($this->getElement($html_message)->getValue())."</pre>");
     //CRM-1792 Adding 'group_by' parameter for token processor to process grouped contributions
     if (count($contributionIds) > 1) {
       $data['values']['IssueSingleTaxReceipts']['group_by'] = 'contact_id';
