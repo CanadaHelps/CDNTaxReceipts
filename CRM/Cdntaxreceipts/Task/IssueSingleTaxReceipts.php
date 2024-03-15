@@ -132,7 +132,7 @@ class CRM_Cdntaxreceipts_Task_IssueSingleTaxReceipts extends CRM_Contribute_Form
       'margin_right' => 0.75,
       'margin_top' => 0.75,
       'margin_bottom' => 0.75,
-      'email_options' => 'email',
+      'email_options' => '',
       'from_email_address' => $from_email_address,
       'group_by_separator' => 'comma',
       'thankyou_date' => 1,
@@ -322,16 +322,16 @@ class CRM_Cdntaxreceipts_Task_IssueSingleTaxReceipts extends CRM_Contribute_Form
     $html_message = ($preferred_language == 'fr_CA') ? 'html_message_fr' : 'html_message_en';
     $this->_contributionIds = $contributionIds;
     $data = &$this->controller->container();
-    $data['values']['ViewTaxReceipt']['from_email_address'] = $sender;
-    $data['values']['ViewTaxReceipt']['subject'] = $this->getElement('subject')->getValue();
-    $data['values']['ViewTaxReceipt']['html_message'] = $this->getElement($html_message)->getValue();
-    $params['html_message'] = $this->getElement($html_message)->getValue();
+    $data['values']['IssueSingleTaxReceipts']['from_email_address'] = $sender;
+    $data['values']['IssueSingleTaxReceipts']['subject'] = $this->getElement('subject')->getValue();
+    $data['values']['IssueSingleTaxReceipts']['html_message'] = $this->getElement($html_message)->getValue();
     //CRM-1792 Adding 'group_by' parameter for token processor to process grouped contributions
     if (count($contributionIds) > 1) {
-      $params['group_by'] = 'contact_id';
+      $data['values']['IssueSingleTaxReceipts']['group_by'] = 'contact_id';
     }
 
-    $thankyou_html = CRM_Cdntaxreceipts_Task_PDFLetterCommon::postProcessForm($this, $params);
+    $pdfLetterForm = new CRM_Cdntaxreceipts_Task_PDFLetterCommon();
+    $thankyou_html = $pdfLetterForm->getThankYouHTML($this);
     if ($thankyou_html) {
       if (is_array($thankyou_html)) {
         $thankyou_html = array_values($thankyou_html)[0];
@@ -607,7 +607,8 @@ class CRM_Cdntaxreceipts_Task_IssueSingleTaxReceipts extends CRM_Contribute_Form
     $this->add('text', 'group_by_separator', ts('Group By Seperator'), array('value' => 'comma'), FALSE);
 
     //Add Tokens
-    $tokens = CRM_Cdntaxreceipts_Task_PDFLetterCommon::listTokens();
+    $pdfLetterForm = new CRM_Cdntaxreceipts_Task_PDFLetterCommon();
+    $tokens = $pdfLetterForm->listTokens();
     $this->assign('tokens', CRM_Utils_Token::formatTokensForDisplay($tokens));
 
     $templates = CRM_Core_BAO_MessageTemplate::getMessageTemplates(FALSE);

@@ -8,7 +8,7 @@ class CRM_Cdntaxreceipts_Task_IssueAnnualTaxReceipts extends CRM_Contact_Form_Ta
 
   const MAX_RECEIPT_COUNT = 1000;
 
-  protected $_contributionIds;    // copied from CRM_Contribute_Form_Task
+  //protected $_contributionIds;    // copied from CRM_Contribute_Form_Task
   private $_contributions_status; // copied from CRM_Cdntaxreceipts_Task_IssueAggregateTaxReceipts
   private $_issue_type;           // copied from CRM_Cdntaxreceipts_Task_IssueAggregateTaxReceipts
   private $_receipts;
@@ -235,7 +235,7 @@ class CRM_Cdntaxreceipts_Task_IssueAnnualTaxReceipts extends CRM_Contact_Form_Ta
       'margin_right' => 0.75,
       'margin_top' => 0.75,
       'margin_bottom' => 0.75,
-      'email_options' => 'email',
+      'email_options' => '',
       'from_email_address' => $from_email_address,
       'group_by_separator' => 'comma',
       'thankyou_date' => 1,
@@ -588,16 +588,16 @@ class CRM_Cdntaxreceipts_Task_IssueAnnualTaxReceipts extends CRM_Contact_Form_Ta
     $html_message = ($preferred_language == 'fr_CA') ? 'html_message_fr' : 'html_message_en';
     $this->_contributionIds = $contributionIds;
     $data = &$this->controller->container();
-    $data['values']['ViewTaxReceipt']['from_email_address'] = $sender;
-    $data['values']['ViewTaxReceipt']['subject'] = $this->getElement('subject')->getValue();
-    $data['values']['ViewTaxReceipt']['html_message'] = $this->getElement($html_message)->getValue();
+    $data['values']['IssueAnnualTaxReceipts']['from_email_address'] = $sender;
+    $data['values']['IssueAnnualTaxReceipts']['subject'] = $this->getElement('subject')->getValue();
+    $data['values']['IssueAnnualTaxReceipts']['html_message'] = $this->getElement($html_message)->getValue();
     $params['html_message'] = $this->getElement($html_message)->getValue();
     //CRM-1792 Adding 'group_by' parameter for token processor to process grouped contributions
     if (count($contributionIds) > 1) {
-      $params['group_by'] = 'contact_id';
+      $data['values']['IssueAnnualTaxReceipts']['group_by'] = 'contact_id';
     }
-
-    $thankyou_html = CRM_Cdntaxreceipts_Task_PDFLetterCommon::postProcessForm($this, $params);
+    $pdfLetterForm = new CRM_Cdntaxreceipts_Task_PDFLetterCommon();
+    $thankyou_html = $pdfLetterForm->getThankYouHTML($this);
     if ($thankyou_html) {
       if (is_array($thankyou_html)) {
         $thankyou_html = array_values($thankyou_html)[0];
@@ -684,7 +684,8 @@ class CRM_Cdntaxreceipts_Task_IssueAnnualTaxReceipts extends CRM_Contact_Form_Ta
     $this->add('text', 'group_by_separator', ts('Group By Seperator'), array('value' => 'comma'), FALSE);
 
     //Add Tokens
-    $tokens = CRM_Cdntaxreceipts_Task_PDFLetterCommon::listTokens();
+    $pdfLetterForm = new CRM_Cdntaxreceipts_Task_PDFLetterCommon();
+    $tokens = $pdfLetterForm->listTokens();
     $this->assign('tokens', CRM_Utils_Token::formatTokensForDisplay($tokens));
 
     $templates = CRM_Core_BAO_MessageTemplate::getMessageTemplates(FALSE);
