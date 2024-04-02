@@ -1942,23 +1942,19 @@ function ch_sendTemplate($params) {
 }
 
 function ch_loadTemplate(string $workflowName, string $language): array {
-  $msgTemplateParams = array(
-    'sequential' => 1,
-    'workflow_name' => $workflowName,
-  );
-  //CRM-2124 if language is french then get template with (French) keyword within
-  if ($language == 'fr_CA')
-    $msgTemplateParams['msg_title'] = array('LIKE' => "%(French)%");
-  $messageTemplate = civicrm_api3('MessageTemplate', 'get', $msgTemplateParams)['values'];
-
-  $messageTemplate = \Civi\Api4\MessageTemplate::get()
-    ->addWhere('msg_title', 'CONTAINS', '(French)')
-    ->addWhere('workflow_name', '=', 'cdntaxreceipts_receipt_aggregate');
-
-  if ($language == 'fr_CA')
-    $messageTemplate->addWhere('msg_title', 'CONTAINS', '(French)');
   
-  $messageTemplate->execute()->first();
+  if ($language == 'fr_CA' || $language == 'fr_FR') {
+    $messageTemplate = \Civi\Api4\MessageTemplate::get()
+      ->addWhere('workflow_name', '=', $workflowName)
+      ->addWhere('msg_title', 'CONTAINS', '(French)')
+      ->execute()
+      ->first();
+  } else {
+    $messageTemplate = \Civi\Api4\MessageTemplate::get()
+      ->addWhere('workflow_name', '=', $workflowName)
+      ->execute()
+      ->first();
+  }
   
   if (!$messageTemplate) {
     throw new CRM_Core_Exception(ts('No message template with workflow name %2.', [2 => $workflowName]));
