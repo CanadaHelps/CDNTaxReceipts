@@ -538,7 +538,7 @@ AND COLUMN_NAME = 'receipt_status'");
     
     if($optionValue) {
       $results = \Civi\Api4\MessageTemplate::create()
-        ->addValue('msg_title', '(French) CDN Tax Receipts - Thank you Note')
+        ->addValue('msg_title', $title)
         ->addValue('msg_subject', $subject)
         ->addValue('msg_html', $email_html)
         ->addValue('msg_text', $email_text)
@@ -571,6 +571,22 @@ AND COLUMN_NAME = 'receipt_status'");
     // Our previous version of the code had custom upgrader post upgrade_1411
     // So we need to run any subsequent core extension upgrade
     $this->upgrade_1414();
+  
+    return TRUE;
+  }
+
+  public function upgrade_109002() {
+    $this->ctx->log->info('CDNTaxReceipts v1.9.0 (#002): re-adding French templates if missing');
+
+    $messageTemplates = \Civi\Api4\MessageTemplate::get()
+      ->addSelect('id')
+      ->addWhere('workflow_id', 'IN', ['cdntaxreceipts_receipt_aggregate', 'cdntaxreceipts_receipt_single'])
+      ->execute();
+
+    if ( $messageTemplates->count() < 3) {
+      $this->upgrade_1514();
+      $this->upgrade_1515();
+    }
   
     return TRUE;
   }
