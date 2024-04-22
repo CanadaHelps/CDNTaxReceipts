@@ -337,7 +337,7 @@ function cdntaxreceipts_generateFormattedReceipt($receipt, &$collectedPdf = NULL
   if ($receipt['issue_method'] == 'email') {
     $donor_or_org_name = '-' . CRM_Utils_File::makeFilenameWithUnicode(Civi::settings()->get('org_name')) . '-Donation';
   }
-  $pdf_file = $config->uploadDir . 'Receipt-' . $receipt['receipt_no'] . $donor_or_org_name . '.pdf';
+  $pdf_file = $config->customFileUploadDir . 'receipts/' . 'Receipt-' . $receipt['receipt_no'] . $donor_or_org_name . '.pdf';
   $user_friendly = 'Receipt-' . $receipt['receipt_no'] . $donor_or_org_name . '.pdf';
 
   if (!defined('PDF_PAGE_FORMAT')) {
@@ -1362,11 +1362,11 @@ function cdntaxreceipts_openCollectedPDF() {
 function cdntaxreceipts_sendCollectedPDF(&$pdf, $filename) {
   if ( $pdf->getNumPages() > 0 ) {
     if (defined('CIVICRM_TEST')) {
-      // Put it in uploadDir the same as the other places we put a file, then
+      // Put it in customFileUploadDir the same as the other places we put a file, then
       // the tests can pick it up and do whatever with it. It would be better
       // if there was a way to pass the full $filename to the tests or have
       // the tests provide it, but it means refactoring a bit.
-      $pdf->Output(CRM_Core_Config::singleton()->uploadDir . 'test.pdf', 'F');
+      $pdf->Output(CRM_Core_Config::singleton()->customFileUploadDir . 'receipts/' . 'test.pdf', 'F');
     }
     else {
       $pdf->Output($filename, 'D');
