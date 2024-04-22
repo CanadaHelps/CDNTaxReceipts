@@ -182,7 +182,8 @@ function cdntaxreceipts_civicrm_validateForm($formName, &$fields, &$files, &$for
   if (is_a($form, 'CRM_Contribute_Form_Contribution')) {
     // Limit number of characters to 50 for description of advantage.
     if (CRM_Utils_Array::value('advantage_description', $fields)) {
-      if (strlen(CRM_Utils_Array::value('advantage_description', $fields)) > 80) {
+      if (strlen(CRM_Utils_Array::value('advantage_description', $fields)) > 80 
+        && ($fields['source'] !== 'CanadaHelps')) { //CRM-1782 If the donation is coming from a CanadaHelps source, do not have a character limit
         $errors['advantage_description'] = ts('Advantage Description should not be more than 80 characters');
       }
     }
