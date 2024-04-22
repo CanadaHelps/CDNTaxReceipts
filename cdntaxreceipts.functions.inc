@@ -1617,7 +1617,7 @@ function _cdntaxreceipts_get_image_filepath($imageSettingName) {
     }
 
     // @todo https://lab.civicrm.org/extensions/cdntaxreceipts/-/commit/8ebaf88064323b1e20c005084caabd8846f8de25
-    $fileNameWithPath = CRM_Core_Config::singleton()->customFileUploadDir . 'receipts/' . $fileName;
+    $fileNameWithPath = CRM_Core_Config::singleton()->customFileUploadDir . $fileName;
     if (file_exists($fileNameWithPath)) {
       $mimeType = mime_content_type($fileNameWithPath);
         if (!in_array($mimeType, $allowedMimeType)) {
