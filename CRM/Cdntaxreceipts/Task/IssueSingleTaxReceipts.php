@@ -406,6 +406,11 @@ class CRM_Cdntaxreceipts_Task_IssueSingleTaxReceipts extends CRM_Contribute_Form
             $result['eligibility_reason'] = '('.$result['ineligible_reason'].')';
             switch ($result['ineligible_reason']) {
                //CRM-2005
+               //CRM-2159 When fund is non deductible 
+              case 'Non Eligible Fund':
+                $result['eligibility_fix'] = "Selected Fund is not eligible for tax receipting";
+                break;
+
               case 'Non Deductible Amount':
                 $result['eligibility_fix'] = "Advantage amount is 100% of contribution.";
                 break;
