@@ -177,6 +177,9 @@ function cdntaxreceipts_civicrm_postProcess($formName, &$form) {
  * as a batch of search results.
  */
 function cdntaxreceipts_civicrm_searchTasks($objectType, &$tasks) {
+  $isReceiptSettingValidated = (bool) Civi::settings()->get('settings_validated_taxreceipts');
+  if (empty($isReceiptSettingValidated)) $isReceiptSettingValidated = 0;
+      
   if ($objectType == 'contribution' && CRM_Core_Permission::check('issue cdn tax receipts')) {
     $single_in_list = FALSE;
     $aggregate_in_list = FALSE;
@@ -190,25 +193,24 @@ function cdntaxreceipts_civicrm_searchTasks($objectType, &$tasks) {
         $aggregate_in_list = TRUE;
       }
     }
-    if (!$single_in_list) {
-      // CH Customization: CRM-1918-Disable 'Issue Separate Tax Receipts' action from contributions tab if receipts settings not validated
-      $receiptSettingValidateVal = Civi::settings()->get('settings_validated_taxreceipts');
-      if($receiptSettingValidateVal)
-      $tasks[] = [
-        'title' => E::ts('Issue Separate Tax Receipts'),
-        'class' => 'CRM_Cdntaxreceipts_Task_IssueSingleTaxReceipts',
-        'result' => TRUE,
-      ];
-    }
-    if (!$aggregate_in_list) {
-      // CH Customization: CRM-1918-Disable 'Issue Aggregated Tax Receipts' action from contributions tab if receipts settings not validated
-      $receiptSettingValidateVal = Civi::settings()->get('settings_validated_taxreceipts');
-      if($receiptSettingValidateVal)
-      $tasks[] = [
-        'title' => ts('Issue Aggregated Tax Receipts'),
-        'class' => 'CRM_Cdntaxreceipts_Task_IssueAggregateTaxReceipts',
-        'result' => TRUE,
-      ];
+
+    // CH Customization: CRM-1918-Disable 'Issue Separate Tax Receipts' action from contributions tab if receipts settings not validated  
+    if ($isReceiptSettingValidated) {
+      if (!$single_in_list) {
+        $tasks[] = [
+          'title' => E::ts('Issue Separate Tax Receipts'),
+          'class' => 'CRM_Cdntaxreceipts_Task_IssueSingleTaxReceipts',
+          'result' => TRUE,
+        ];
+      }
+      if (!$aggregate_in_list) {
+        $tasks[] = [
+          'title' => ts('Issue Aggregated Tax Receipts'),
+          'class' => 'CRM_Cdntaxreceipts_Task_IssueAggregateTaxReceipts',
+          'result' => TRUE,
+        ];
+      }
+
     }
   }
   elseif ($objectType == 'contact' && CRM_Core_Permission::check('issue cdn tax receipts')) {
@@ -218,15 +220,15 @@ function cdntaxreceipts_civicrm_searchTasks($objectType, &$tasks) {
         $annual_in_list = TRUE;
       }
     }
-    if (!$annual_in_list) {
-      // CH Customization: CRM-1918-Disable 'Issue Annual Tax Receipts' action from contacts tab if receipts settings not validated
-      $receiptSettingValidateVal = Civi::settings()->get('settings_validated_taxreceipts');
-      if($receiptSettingValidateVal)
-      $tasks[] = [
-        'title' => E::ts('Issue Annual Tax Receipts'),
-        'class' => 'CRM_Cdntaxreceipts_Task_IssueAnnualTaxReceipts',
-        'result' => TRUE,
-      ];
+    // CH Customization: CRM-1918-Disable 'Issue Annual Tax Receipts' action from contacts tab if receipts settings not validated
+    if ($isReceiptSettingValidated) {
+      if (!$annual_in_list) {
+        $tasks[] = [
+          'title' => E::ts('Issue Annual Tax Receipts'),
+          'class' => 'CRM_Cdntaxreceipts_Task_IssueAnnualTaxReceipts',
+          'result' => TRUE,
+        ];
+      }
     }
   }
 }

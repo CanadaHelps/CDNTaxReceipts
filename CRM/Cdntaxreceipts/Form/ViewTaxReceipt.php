@@ -61,9 +61,9 @@ class CRM_Cdntaxreceipts_Form_ViewTaxReceipt extends CRM_Core_Form {
 
     // CH Customization: Force recheck receipt settings validation
     // in case invalidated post issuance
-    $receiptSettingValidateVal = (bool) Civi::settings()->get('settings_validated_taxreceipts');
-    Civi::resources()->addVars('receipts', array('receiptSettingsValidated' => $receiptSettingValidateVal));
-
+    $isReceiptSettingValidated = (bool) Civi::settings()->get('settings_validated_taxreceipts');
+    if (empty($isReceiptSettingValidated)) $isReceiptSettingValidated = 0;
+    Civi::resources()->addVars('receipts', array('receiptSettingsValidated' => $isReceiptSettingValidated));
     list($issuedOn, $receiptId) = cdntaxreceipts_issued_on($contributionId);
 
     if (isset($receiptId)) {
