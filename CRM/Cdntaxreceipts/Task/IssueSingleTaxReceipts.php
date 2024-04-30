@@ -443,7 +443,8 @@ class CRM_Cdntaxreceipts_Task_IssueSingleTaxReceipts extends CRM_Contribute_Form
         // Count the totals
         // By type + year
         $receiptList[$receiptType][$year]['total_contrib']++;
-        $receiptList[$receiptType][$year]['total_amount'] += $result['total_amount'];
+        //CRM-2133 updated total_amount with Eligible contribution amount (considering non deductable amount) not total amount
+        $receiptList[$receiptType][$year]['total_amount'] += cdntaxreceipts_eligibleAmount($id);
         $receiptList[$receiptType][$year]['total_amount']   = round($receiptList[$receiptType][$year]['total_amount'], 2);
         $receiptList[$receiptType][$year]['total_contacts'] = count($receiptList[$receiptType][$year]['contact_ids']);
         if ($receiptType == 'duplicate')
