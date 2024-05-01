@@ -458,6 +458,7 @@ class CRM_Cdntaxreceipts_Task_IssueAnnualTaxReceipts extends CRM_Contact_Form_Ta
       $duplicateReceipts = [];
       foreach ($this->_receipts['duplicate'][$year]['contact_ids'] as $contact_id => $contact_data) {
         foreach ($contact_data['contributions'] as $contributionId => $contribution) {
+          $params['contactID'] = $contact_id;
 
           // don't process duplicate if already processed
           if (!in_array($contribution['receipt_id'], $duplicateReceipts)) {
