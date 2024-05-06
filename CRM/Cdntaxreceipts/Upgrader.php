@@ -518,7 +518,7 @@ AND COLUMN_NAME = 'receipt_status'");
   private function _cdntaxreceipts_createMessageTemplate(string $language, string $template, string $title, string $subject, string $email_html, string $email_text = ''): bool {
     
     $title = ($language == "fr") ? '(French) ' . $title : $title;
-    $messageTemplate = \Civi\Api4\MessageTemplate::get()
+    $messageTemplate = \Civi\Api4\MessageTemplate::get(FALSE)
       ->addSelect('id')
       ->addWhere('workflow_name', '=', $template)
       ->addWhere('msg_title', 'CONTAINS',  $title)
@@ -578,7 +578,7 @@ AND COLUMN_NAME = 'receipt_status'");
   public function upgrade_109002() {
     $this->ctx->log->info('CDNTaxReceipts v1.9.0 (#002): re-adding French templates if missing');
 
-    $messageTemplates = \Civi\Api4\MessageTemplate::get()
+    $messageTemplates = \Civi\Api4\MessageTemplate::get(FALSE)
       ->addSelect('id')
       ->addWhere('workflow_id', 'IN', ['cdntaxreceipts_receipt_aggregate', 'cdntaxreceipts_receipt_single'])
       ->execute();
