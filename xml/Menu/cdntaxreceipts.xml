@@ -13,6 +13,12 @@
     <access_arguments>administer CiviCRM</access_arguments>
   </item>
   <item>
+    <path>civicrm/cdntaxreceipts/imagedelete</path>
+    <page_callback>CRM_Cdntaxreceipts_Form_ImageDelete</page_callback>
+    <title>Image Delete</title>
+    <access_arguments>administer CiviCRM</access_arguments>
+  </item>
+  <item>
     <path>civicrm/cdntaxreceipts/open</path>
     <page_callback>CRM_Cdntaxreceipts_Page_OpenEvent</page_callback>
     <title>OpenEvent</title>

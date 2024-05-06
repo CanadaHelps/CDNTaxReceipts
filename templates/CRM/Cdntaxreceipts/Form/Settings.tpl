@@ -44,6 +44,11 @@
         <td class="content">{$form.org_charitable_no.html}
           <p class="description">10000-000-RR0000</p></td>
       </tr>
+      <tr>
+        <td class="label">{$form.receipt_location_issued.label}</td>
+        <td class="content">{$form.receipt_location_issued.html}
+          <p class="description">Toronto</p></td>
+      </tr>
     </tbody>
   </table>
 
@@ -56,16 +61,12 @@
         <td class="content">{$form.receipt_prefix.html}
           <p class="description">{ts domain='org.civicrm.cdntaxreceipts'}Receipt numbers are formed by appending the CiviCRM Contribution ID to this prefix. Receipt numbers must be unique within your organization. If you also issue tax receipts using another system, you can use the prefix to ensure uniqueness (e.g. enter 'WEB-' here so all receipts issued through CiviCRM are WEB-00000001, WEB-00000002, etc.){/ts}</p></td>
       </tr>
-      <tr>
-        <td class="label">{$form.receipt_serial.label}</td>
-        <td class="content">{$form.receipt_serial.html}
-          <p class="description">{ts domain='org.civicrm.cdntaxreceipts'}This is an experimental option to generate receipt numbers serially, without the gaps of the default method described above. Not recommended unless your auditor insists.{/ts}</p></td>
-      </tr>
-      <tr>
+      <tr class="hidden">
         <td class="label">{$form.receipt_authorized_signature_text.label}</td>
         <td class="content">{$form.receipt_authorized_signature_text.html}
           <p class="description">{ts domain='org.civicrm.cdntaxreceipts'}Name and position of the authorizing official to be displayed under the signature line. Defaults to "Authorized Signature" if no name is specified.{/ts}</p></td>
       </tr>
+      {* CH Customization: Preview image *}
       <tr>
         <td class="label">{$form.receipt_logo.label}</td>
         <td class="content">{$form.receipt_logo.html}
@@ -73,10 +74,11 @@
           <img id="ReceiptLogoPreview" src="#" class="preview_image" alt="receipt_logo_preview" />
           <p id="receipt_logo-error-message"></p>
 	  {if isset($receipt_logo)}
-	      {if isset($receipt_logo_class)}<span class="crm-error">The file {$receipt_logo} was not found</span>
-	      {else}<p class="label">Current {$form.receipt_logo.label}: {$receipt_logo}</p>{/if}
+	      {if $receipt_logo_class}<span class="crm-error">The file {$receipt_logo} was not found</span>
+	      {else}<p class="label">Current {$form.receipt_logo.label}: {$receipt_logo}<span class="cdntaxreceipts-imagedelete"><a href="{crmURL p='civicrm/cdntaxreceipts/imagedelete' q='type=receipt_logo'}">{ts}Delete{/ts}</a></span></p>{/if}
 	  {/if}</td>
       </tr>
+      {* CH Customization: Preview image *}
       <tr>
         <td class="label">{$form.receipt_signature.label}</td>
         <td class="content">{$form.receipt_signature.html}
@@ -84,22 +86,67 @@
           <img id="ReceiptSignaturePreview" src="#" class="preview_image" alt="receipt_signatur_preview" />
           <p id="receipt_signature-error-message"></p>
 	  {if isset($receipt_signature)}
-	      {if isset($receipt_signature_class)}<span class="crm-error">The file {$receipt_signature} was not found</span>
-	      {else}<p class="label">Current {$form.receipt_signature.label}: {$receipt_signature}</p>{/if}
+	      {if $receipt_signature_class}<span class="crm-error">The file {$receipt_signature} was not found</span>
+	      {else}<p class="label">Current {$form.receipt_signature.label}: {$receipt_signature}<span class="cdntaxreceipts-imagedelete"><a href="{crmURL p='civicrm/cdntaxreceipts/imagedelete' q='type=receipt_signature'}">{ts}Delete{/ts}</a></span></p>{/if}
 	  {/if}</td>
+      </tr>
+      {* CH Customization: DISABLED
+      <tr>
+        <td class="label">{$form.receipt_watermark.label}</td>
+        <td class="content">{$form.receipt_watermark.html}
+          <p class="description">{ts domain='org.civicrm.cdntaxreceipts'}Watermark Image size: 250x250 pixels; File types allowed: .jpg .png.{/ts}</p>
+	  {if $receipt_watermark}
+	      {if $receipt_watermark_class}<span class="crm-error">The file {$receipt_watermark} was not found</span>
+	      {else}<p class="label">Current {$form.receipt_watermark.label}: {$receipt_watermark}<span class="cdntaxreceipts-imagedelete"><a href="{crmURL p='civicrm/cdntaxreceipts/imagedelete' q='type=receipt_watermark'}">{ts}Delete{/ts}</a></span></p>{/if}
+	  {/if}</td>
+      </tr>
+      <tr>
+        <td class="label">{$form.receipt_pdftemplate.label}</td>
+        <td class="content">{$form.receipt_pdftemplate.html}
+          <p class="description">{ts domain='org.civicrm.cdntaxreceipts'}Upload your own PDF template: .pdf{/ts}</p>
+	  {if $receipt_pdftemplate}
+	      {if $receipt_pdftemplate_class}<span class="crm-error">The file {$receipt_pdftemplate} was not found</span>
+	      {else}<p class="label">Current {$form.receipt_pdftemplate.label}: {$receipt_pdftemplate}<span class="cdntaxreceipts-imagedelete"><a href="{crmURL p='civicrm/cdntaxreceipts/imagedelete' q='type=receipt_pdftemplate'}">{ts}Delete{/ts}</a></span></p>{/if}
+	  {/if}</td>
+      </tr>
+      *}
+      <tr class="hidden">
+        <td class="label">{$form.source_field.label}</td>
+        <td class="content">{$form.source_field.html|crmAddClass:huge}&nbsp;<input class="crm-token-selector big" data-field="source_field" />
+          <p class="description">{ts domain='org.civicrm.cdntaxreceipts'}Either replace with a token string or blank out to hide the field.{/ts}</td>
+      </tr>
+      <tr class="hidden">
+        <td class="label">{$form.source_label.label}</td>
+        <td class="content">{$form.source_label.html}
+          <p class="description">{ts domain='org.civicrm.cdntaxreceipts'}Label to use for the Source field. Include a space at the end to provide spacing between the label and the value.{/ts}</td>
       </tr>
     </tbody>
   </table>
 
-<h3>{ts domain='org.civicrm.cdntaxreceipts'}System Options{/ts}</h3>
+<h3 class="hidden">{ts domain='org.civicrm.cdntaxreceipts'}System Options{/ts}</h3>
 
-  <table class="form-layout">
+  <table class="form-layout hidden">
     <tbody>
-      <tr>
+      {* If In-kind appears to already be at least partly configured, no point displaying the checkbox. *}
+      <tr {if $has_inkind_custom || $inkind_financial_type_is_known}style="display:none;"{/if}>
         <td class="label">{$form.issue_inkind.label}</td>
         <td class="content">{$form.issue_inkind.html}
-          <p class="description">{ts domain='org.civicrm.cdntaxreceipts'}Checking this box will set up the fields required to generate in-kind tax receipts. Unchecking the box will not disable in-kind receipts: you will need to do that manually, by disabling the In-kind contribution type or making it non-deductible in the CiviCRM administration pages.{/ts}</p></td>
+          <p class="description">{ts domain='org.civicrm.cdntaxreceipts'}Checking this box will set up the fields required to generate in-kind tax receipts.{/ts}</p></td>
       </tr>
+      {* If they appear to have the custom fields but we don't know the financial type, this is probably a site where they changed the name before 1.9, so let them pick a type. *}
+      <tr {if !$has_inkind_custom || $inkind_financial_type_is_known}style="display:none;"{/if}>
+        <td class="label">{$form.inkind_financial_type.label}</td>
+        <td class="content">{$form.inkind_financial_type.html}
+          <p class="description">{ts domain='org.civicrm.cdntaxreceipts'}In-kind appears to have been previously enabled but the financial type for it may have changed. Please select the type you are using for In-kind.{/ts}</p></td>
+      </tr>
+      {* If we're sure about In-kind, display a confirmation it's set up. *}
+      {if $has_inkind_custom && $inkind_financial_type_is_known}
+      <tr>
+        <td class="label"><label>{ts domain='org.civicrm.cdntaxreceipts'}In-kind receipts:{/ts}</label></td>
+        <td class="content">{ts domain='org.civicrm.cdntaxreceipts'}Configured{/ts}
+          <p class="description">{ts domain='org.civicrm.cdntaxreceipts'}To disable in-kind receipts you will need to either disable the In-kind contribution type or make it non-deductible.{/ts}</p></td>
+      </tr>
+      {/if}
       <tr>
         <td class="label">{$form.delivery_method.label}</td>
         <td class="content">{$form.delivery_method.html}
@@ -147,3 +194,6 @@
 </div>
 
 </div>
+{* the InsertTokens needs this for some reason *}
+<div id="editMessageDetails"></div>
+{include file='CRM/Mailing/Form/InsertTokens.tpl'}
