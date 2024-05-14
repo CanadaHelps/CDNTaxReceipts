@@ -530,14 +530,14 @@ AND COLUMN_NAME = 'receipt_status'");
       return TRUE;
     }
     
-    $optionValue = \Civi\Api4\OptionValue::get()
+    $optionValue = \Civi\Api4\OptionValue::get(FALSE)
       ->addSelect('id')
       ->addWhere('name', '=', $template)
       ->execute()
       ->first();
     
     if($optionValue) {
-      $results = \Civi\Api4\MessageTemplate::create()
+      $results = \Civi\Api4\MessageTemplate::create(FALSE)
         ->addValue('msg_title', $title)
         ->addValue('msg_subject', $subject)
         ->addValue('msg_html', $email_html)
