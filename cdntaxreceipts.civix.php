@@ -213,12 +213,12 @@ function _cdntaxreceipts_civix_fixNavigationMenuItems(&$nodes, &$maxNavID, $pare
  * @link https://docs.civicrm.org/dev/en/latest/hooks/hook_civicrm_entityTypes
  */
 function _cdntaxreceipts_civix_civicrm_entityTypes(&$entityTypes) {
-  $entityTypes = array_merge($entityTypes, array (
-    'CRM_Cdntaxreceipts_DAO_CdnAdvantage' => 
-    array (
-      'name' => 'CdnAdvantage',
-      'class' => 'CRM_Cdntaxreceipts_DAO_CdnAdvantage',
+  $entityTypes = array_merge($entityTypes, [
+    'CRM_Cdntaxreceipts_DAO_AdvantageInfo' => [
+      'name' => 'AdvantageInfo',
+      'class' => 'CRM_Cdntaxreceipts_DAO_AdvantageInfo',
       'table' => 'cdntaxreceipts_advantage',
-    ),
-  ));
+    ],
+  ]);
 }
+

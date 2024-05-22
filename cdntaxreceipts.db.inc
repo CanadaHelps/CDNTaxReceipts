@@ -474,7 +474,7 @@ function cdntaxreceipts_contributions_for_annual($contactId, $year) {
 // @todo CRM-1721
 // @todo code can be moved to main extension
 function cdntaxreceipts_advantage($id, $desc = NULL, &$defaults = [], $view = FALSE) {
-  $advantage = new CRM_Cdntaxreceipts_DAO_CdnAdvantage;
+  $advantage = new CRM_Cdntaxreceipts_DAO_AdvantageInfo;
   $advantage->contribution_id = $id;
   $advantage->find(TRUE);
   if ($view) {
