@@ -2,18 +2,16 @@
 
 <table>
   <base>CRM/Cdntaxreceipts</base>
-  <class>CdnAdvantage</class>
+  <class>AdvantageInfo</class>
   <name>cdntaxreceipts_advantage</name>
   <comment>Holds description for advantage for each contribution</comment>
-  <add>5.23</add>
   <log>true</log>
 
   <field>
     <name>id</name>
     <type>int unsigned</type>
     <required>true</required>
-    <comment>Unique CdnAdvantage ID</comment>
-    <add>5.23</add>
+    <comment>Unique ID</comment>
   </field>
   <primaryKey>
     <name>id</name>
@@ -23,16 +21,21 @@
   <field>
     <name>contribution_id</name>
     <type>int unsigned</type>
-    <comment>FK to Contribution</comment>
-    <add>5.23</add>
+    <comment>FK to Contact</comment>
   </field>
+  <foreignKey>
+    <name>contribution_id</name>
+    <table>civicrm_contribution</table>
+    <key>id</key>
+    <onDelete>CASCADE</onDelete>
+  </foreignKey>
 
   <field>
     <name>advantage_description</name>
     <type>varchar</type>
     <length>255</length>
     <comment>Description of Advantage</comment>
-    <add>5.23</add>
+    <required>false</required>
   </field>
 
 </table>
