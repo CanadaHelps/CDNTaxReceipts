@@ -1,4 +1,5 @@
 {* Confirmation of tax receipts  *}
+{* CH Customization: Completely different template from original *}
 <div class="crm-block crm-content-block crm-contribution-view-form-block">
   <h3>Receipts Details</h3>
   <table class="crm-stripes-rows crm-info-panel border-top-td crm-stripes-tr">

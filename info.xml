@@ -11,10 +11,10 @@
     <author>CanadaHelps</author>
   </maintainer>
   <releaseDate>2024-05-30</releaseDate>
-  <version>1.5.3</version>
-  <develStage>alpha</develStage>
+  <version>1.9.0.3</version>
+  <develStage>stable</develStage>
   <compatibility>
-    <ver>5.49</ver>
+    <ver>5.63</ver>
   </compatibility>
   <requires>
     <ext version="~4.25">com.cividesk.client.canadahelps</ext>
@@ -27,5 +27,15 @@
   </comments>
   <civix>
     <namespace>CRM/Cdntaxreceipts</namespace>
+    <format>23.02.1</format>
   </civix>
+  <mixins>
+    <mixin>menu-xml@1.0.0</mixin>
+    <mixin>mgd-php@1.0.0</mixin>
+    <mixin>smarty-v2@1.0.1</mixin>
+  </mixins>
+  <classloader>
+    <psr0 prefix="CRM_" path="."/>
+  </classloader>
+  <upgrader>CRM_Cdntaxreceipts_Upgrader</upgrader>
 </extension>
