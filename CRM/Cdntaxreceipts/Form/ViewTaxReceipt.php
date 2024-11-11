@@ -10,6 +10,7 @@ class CRM_Cdntaxreceipts_Form_ViewTaxReceipt extends CRM_Core_Form {
   protected $_sendTarget;
   protected $_pdfFile;
   protected $_isCancelled;
+  public $_contactIds; // remove warning from core requirement for this
 
   /**
    * build all the data structures needed to build the form

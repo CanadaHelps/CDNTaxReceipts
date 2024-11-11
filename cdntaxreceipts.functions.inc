@@ -216,7 +216,16 @@ function cdntaxreceipts_processTaxReceipt($receipt, &$collectedPdf = NULL, $mode
       // CH Customization: CRM-1950 Duplicate receipt should not be sent to archive
       if ($sendToEmailArchive) {
         // TODO check if any different from core CRM_Core_BAO_MessageTemplate::sendTemplate
-        list($sent, $subject, $message, $html) = ch_sendTemplate($sendTemplateParams);
+        try {
+          list($sent, $subject, $message, $html) = ch_sendTemplate($sendTemplateParams);
+        } catch (Exception $ex) {
+          $sent = false;
+        }
+        
+        if ($sent == false) {
+          watchdog("debug", "Failed to send receipt to archive. ", [], WATCHDOG_DEBUG);
+          $sent = true;
+        }
       } else {
         $sent = TRUE;
       }
@@ -227,7 +236,16 @@ function cdntaxreceipts_processTaxReceipt($receipt, &$collectedPdf = NULL, $mode
         $sendTemplateParams['tplParams']['openTracking'] = "<img src=\"" . CRM_Utils_System::baseURL() .
           "civicrm/cdntaxreceipts/open?r={$receipt['email_tracking_id']}\" width='1' height='1' alt='' border='0'>";
         // TODO check if any different from core CRM_Core_BAO_MessageTemplate::sendTemplate
-        list($sent, $subject, $message, $html) = ch_sendTemplate($sendTemplateParams);
+        try {
+          list($sent) = ch_sendTemplate($sendTemplateParams);
+        } catch (Exception $ex) {
+          $sent = false;
+        }
+        if ($sent == false) {
+          watchdog("debug", "Failed to send receipt to donor. ", [], WATCHDOG_DEBUG);
+          $receipt['issue_method'] = "print";
+          $sent = true;
+        }
       }
     }
   }
@@ -344,7 +362,7 @@ function cdntaxreceipts_generateFormattedReceipt($receipt, &$collectedPdf = NULL
     $display_date = date('M j, Y', mktime(0,0,0,1,1,$receipt['receive_date'])) . ' - ' . date('M j, Y', mktime(0,0,0,12,31,$receipt['receive_date']));
   }
 
-  $line_1 = ts("This is your Official Receipt for income tax purposes.", array('domain' => 'org.civicrm.cdntaxreceipts'));
+  $line_1 = ts("This is your Official Receipt for income tax purposes.");
 
   $config = CRM_Core_Config::singleton();
   $donor_or_org_name = '';
