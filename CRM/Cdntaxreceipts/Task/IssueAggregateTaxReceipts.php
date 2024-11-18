@@ -334,10 +334,10 @@ class CRM_Cdntaxreceipts_Task_IssueAggregateTaxReceipts extends CRM_Contribute_F
           $thankyou_html = $this->getThankYouHTML(array_column($contributions, 'contribution_id'), $from_email_address, $params);
         }
 
-        $ret = cdntaxreceipts_issueAggregateTaxReceipt($contact_id, $year, $contributions, $method,
+        list($success, $method) = cdntaxreceipts_issueAggregateTaxReceipt($contact_id, $year, $contributions, $method,
           $receiptsForPrintingPDF, $previewMode, $thankyou_html);
 
-        if ( $ret !== 0 && !$previewMode ) {
+        if ( $success && !$previewMode ) {
             // CH Customization: CRM-920: Mark Contribution as thanked if checked
             foreach($contributions as $contributionIds) {
               CRM_Cdntaxreceipts_Task_IssueSingleTaxReceipts::markContributionAsReceipted(
@@ -347,7 +347,7 @@ class CRM_Cdntaxreceipts_Task_IssueAggregateTaxReceipts extends CRM_Contribute_F
             }
         }
 
-        if ( $ret == 0 ) {
+        if ( ! $success ) {
           $failCount++;
         }
         elseif ( $method == 'email' ) {
@@ -445,8 +445,8 @@ class CRM_Cdntaxreceipts_Task_IssueAggregateTaxReceipts extends CRM_Contribute_F
                 $contribution->thankyou_html = $thankyou_html;
             }
 
-            list( $ret, $method ) = cdntaxreceipts_issueTaxReceipt( $contribution, $receiptsForPrintingPDF, $previewMode );
-            if( $ret !== 0 && !$previewMode) {
+            list( $success, $method ) = cdntaxreceipts_issueTaxReceipt( $contribution, $receiptsForPrintingPDF, $previewMode );
+            if( $success && !$previewMode) {
               //CRM-918: Mark Contribution as thanked if checked
               CRM_Cdntaxreceipts_Task_IssueSingleTaxReceipts::markContributionAsReceipted(
                 $contribution->id,
@@ -455,7 +455,7 @@ class CRM_Cdntaxreceipts_Task_IssueAggregateTaxReceipts extends CRM_Contribute_F
               );
             }
 
-            if ( $ret == 0 ) {
+            if ( ! $success ) {
               $failCount++;
             }
             elseif ( $method == 'email' ) {
