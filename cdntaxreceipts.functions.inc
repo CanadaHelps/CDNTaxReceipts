@@ -245,6 +245,10 @@ function cdntaxreceipts_processTaxReceipt($receipt, &$collectedPdf = NULL, $mode
           watchdog("debug", "Failed to send receipt to donor. ", [], WATCHDOG_DEBUG);
           $receipt['issue_method'] = "print";
           $sent = true;
+          // need to add to collected pdf as it was not included because should have been sent, but failed to send
+          if (isset($collectedPdf) && $pdf_file) {
+            $customReceipt->addToCollectedPDF(); // adds this receipt to the end
+          }
         }
       }
     }

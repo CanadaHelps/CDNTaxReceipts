@@ -373,10 +373,10 @@ class CRM_Cdntaxreceipts_Task_IssueAnnualTaxReceipts extends CRM_Contact_Form_Ta
           $thankyou_html = $this->getThankYouHTML(array_column($contributions, 'contribution_id'), $from_email_address, $params);
         }
 
-        $ret = cdntaxreceipts_issueAnnualTaxReceipt($contact_id, $year, $contributions, $method,
+        list($success, $method) = cdntaxreceipts_issueAnnualTaxReceipt($contact_id, $year, $contributions, $method,
           $receiptsForPrintingPDF, $previewMode, $thankyou_html);    
 
-        if( $ret !== 0 && !$previewMode ) {
+        if( $success && !$previewMode ) {
             //CRM-920: Mark Contribution as thanked if checked
             foreach($contributions as $contributionIds) {
               CRM_Cdntaxreceipts_Task_IssueSingleTaxReceipts::markContributionAsReceipted(
@@ -386,7 +386,7 @@ class CRM_Cdntaxreceipts_Task_IssueAnnualTaxReceipts extends CRM_Contact_Form_Ta
             }
         }
 
-        if ( $ret == 0 ) {
+        if ( ! $success ) {
           $failCount++;
         }
         elseif ( $method == 'email' ) {
@@ -486,9 +486,9 @@ class CRM_Cdntaxreceipts_Task_IssueAnnualTaxReceipts extends CRM_Contact_Form_Ta
                 $contribution->thankyou_html = $thankyou_html;
             }
 
-            list( $ret, $method ) = cdntaxreceipts_issueTaxReceipt( $contribution, $receiptsForPrintingPDF, $previewMode );
+            list( $success, $method ) = cdntaxreceipts_issueTaxReceipt( $contribution, $receiptsForPrintingPDF, $previewMode );
             
-            if( $ret !== 0 && !$previewMode ) {
+            if( $success && !$previewMode ) {
              
               //CRM-918: Mark Contribution as thanked if checked
               CRM_Cdntaxreceipts_Task_IssueSingleTaxReceipts::markContributionAsReceipted(
@@ -498,7 +498,7 @@ class CRM_Cdntaxreceipts_Task_IssueAnnualTaxReceipts extends CRM_Contact_Form_Ta
               );
             }
 
-            if ( $ret == 0 ) {
+            if ( ! $success ) {
               $failCount++;
             }
             elseif ( $method == 'email' ) {
