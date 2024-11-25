@@ -131,6 +131,7 @@ function cdntaxreceipts_processTaxReceipt($receipt, &$collectedPdf = NULL, $mode
     $pdf_file               = $customReceipt->getFilePath();
     $user_friendly          = $customReceipt->getFileName();
     $receipt['receipt_no']  = $customReceipt->getReceiptNumber();
+    watchdog("debug", "--> receipt.".$receipt['receipt_no']);
 
     /* NOT USED
     // generate the PDF file
@@ -148,6 +149,7 @@ function cdntaxreceipts_processTaxReceipt($receipt, &$collectedPdf = NULL, $mode
       if (!CRM_Canadahelps_Config_Verify::hasSMTPEmail()) {
         $sendToEmailArchive = false;
         $receipt['issue_method'] = "print"; // force print method
+        watchdog("debug", "--> no smtp settings --> forcing print");
       
       //CRM-1950 Duplicate receipt should not be sent to archive
       } else if (
