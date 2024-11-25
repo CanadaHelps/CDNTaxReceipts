@@ -38,6 +38,7 @@
     </thead>
     <tbody id='table-of-users-receipt'>
     {foreach from=$receiptTypes item=receiptType}
+      {if isset($receiptList.$receiptType.$defaultYear)}
       {foreach from=$receiptList.$receiptType.$defaultYear.contact_ids item=contact}
         {foreach from=$contact.contributions item=contribution}
         <tr class="{$receiptType}-receipt-contributions contribution-id-{$contribution.contribution_id}">
@@ -65,6 +66,7 @@
         </tr>
         {/foreach}
       {/foreach}
+      {/if}
     {/foreach}
     </tbody>
   </table>

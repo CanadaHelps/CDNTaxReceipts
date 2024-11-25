@@ -296,6 +296,7 @@ class CRM_Cdntaxreceipts_Form_ViewTaxReceipt extends CRM_Core_Form {
             'onkeyup' => "return verify(this)",
           ]
         );
+        $this->assign('html_message', ''); // for compatibility with core 
     }
   }
 

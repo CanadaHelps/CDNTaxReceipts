@@ -258,12 +258,16 @@ CRM.$(function($) {
       $(this).parent().next('td').find('a').show();
     }
   })
-  {/literal}{if $view_receipt_language eq 'fr_CA'}{literal}
+  {/literal}
+  {if isset($view_receipt_language) && $view_receipt_language eq 'fr_CA'}
+    {literal}
     $('.language_en').hide();
-  {/literal}{/if}{literal}
-  {/literal}{if $view_receipt_language eq 'en_US'}{literal}
+    {/literal}
+  {else}
+    {literal}
     $('.language_fr').hide();
-  {/literal}{/if}{literal}
+    {/literal}
+  {/if}
 });
 
 var currentWidth;
