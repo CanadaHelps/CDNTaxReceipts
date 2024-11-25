@@ -117,7 +117,6 @@
   <div class="crm-accordion-body">
     <div class="helpIcon" id="helphtml">
       <input class="crm-token-selector big" data-field="html_message_en" />
-      {help id="id-token-html" tplFile=$tplFile isAdmin=$isAdmin file="CRM/Contact/Form/Task/Email.hlp"}
     </div>
     <div class="clear"></div>
     <div class='html'>
@@ -145,7 +144,6 @@
   <div class="crm-accordion-body">
     <div class="helpIcon" id="helphtml">
       <input class="crm-token-selector big" data-field="html_message_fr" />
-      {help id="id-token-html" tplFile=$tplFile isAdmin=$isAdmin file="CRM/Contact/Form/Task/Email.hlp"}
     </div>
     <div class="clear"></div>
     <div class='html'>
