@@ -155,6 +155,8 @@ function cdntaxreceipts_processTaxReceipt($receipt, &$collectedPdf = NULL, $mode
           && $receipt['is_duplicate']) {
         $sendToEmailArchive = false;
       }  
+      watchdog("debug", "--> issue_method.1=" . $receipt['issue_method']);
+      
 
       // generate an email to the tax archive and possibly to the donor
       $org_name = Civi::settings()->get('org_name');
@@ -854,6 +856,9 @@ function cdntaxreceipts_issueTaxReceipt($contribution, &$collectedPdf = NULL, $m
   if ((int)$mode == CDNTAXRECEIPTS_MODE_WORKFLOW || $mode == CDNTAXRECEIPTS_MODE_API) {
     $method = 'email';
   }
+
+  watchdog("debug", "--> issueTaxReceipt.method=" . $method);
+  watchdog("debug", "--> issueTaxReceipt.is_duplicate=" . $is_duplicate);
 
   // process In-Kind variables if this is a receipt for an in-kind contribution
 
