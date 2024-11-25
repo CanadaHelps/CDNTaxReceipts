@@ -38,7 +38,7 @@ cj(document).ready(
           <td class="label display-cell-padding bold-weight">Email Opened</td>
           <td>{$receipt.email_opened|crmDate}</td>
       </tr>
-      {if $receipt.cancelled_receipt_number}
+      {if isset($receipt.cancelled_receipt_number)}
       <tr class="replaces">
         <td class="label bold-weight">{ts}Cancels and Replaces Receipt No.{/ts}</td>
         <td class="content">{$receipt.cancelled_receipt_number}</td>

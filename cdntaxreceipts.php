@@ -70,7 +70,7 @@ function cdntaxreceipts_civicrm_buildForm($formName, &$form) {
   if (is_a( $form, 'CRM_Contribute_Form_Task_Result')) {
     $data = &$form->controller->container();
     if(isset($data['valid'])){
-      if($data['valid']['IssueAggregateTaxReceipts']) {
+      if( isset($data['valid']['IssueAggregateTaxReceipts']) ) {
         CRM_Core_Resources::singleton()->addStyle('
           .crm-button {
             float: left !important;
