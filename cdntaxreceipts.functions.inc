@@ -214,6 +214,8 @@ function cdntaxreceipts_processTaxReceipt($receipt, &$collectedPdf = NULL, $mode
       }
       
       // CH Customization: CRM-1950 Duplicate receipt should not be sent to archive
+      watchdog("debug", "--> issue_method=" . $receipt['issue_method']);
+      watchdog("debug", "--> sendToEmailArchive=" . $sendToEmailArchive);
       if ($sendToEmailArchive) {
         // TODO check if any different from core CRM_Core_BAO_MessageTemplate::sendTemplate
         try {
@@ -221,6 +223,7 @@ function cdntaxreceipts_processTaxReceipt($receipt, &$collectedPdf = NULL, $mode
         } catch (Exception $ex) {
           $sent = false;
         }
+        watchdog("debug", "--> archive.sent=" . $sent);
         
         if ($sent == false) {
           watchdog("debug", "Failed to send receipt to archive. ", [], WATCHDOG_DEBUG);
@@ -241,6 +244,7 @@ function cdntaxreceipts_processTaxReceipt($receipt, &$collectedPdf = NULL, $mode
         } catch (Exception $ex) {
           $sent = false;
         }
+        watchdog("debug", "--> email.sent=" . $sent);
         if ($sent == false) {
           watchdog("debug", "Failed to send receipt to donor. ", [], WATCHDOG_DEBUG);
           $receipt['issue_method'] = "print";
@@ -305,6 +309,7 @@ function cdntaxreceipts_processTaxReceipt($receipt, &$collectedPdf = NULL, $mode
       $customReceipt->removeTemporaryFile($pdf_file);
       $pdf_file = NULL;
   }
+  watchdog("debug", "--> issue_method.end=" . $receipt['issue_method']);
 
   // if not unset, cron will clean up the PDF file later on
   return array( $sent, $receipt['issue_method'], $pdf_file );
