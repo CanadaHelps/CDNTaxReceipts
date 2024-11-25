@@ -268,6 +268,7 @@ CRM.$(function($) {
     $('.language_fr').hide();
     {/literal}
   {/if}
+  {literal}
 });
 
 var currentWidth;
