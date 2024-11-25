@@ -235,18 +235,22 @@ function cdntaxreceipts_processTaxReceipt($receipt, &$collectedPdf = NULL, $mode
         }
       } else {
         $sent = TRUE;
+        watchdog("debug", "--> sendToEmailArchive.skipped");
       }
 
       // send a copy (with open tracking) to the donor
       if ($sent && $receipt['issue_method'] == 'email' && $mode != CDNTAXRECEIPTS_MODE_WORKFLOW) {
+        watchdog("debug", "--> sendToDonor=".$contact['email']);
         $sendTemplateParams['toEmail'] = $contact['email'];
         $sendTemplateParams['tplParams']['openTracking'] = "<img src=\"" . CRM_Utils_System::baseURL() .
           "civicrm/cdntaxreceipts/open?r={$receipt['email_tracking_id']}\" width='1' height='1' alt='' border='0'>";
         // TODO check if any different from core CRM_Core_BAO_MessageTemplate::sendTemplate
         try {
           list($sent) = ch_sendTemplate($sendTemplateParams);
+          watchdog("debug", "--> sendToDonor.result=".$sent);
         } catch (Exception $ex) {
           $sent = false;
+          watchdog("debug", "--> sendToDonor failed");
         }
         watchdog("debug", "--> email.sent=" . $sent);
         if ($sent == false) {
@@ -1972,7 +1976,8 @@ function ch_sendTemplate($params) {
       }
       $params['attachments'][] = CRM_Utils_Mail::appendPDF('Invoice.pdf', $pdfHtml, $mailContent['format']);
     }
-    $pdf_filename = '';
+    $pdf_filename = ''; // doesn't seem to be used
+    watchdog("debug", "--> sendToDonor.pdf_filename=".$params['PDFFilename']);
     if ($config->doNotAttachPDFReceipt &&
       $params['PDFFilename'] &&
       $params['html']
@@ -1989,7 +1994,7 @@ function ch_sendTemplate($params) {
 
     $sent = CRM_Utils_Mail::send($params);
 
-    if ($pdf_filename) {
+    if ($pdf_filename) { // doesn't seem to be used
       unlink($pdf_filename);
     }
   }
