@@ -1907,8 +1907,11 @@ function ch_sendTemplate($params) {
 
   //CRM-2124 load template according to user's preferred language
   $preferred_language = _cdntaxreceipts_userPreferredLanguage($params['contactId']);
+  watchdog("debug", "<pre>--> sendTemplate.params.1=".print_r($params, true)."</pre>");
+
   $mailContent = ch_loadTemplate((string) $params['valueName'], $preferred_language);
 
+  watchdog("debug", "<pre>--> sendTemplate.mailContent.1=".print_r($mailContent, true)."</pre>");
   // Overwrite subject from form field
   if (!empty($params['subject'])) {
     $mailContent['subject'] = $params['subject'];
@@ -1925,6 +1928,8 @@ function ch_sendTemplate($params) {
     'tplParams' => $params['tplParams']
   ]);
 
+  watchdog("debug", "<pre>--> sendTemplate.mailContent.2=".print_r($mailContent, true)."</pre>");
+
   // send the template, honouring the target user’s preferences (if any)
   $sent = FALSE;
 
@@ -1934,6 +1939,7 @@ function ch_sendTemplate($params) {
   if(!$params['thankyou_email']) {
     $params['html'] = $mailContent['html'];
   }
+  watchdog("debug", "<pre>--> sendTemplate.params.2=".print_r($params, true)."</pre>");
 
   // Check Whether openTracking token present or not
   // If not, add it in the html template
@@ -1953,6 +1959,7 @@ function ch_sendTemplate($params) {
       $params['html'] = $dom->saveHTML();
     }
   }
+  watchdog("debug", "<pre>--> sendTemplate.params.3=".print_r($params, true)."</pre>");
 
   if ($params['toEmail']) {
     $contactParams = [['email', 'LIKE', $params['toEmail'], 0, 1]];
@@ -1992,8 +1999,14 @@ function ch_sendTemplate($params) {
       }
     }
 
-    $sent = CRM_Utils_Mail::send($params);
-
+    watchdog("debug", "<pre>--> sendTemplate.params.4=".print_r($params, true)."</pre>");
+    try {
+      $sent = CRM_Utils_Mail::send($params);
+      watchdog("debug", "<pre>--> sendTemplate.sent.1=".print_r($sent, true)."</pre>");
+    } catch (Exception $ex) {
+      watchdog("debug", "<pre>--> sendTemplate.failed.ex=".print_r($ex, true)."</pre>");
+    }
+    
     if ($pdf_filename) { // doesn't seem to be used
       unlink($pdf_filename);
     }
