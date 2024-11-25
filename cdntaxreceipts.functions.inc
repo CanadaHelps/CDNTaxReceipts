@@ -1917,16 +1917,20 @@ function ch_sendTemplate($params) {
     $mailContent['subject'] = $params['subject'];
   }
 
-  $mailContent = CRM_Core_BAO_MessageTemplate::renderTemplate([
-    'messageTemplate' => [
-      'msg_text' => $mailContent['text'],
-      'msg_html' => $mailContent['html'],
-      'msg_subject' => $mailContent['subject'],
-    ],
-    'contactId' => $params['contactId'] ?? NULL,
-    'disableSmarty' => $params['disableSmarty'],
-    'tplParams' => $params['tplParams']
-  ]);
+  try {
+    $mailContent = CRM_Core_BAO_MessageTemplate::renderTemplate([
+      'messageTemplate' => [
+        'msg_text' => $mailContent['text'],
+        'msg_html' => $mailContent['html'],
+        'msg_subject' => $mailContent['subject'],
+      ],
+      'contactId' => $params['contactId'] ?? NULL,
+      'disableSmarty' => $params['disableSmarty'],
+      'tplParams' => $params['tplParams']
+    ]);
+  }  catch (Exception $ex) {
+    watchdog("debug", "<pre>--> sendTemplate.renderTemplate.failed.ex=".print_r($ex, true)."</pre>");
+  }
 
   watchdog("debug", "<pre>--> sendTemplate.mailContent.2=".print_r($mailContent, true)."</pre>");
 
