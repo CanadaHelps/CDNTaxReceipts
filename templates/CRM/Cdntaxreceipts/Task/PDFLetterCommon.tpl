@@ -117,7 +117,6 @@
   <div class="crm-accordion-body">
     <div class="helpIcon" id="helphtml">
       <input class="crm-token-selector big" data-field="html_message_en" />
-      {help id="id-token-html" tplFile=$tplFile isAdmin=$isAdmin file="CRM/Contact/Form/Task/Email.hlp"}
     </div>
     <div class="clear"></div>
     <div class='html'>
@@ -145,7 +144,6 @@
   <div class="crm-accordion-body">
     <div class="helpIcon" id="helphtml">
       <input class="crm-token-selector big" data-field="html_message_fr" />
-      {help id="id-token-html" tplFile=$tplFile isAdmin=$isAdmin file="CRM/Contact/Form/Task/Email.hlp"}
     </div>
     <div class="clear"></div>
     <div class='html'>
@@ -260,12 +258,17 @@ CRM.$(function($) {
       $(this).parent().next('td').find('a').show();
     }
   })
-  {/literal}{if $view_receipt_language eq 'fr_CA'}{literal}
+  {/literal}
+  {if isset($view_receipt_language) && $view_receipt_language eq 'fr_CA'}
+    {literal}
     $('.language_en').hide();
-  {/literal}{/if}{literal}
-  {/literal}{if $view_receipt_language eq 'en_US'}{literal}
+    {/literal}
+  {else}
+    {literal}
     $('.language_fr').hide();
-  {/literal}{/if}{literal}
+    {/literal}
+  {/if}
+  {literal}
 });
 
 var currentWidth;

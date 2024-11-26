@@ -148,13 +148,15 @@ function cdntaxreceipts_processTaxReceipt($receipt, &$collectedPdf = NULL, $mode
       if (!CRM_Canadahelps_Config_Verify::hasSMTPEmail()) {
         $sendToEmailArchive = false;
         $receipt['issue_method'] = "print"; // force print method
+        watchdog("debug", "SMTP Settings are not set.", [], WATCHDOG_DEBUG);
       
       //CRM-1950 Duplicate receipt should not be sent to archive
       } else if (
           ($receipt['issue_method'] == 'email'|| $receipt['issue_method'] == 'print') 
           && $receipt['is_duplicate']) {
         $sendToEmailArchive = false;
-      }  
+      }
+      
 
       // generate an email to the tax archive and possibly to the donor
       $org_name = Civi::settings()->get('org_name');
@@ -241,6 +243,7 @@ function cdntaxreceipts_processTaxReceipt($receipt, &$collectedPdf = NULL, $mode
         } catch (Exception $ex) {
           $sent = false;
         }
+        
         if ($sent == false) {
           watchdog("debug", "Failed to send receipt to donor. ", [], WATCHDOG_DEBUG);
           $receipt['issue_method'] = "print";
@@ -1891,6 +1894,7 @@ function ch_sendTemplate($params) {
 
   //CRM-2124 load template according to user's preferred language
   $preferred_language = _cdntaxreceipts_userPreferredLanguage($params['contactId']);
+
   $mailContent = ch_loadTemplate((string) $params['valueName'], $preferred_language);
 
   // Overwrite subject from form field
@@ -1898,16 +1902,21 @@ function ch_sendTemplate($params) {
     $mailContent['subject'] = $params['subject'];
   }
 
-  $mailContent = CRM_Core_BAO_MessageTemplate::renderTemplate([
-    'messageTemplate' => [
-      'msg_text' => $mailContent['text'],
-      'msg_html' => $mailContent['html'],
-      'msg_subject' => $mailContent['subject'],
-    ],
-    'contactId' => $params['contactId'] ?? NULL,
-    'disableSmarty' => $params['disableSmarty'],
-    'tplParams' => $params['tplParams']
-  ]);
+  try {
+    $mailContent = CRM_Core_BAO_MessageTemplate::renderTemplate([
+      'messageTemplate' => [
+        'msg_text' => $mailContent['text'],
+        'msg_html' => $mailContent['html'],
+        'msg_subject' => $mailContent['subject'],
+      ],
+      'contactId' => $params['contactId'] ?? NULL,
+      'disableSmarty' => $params['disableSmarty'],
+      'tplParams' => $params['tplParams']
+    ]);
+  }  catch (Exception $ex) {
+    watchdog("debug", "Failed to load message template (renderTemplate).", [], WATCHDOG_DEBUG);
+    return [FALSE, '', '', ''];
+  }
 
   // send the template, honouring the target user’s preferences (if any)
   $sent = FALSE;
@@ -1960,7 +1969,7 @@ function ch_sendTemplate($params) {
       }
       $params['attachments'][] = CRM_Utils_Mail::appendPDF('Invoice.pdf', $pdfHtml, $mailContent['format']);
     }
-    $pdf_filename = '';
+    $pdf_filename = ''; // doesn't seem to be used
     if ($config->doNotAttachPDFReceipt &&
       $params['PDFFilename'] &&
       $params['html']
@@ -1975,9 +1984,14 @@ function ch_sendTemplate($params) {
       }
     }
 
-    $sent = CRM_Utils_Mail::send($params);
-
-    if ($pdf_filename) {
+    try {
+      $sent = CRM_Utils_Mail::send($params);
+    } catch (Exception $ex) {
+      watchdog("debug", "Failed to send message.", [], WATCHDOG_DEBUG);
+      return [FALSE, '', '', ''];
+    }
+    
+    if ($pdf_filename) { // doesn't seem to be used
       unlink($pdf_filename);
     }
   }
