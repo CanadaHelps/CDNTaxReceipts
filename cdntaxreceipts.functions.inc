@@ -131,7 +131,6 @@ function cdntaxreceipts_processTaxReceipt($receipt, &$collectedPdf = NULL, $mode
     $pdf_file               = $customReceipt->getFilePath();
     $user_friendly          = $customReceipt->getFileName();
     $receipt['receipt_no']  = $customReceipt->getReceiptNumber();
-    watchdog("debug", "--> receipt.".$receipt['receipt_no']);
 
     /* NOT USED
     // generate the PDF file
@@ -149,15 +148,14 @@ function cdntaxreceipts_processTaxReceipt($receipt, &$collectedPdf = NULL, $mode
       if (!CRM_Canadahelps_Config_Verify::hasSMTPEmail()) {
         $sendToEmailArchive = false;
         $receipt['issue_method'] = "print"; // force print method
-        watchdog("debug", "--> no smtp settings --> forcing print");
+        watchdog("debug", "SMTP Settings are not set.", [], WATCHDOG_DEBUG);
       
       //CRM-1950 Duplicate receipt should not be sent to archive
       } else if (
           ($receipt['issue_method'] == 'email'|| $receipt['issue_method'] == 'print') 
           && $receipt['is_duplicate']) {
         $sendToEmailArchive = false;
-      }  
-      watchdog("debug", "--> issue_method.1=" . $receipt['issue_method']);
+      }
       
 
       // generate an email to the tax archive and possibly to the donor
@@ -218,8 +216,6 @@ function cdntaxreceipts_processTaxReceipt($receipt, &$collectedPdf = NULL, $mode
       }
       
       // CH Customization: CRM-1950 Duplicate receipt should not be sent to archive
-      watchdog("debug", "--> issue_method=" . $receipt['issue_method']);
-      watchdog("debug", "--> sendToEmailArchive=" . $sendToEmailArchive);
       if ($sendToEmailArchive) {
         // TODO check if any different from core CRM_Core_BAO_MessageTemplate::sendTemplate
         try {
@@ -227,7 +223,6 @@ function cdntaxreceipts_processTaxReceipt($receipt, &$collectedPdf = NULL, $mode
         } catch (Exception $ex) {
           $sent = false;
         }
-        watchdog("debug", "--> archive.sent=" . $sent);
         
         if ($sent == false) {
           watchdog("debug", "Failed to send receipt to archive. ", [], WATCHDOG_DEBUG);
@@ -235,24 +230,20 @@ function cdntaxreceipts_processTaxReceipt($receipt, &$collectedPdf = NULL, $mode
         }
       } else {
         $sent = TRUE;
-        watchdog("debug", "--> sendToEmailArchive.skipped");
       }
 
       // send a copy (with open tracking) to the donor
       if ($sent && $receipt['issue_method'] == 'email' && $mode != CDNTAXRECEIPTS_MODE_WORKFLOW) {
-        watchdog("debug", "--> sendToDonor=".$contact['email']);
         $sendTemplateParams['toEmail'] = $contact['email'];
         $sendTemplateParams['tplParams']['openTracking'] = "<img src=\"" . CRM_Utils_System::baseURL() .
           "civicrm/cdntaxreceipts/open?r={$receipt['email_tracking_id']}\" width='1' height='1' alt='' border='0'>";
         // TODO check if any different from core CRM_Core_BAO_MessageTemplate::sendTemplate
         try {
           list($sent) = ch_sendTemplate($sendTemplateParams);
-          watchdog("debug", "--> sendToDonor.result=".$sent);
         } catch (Exception $ex) {
           $sent = false;
-          watchdog("debug", "--> sendToDonor failed");
         }
-        watchdog("debug", "--> email.sent=" . $sent);
+        
         if ($sent == false) {
           watchdog("debug", "Failed to send receipt to donor. ", [], WATCHDOG_DEBUG);
           $receipt['issue_method'] = "print";
@@ -317,7 +308,6 @@ function cdntaxreceipts_processTaxReceipt($receipt, &$collectedPdf = NULL, $mode
       $customReceipt->removeTemporaryFile($pdf_file);
       $pdf_file = NULL;
   }
-  watchdog("debug", "--> issue_method.end=" . $receipt['issue_method']);
 
   // if not unset, cron will clean up the PDF file later on
   return array( $sent, $receipt['issue_method'], $pdf_file );
@@ -862,9 +852,6 @@ function cdntaxreceipts_issueTaxReceipt($contribution, &$collectedPdf = NULL, $m
   if ((int)$mode == CDNTAXRECEIPTS_MODE_WORKFLOW || $mode == CDNTAXRECEIPTS_MODE_API) {
     $method = 'email';
   }
-
-  watchdog("debug", "--> issueTaxReceipt.method=" . $method);
-  watchdog("debug", "--> issueTaxReceipt.is_duplicate=" . $is_duplicate);
 
   // process In-Kind variables if this is a receipt for an in-kind contribution
 
@@ -1907,11 +1894,9 @@ function ch_sendTemplate($params) {
 
   //CRM-2124 load template according to user's preferred language
   $preferred_language = _cdntaxreceipts_userPreferredLanguage($params['contactId']);
-  watchdog("debug", "<pre>--> sendTemplate.params.1=".print_r($params, true)."</pre>");
 
   $mailContent = ch_loadTemplate((string) $params['valueName'], $preferred_language);
 
-  watchdog("debug", "<pre>--> sendTemplate.mailContent.1=".print_r($mailContent, true)."</pre>");
   // Overwrite subject from form field
   if (!empty($params['subject'])) {
     $mailContent['subject'] = $params['subject'];
@@ -1929,10 +1914,9 @@ function ch_sendTemplate($params) {
       'tplParams' => $params['tplParams']
     ]);
   }  catch (Exception $ex) {
-    watchdog("debug", "<pre>--> sendTemplate.renderTemplate.failed.ex=".print_r($ex, true)."</pre>");
+    watchdog("debug", "Failed to load message template (renderTemplate).", [], WATCHDOG_DEBUG);
+    return [FALSE, '', '', ''];
   }
-
-  watchdog("debug", "<pre>--> sendTemplate.mailContent.2=".print_r($mailContent, true)."</pre>");
 
   // send the template, honouring the target user’s preferences (if any)
   $sent = FALSE;
@@ -1943,7 +1927,6 @@ function ch_sendTemplate($params) {
   if(!$params['thankyou_email']) {
     $params['html'] = $mailContent['html'];
   }
-  watchdog("debug", "<pre>--> sendTemplate.params.2=".print_r($params, true)."</pre>");
 
   // Check Whether openTracking token present or not
   // If not, add it in the html template
@@ -1963,7 +1946,6 @@ function ch_sendTemplate($params) {
       $params['html'] = $dom->saveHTML();
     }
   }
-  watchdog("debug", "<pre>--> sendTemplate.params.3=".print_r($params, true)."</pre>");
 
   if ($params['toEmail']) {
     $contactParams = [['email', 'LIKE', $params['toEmail'], 0, 1]];
@@ -1988,7 +1970,6 @@ function ch_sendTemplate($params) {
       $params['attachments'][] = CRM_Utils_Mail::appendPDF('Invoice.pdf', $pdfHtml, $mailContent['format']);
     }
     $pdf_filename = ''; // doesn't seem to be used
-    watchdog("debug", "--> sendToDonor.pdf_filename=".$params['PDFFilename']);
     if ($config->doNotAttachPDFReceipt &&
       $params['PDFFilename'] &&
       $params['html']
@@ -2003,12 +1984,11 @@ function ch_sendTemplate($params) {
       }
     }
 
-    watchdog("debug", "<pre>--> sendTemplate.params.4=".print_r($params, true)."</pre>");
     try {
       $sent = CRM_Utils_Mail::send($params);
-      watchdog("debug", "<pre>--> sendTemplate.sent.1=".print_r($sent, true)."</pre>");
     } catch (Exception $ex) {
-      watchdog("debug", "<pre>--> sendTemplate.failed.ex=".print_r($ex, true)."</pre>");
+      watchdog("debug", "Failed to send message.", [], WATCHDOG_DEBUG);
+      return [FALSE, '', '', ''];
     }
     
     if ($pdf_filename) { // doesn't seem to be used
