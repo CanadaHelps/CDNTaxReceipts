@@ -144,9 +144,11 @@ function cdntaxreceipts_processTaxReceipt($receipt, &$collectedPdf = NULL, $mode
     else {
 
       $sendToEmailArchive = true;
+      $failedToSend = false;
       // CRM-2234 Don't send to archve if mail settings are missing
       if (!CRM_Canadahelps_Config_Verify::hasSMTPEmail()) {
         $sendToEmailArchive = false;
+        $failedToSend = true;
         $receipt['issue_method'] = "print"; // force print method
         watchdog("debug", "SMTP Settings are not set.", [], WATCHDOG_DEBUG);
       
@@ -222,11 +224,13 @@ function cdntaxreceipts_processTaxReceipt($receipt, &$collectedPdf = NULL, $mode
           list($sent, $subject, $message, $html) = ch_sendTemplate($sendTemplateParams);
         } catch (Exception $ex) {
           $sent = false;
+          $failedToSend = true;
         }
         
         if ($sent == false) {
           watchdog("debug", "Failed to send receipt to archive. ", [], WATCHDOG_DEBUG);
           $sent = true;
+          $failedToSend = true;
         }
       } else {
         $sent = TRUE;
@@ -242,17 +246,20 @@ function cdntaxreceipts_processTaxReceipt($receipt, &$collectedPdf = NULL, $mode
           list($sent) = ch_sendTemplate($sendTemplateParams);
         } catch (Exception $ex) {
           $sent = false;
+          $failedToSend = true;
         }
         
         if ($sent == false) {
           watchdog("debug", "Failed to send receipt to donor. ", [], WATCHDOG_DEBUG);
           $receipt['issue_method'] = "print";
           $sent = true;
-          // need to add to collected pdf as it was not included because should have been sent, but failed to send
-          if (isset($collectedPdf) && $pdf_file) {
-            $customReceipt->addToCollectedPDF(); // adds this receipt to the end
-          }
+          $failedToSend = true;
         }
+      }
+
+      // need to add to collected pdf as it was not included because should have been sent, but failed to send
+      if ($failedToSend && isset($collectedPdf) && $pdf_file) {
+        $customReceipt->addToCollectedPDF(); // adds this receipt to the end
       }
     }
   }
