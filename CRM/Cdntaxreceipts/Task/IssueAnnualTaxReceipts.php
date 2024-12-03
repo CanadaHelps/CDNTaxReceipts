@@ -210,7 +210,7 @@ class CRM_Cdntaxreceipts_Task_IssueAnnualTaxReceipts extends CRM_Contact_Form_Ta
         'isDefault' => FALSE,
       ),
       array(
-        'type' => 'next',
+        'type' => 'done',
         'name' => 'Issue Tax Receipts',
         'isDefault' => TRUE,
         'submitOnce' => FALSE,
@@ -571,6 +571,9 @@ class CRM_Cdntaxreceipts_Task_IssueAnnualTaxReceipts extends CRM_Contact_Form_Ta
       $status = ts('%1 tax receipt(s) failed to process.', array(1=>$failCount, 'domain' => 'org.civicrm.cdntaxreceipts'));
       CRM_Core_Session::setStatus($status, '', 'error');
     }
+
+    // Redirect (only used when no PDF to download)
+    $this->pushUrlToUserContext('dms/contact/search?reset=1&force=1');
 
     // 4. send the collected PDF for download
     // NB: This exits if a file is sent.
