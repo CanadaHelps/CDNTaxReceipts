@@ -159,6 +159,7 @@ function cdntaxreceipts_processTaxReceipt($receipt, &$collectedPdf = NULL, $mode
         $sendToEmailArchive = false;
       }
       
+      watchdog("debug", "Method.160 --> " .  $receipt['issue_method']);
 
       // generate an email to the tax archive and possibly to the donor
       $org_name = Civi::settings()->get('org_name');
@@ -236,6 +237,7 @@ function cdntaxreceipts_processTaxReceipt($receipt, &$collectedPdf = NULL, $mode
         $sent = TRUE;
       }
 
+      watchdog("debug", "Method.236 --> " .  $receipt['issue_method']);
       // send a copy (with open tracking) to the donor
       if ($sent && $receipt['issue_method'] == 'email' && $mode != CDNTAXRECEIPTS_MODE_WORKFLOW) {
         $sendTemplateParams['toEmail'] = $contact['email'];
@@ -257,8 +259,11 @@ function cdntaxreceipts_processTaxReceipt($receipt, &$collectedPdf = NULL, $mode
         }
       }
 
+      watchdog("debug", "failedToSend? $failedToSend");
+
       // need to add to collected pdf as it was not included because should have been sent, but failed to send
       if ($failedToSend && isset($collectedPdf) && $pdf_file) {
+        watchdog("debug", "Add to collected PDF");
         $customReceipt->addToCollectedPDF(); // adds this receipt to the end
       }
     }
@@ -847,6 +852,11 @@ function cdntaxreceipts_issueTaxReceipt($contribution, &$collectedPdf = NULL, $m
     $receipt_no = Civi::settings()->get('receipt_prefix') . str_pad($contribution->id, 8, 0, STR_PAD_LEFT);
   }
 
+  watchdog("debug", "--> issueTaxReceipt.receipt_no = $receipt_no");
+  watchdog("debug", "--> issueTaxReceipt.printOverride = $printOverride");
+  watchdog("debug", "<pre>--> issueTaxReceipt.contribution = ". print_r($contribution, true) . "</pre>");
+
+
   // determine the send method
   list($method, $email) = cdntaxreceipts_sendMethodForContact($contribution->contact_id, $printOverride);
 
@@ -1408,6 +1418,8 @@ function cdntaxreceipts_openCollectedPDF() {
     $pdf->setJPEGQuality('100');
 
     $pdf->SetAutoPageBreak(true, $margin=0);
+
+    watchdog("debug", "--> openCollectedPDF");
   }
 
   return $pdf;
