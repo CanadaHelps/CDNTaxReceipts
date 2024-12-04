@@ -291,12 +291,17 @@ function cdntaxreceipts_processTaxReceipt($receipt, &$collectedPdf = NULL, $mode
     // CRM-1270, CRM-1057
     if ($receipt['issued_on'] && $receipt['receipt_no']) {
       foreach($receipt['contributions'] as $contribution) {
-        $results = \Civi\Api4\Contribution::update(FALSE)
-        ->addValue('receipt_date', date('Y-m-d H:i:s',$receipt['issued_on']))
-        ->addValue('Contribution_Details.Is_Receipted_', 1)
-        ->addValue('Contribution_Details.Receipt_Number', $receipt['receipt_no'])
-        ->addWhere('id', '=', $contribution['contribution_id'])
-        ->execute();
+        watchdog("debug", "<pre>--> updating contribution for " . $receipt['receipt_no']. " --> " . print_r( $contribution, true) . "</pre>");
+        try {
+          $results = \Civi\Api4\Contribution::update(FALSE)
+          ->addValue('receipt_date', date('Y-m-d H:i:s',$receipt['issued_on']))
+          ->addValue('Contribution_Details.Is_Receipted_', 1)
+          ->addValue('Contribution_Details.Receipt_Number', $receipt['receipt_no'])
+          ->addWhere('id', '=', $contribution['contribution_id'])
+          ->execute();
+        } catch (Exception $ex) {
+          watchdog("debug", "<pre>error saving --> ".print_r($ex->getMessage(), true)."</pre>");
+        }
       }
     }
     // TODO: log an activity
