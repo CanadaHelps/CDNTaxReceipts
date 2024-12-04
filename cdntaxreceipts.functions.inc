@@ -259,6 +259,7 @@ function cdntaxreceipts_processTaxReceipt($receipt, &$collectedPdf = NULL, $mode
         }
       }
 
+      watchdog("debug", "Method.262 --> " .  $receipt['issue_method']);
       watchdog("debug", "failedToSend? $failedToSend");
 
       // need to add to collected pdf as it was not included because should have been sent, but failed to send
