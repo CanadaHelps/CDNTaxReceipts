@@ -252,11 +252,13 @@ function cdntaxreceipts_processTaxReceipt($receipt, &$collectedPdf = NULL, $mode
           "civicrm/cdntaxreceipts/open?r={$receipt['email_tracking_id']}\" width='1' height='1' alt='' border='0'>";
         // TODO check if any different from core CRM_Core_BAO_MessageTemplate::sendTemplate
         try {
+          watchdog("debug", "<pre>--> processTaxReceipt.ch_sendTemplate = ". print_r($sendTemplateParams, true) . "</pre>");
           list($sent) = ch_sendTemplate($sendTemplateParams);
         } catch (Exception $ex) {
           $sent = false;
           $failedToSend = true;
         }
+        watchdog("debug", "<pre>--> processTaxReceipt.sent = ". print_r($sent, true) . "</pre>");
         
         if ($sent == false) {
           watchdog("debug", "Failed to send receipt to donor. ", [], WATCHDOG_DEBUG);
@@ -1925,13 +1927,16 @@ function ch_sendTemplate($params) {
 
   //CRM-2124 load template according to user's preferred language
   $preferred_language = _cdntaxreceipts_userPreferredLanguage($params['contactId']);
+  watchdog("debug", "<pre>--> ch_sendTemplate = ". print_r($params, true) . "</pre>");
 
   $mailContent = ch_loadTemplate((string) $params['valueName'], $preferred_language);
+  watchdog("debug", "<pre>--> ch_sendTemplate.mailContent1 = ". print_r($mailContent, true) . "</pre>");
 
   // Overwrite subject from form field
   if (!empty($params['subject'])) {
     $mailContent['subject'] = $params['subject'];
   }
+  watchdog("debug", "<pre>--> ch_sendTemplate.mailContent2 = ". print_r($mailContent, true) . "</pre>");
 
   try {
     $mailContent = CRM_Core_BAO_MessageTemplate::renderTemplate([
@@ -1948,6 +1953,7 @@ function ch_sendTemplate($params) {
     watchdog("debug", "Failed to load message template (renderTemplate).", [], WATCHDOG_DEBUG);
     return [FALSE, '', '', ''];
   }
+  watchdog("debug", "<pre>--> ch_sendTemplate.mailContent3 = ". print_r($mailContent, true) . "</pre>");
 
   // send the template, honouring the target user’s preferences (if any)
   $sent = FALSE;
@@ -1958,6 +1964,7 @@ function ch_sendTemplate($params) {
   if(!$params['thankyou_email']) {
     $params['html'] = $mailContent['html'];
   }
+  watchdog("debug", "<pre>--> ch_sendTemplate.params2 = ". print_r($params, true) . "</pre>");
 
   // Check Whether openTracking token present or not
   // If not, add it in the html template
@@ -1977,6 +1984,7 @@ function ch_sendTemplate($params) {
       $params['html'] = $dom->saveHTML();
     }
   }
+  watchdog("debug", "<pre>--> ch_sendTemplate.params3 = ". print_r($params, true) . "</pre>");
 
   if ($params['toEmail']) {
     $contactParams = [['email', 'LIKE', $params['toEmail'], 0, 1]];
@@ -2026,6 +2034,7 @@ function ch_sendTemplate($params) {
       unlink($pdf_filename);
     }
   }
+  watchdog("debug", "<pre>--> ch_sendTemplate.mailContent5 = ". print_r($mailContent, true) . "</pre>");
 
   return [$sent, $mailContent['subject'], $mailContent['text'], $mailContent['html']];
 }
