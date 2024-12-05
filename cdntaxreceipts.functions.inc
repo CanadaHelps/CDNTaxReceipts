@@ -125,7 +125,6 @@ function cdntaxreceipts_processTaxReceipt($receipt, &$collectedPdf = NULL, $mode
     $customReceipt->setDefaultImagesDir( dirname(__FILE__) . '/img/' );
     $customReceipt->setFontsDir( dirname(__FILE__) . '/fonts/' );
     $customReceipt->setLanguage($preferred_language);
-    watchdog("debug", "<pre>--> processTaxReceipt.customReceipt = ". print_r($customReceipt, true) . "</pre>");
     //CRM-1864 if there is some issue in generatePDF then system will terminate receipt generation
     if(!$customReceipt->generatePDF()){
       return array(FALSE, $receipt['issue_method'], NULL);
@@ -146,6 +145,11 @@ function cdntaxreceipts_processTaxReceipt($receipt, &$collectedPdf = NULL, $mode
     if ($mode == CDNTAXRECEIPTS_MODE_PREVIEW) {
       // no email, just PDF
       $sent = TRUE;
+      if (isset($collectedPdf) && $pdf_file) {
+        watchdog("debug", "Preview - Add to collected PDF");
+        $customReceipt->setAsPrint();
+        $customReceipt->addToCollectedPDF();
+      }
     }
     else {
 
@@ -243,8 +247,7 @@ function cdntaxreceipts_processTaxReceipt($receipt, &$collectedPdf = NULL, $mode
       } else {
         $sent = TRUE;
       }
-
-      watchdog("debug", "Method.236 --> " .  $receipt['issue_method']);
+      
       // send a copy (with open tracking) to the donor
       if ($sent && $receipt['issue_method'] == 'email' && $mode != CDNTAXRECEIPTS_MODE_WORKFLOW) {
         $sendTemplateParams['toEmail'] = $contact['email'];
@@ -252,13 +255,11 @@ function cdntaxreceipts_processTaxReceipt($receipt, &$collectedPdf = NULL, $mode
           "civicrm/cdntaxreceipts/open?r={$receipt['email_tracking_id']}\" width='1' height='1' alt='' border='0'>";
         // TODO check if any different from core CRM_Core_BAO_MessageTemplate::sendTemplate
         try {
-          watchdog("debug", "<pre>--> processTaxReceipt.ch_sendTemplate = ". print_r($sendTemplateParams, true) . "</pre>");
           list($sent) = ch_sendTemplate($sendTemplateParams);
         } catch (Exception $ex) {
           $sent = false;
           $failedToSend = true;
         }
-        watchdog("debug", "<pre>--> processTaxReceipt.sent = ". print_r($sent, true) . "</pre>");
         
         if ($sent == false) {
           watchdog("debug", "Failed to send receipt to donor. ", [], WATCHDOG_DEBUG);
@@ -272,8 +273,10 @@ function cdntaxreceipts_processTaxReceipt($receipt, &$collectedPdf = NULL, $mode
       watchdog("debug", "failedToSend? $failedToSend");
 
       // need to add to collected pdf as it was not included because should have been sent, but failed to send
-      if ($failedToSend && isset($collectedPdf) && $pdf_file) {
+      if ( ($failedToSend || $receipt['issue_method'] == 'print' ) 
+        && isset($collectedPdf) && $pdf_file) {
         watchdog("debug", "Add to collected PDF");
+        $customReceipt->setAsPrint();
         $customReceipt->addToCollectedPDF(); // adds this receipt to the end
       }
     }
