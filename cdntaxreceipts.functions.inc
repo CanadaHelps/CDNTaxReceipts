@@ -57,15 +57,12 @@ function cdntaxreceipts_processTaxReceipt($receipt, &$collectedPdf = NULL, $mode
 
   // Get contact details
   list($displayname, $email) = CRM_Contact_BAO_Contact::getContactDetails($receipt['contact_id']);
-  watchdog("debug", "<pre>--> processTaxReceipt.displayname = ". print_r($displayname, true) . "</pre>");
-  watchdog("debug", "<pre>--> processTaxReceipt.email = ". print_r($email, true) . "</pre>");
 
   // add support for preferred language
   $old_locale = CRM_Core_I18n::singleton()->getLocale();
   //$preferred_language = CRM_Core_DAO::getFieldValue('CRM_Contact_DAO_Contact', $receipt['contact_id'], 'preferred_language');
   $preferred_language = _cdntaxreceipts_userPreferredLanguage($receipt['contact_id']);
   _cdntaxreceipts_setReceiptanguage($preferred_language);
-  watchdog("debug", "<pre>--> processTaxReceipt.preferred_language = ". print_r($preferred_language, true) . "</pre>");
 
   // @todo Deprecate this function - see issue 103. This used to be on the settings form but has been removed. For now if it had been previously set we still use the same (broken) implementation from before.
   $serial_receipt = true; // Civi::settings()->get('receipt_serial');
@@ -84,7 +81,7 @@ function cdntaxreceipts_processTaxReceipt($receipt, &$collectedPdf = NULL, $mode
     $next_id = CRM_Canadahelps_TaxReceipts_Receipt::getNewReceiptNumber(($mode === true || $mode == CDNTAXRECEIPTS_MODE_PREVIEW) ? TRUE : FALSE);
     $receipt['receipt_no'] = Civi::settings()->get('receipt_prefix') . str_pad($next_id, 8, 0, STR_PAD_LEFT);
   }
-  watchdog("debug", "<pre>--> processTaxReceipt.receipt_no = ". print_r($receipt['receipt_no'], true) . "</pre>");
+  
   // allow modules to alter any details
   // invoke hook_cdntaxreceipts_alter_receipt(&$receipt)
   //   modules should accept a reference to the $receipt array and alter it directly if they wish
@@ -135,7 +132,6 @@ function cdntaxreceipts_processTaxReceipt($receipt, &$collectedPdf = NULL, $mode
     $pdf_file               = $customReceipt->getFilePath();
     $user_friendly          = $customReceipt->getFileName();
     $receipt['receipt_no']  = $customReceipt->getReceiptNumber();
-    watchdog("debug", "<pre>--> processTaxReceipt.pdf_file = ". print_r($pdf_file, true) . "</pre>");
 
     /* NOT USED
     // generate the PDF file
@@ -146,7 +142,6 @@ function cdntaxreceipts_processTaxReceipt($receipt, &$collectedPdf = NULL, $mode
       // no email, just PDF
       $sent = TRUE;
       if (isset($collectedPdf) && $pdf_file) {
-        watchdog("debug", "Preview - Add to collected PDF");
         $customReceipt->setAsPrint();
         $customReceipt->addToCollectedPDF();
       }
@@ -168,9 +163,6 @@ function cdntaxreceipts_processTaxReceipt($receipt, &$collectedPdf = NULL, $mode
           && $receipt['is_duplicate']) {
         $sendToEmailArchive = false;
       }
-      watchdog("debug", "<pre>--> processTaxReceipt.sendToEmailArchive = ". print_r($sendToEmailArchive, true) . "</pre>");
-      
-      watchdog("debug", "Method.160 --> " .  $receipt['issue_method']);
 
       // generate an email to the tax archive and possibly to the donor
       $org_name = Civi::settings()->get('org_name');
@@ -269,13 +261,9 @@ function cdntaxreceipts_processTaxReceipt($receipt, &$collectedPdf = NULL, $mode
         }
       }
 
-      watchdog("debug", "Method.262 --> " .  $receipt['issue_method']);
-      watchdog("debug", "failedToSend? $failedToSend");
-
       // need to add to collected pdf as it was not included because should have been sent, but failed to send
       if ( ($failedToSend || $receipt['issue_method'] == 'print' ) 
         && isset($collectedPdf) && $pdf_file) {
-        watchdog("debug", "Add to collected PDF");
         $customReceipt->setAsPrint();
         $customReceipt->addToCollectedPDF(); // adds this receipt to the end
       }
@@ -294,17 +282,12 @@ function cdntaxreceipts_processTaxReceipt($receipt, &$collectedPdf = NULL, $mode
     // CRM-1270, CRM-1057
     if ($receipt['issued_on'] && $receipt['receipt_no']) {
       foreach($receipt['contributions'] as $contribution) {
-        watchdog("debug", "<pre>--> updating contribution for " . $receipt['receipt_no']. " --> " . print_r( $contribution, true) . "</pre>");
-        try {
-          $results = \Civi\Api4\Contribution::update(FALSE)
+        $results = \Civi\Api4\Contribution::update(FALSE)
           ->addValue('receipt_date', date('Y-m-d H:i:s',$receipt['issued_on']))
           ->addValue('Contribution_Details.Is_Receipted_', 1)
           ->addValue('Contribution_Details.Receipt_Number', $receipt['receipt_no'])
           ->addWhere('id', '=', $contribution['contribution_id'])
           ->execute();
-        } catch (Exception $ex) {
-          watchdog("debug", "<pre>error saving --> ".print_r($ex->getMessage(), true)."</pre>");
-        }
       }
     }
     // TODO: log an activity
@@ -870,15 +853,9 @@ function cdntaxreceipts_issueTaxReceipt($contribution, &$collectedPdf = NULL, $m
     $receipt_no = Civi::settings()->get('receipt_prefix') . str_pad($contribution->id, 8, 0, STR_PAD_LEFT);
   }
 
-  watchdog("debug", "--> issueTaxReceipt.receipt_no = $receipt_no");
-  watchdog("debug", "--> issueTaxReceipt.printOverride = $printOverride");
-  watchdog("debug", "<pre>--> issueTaxReceipt.contribution = ". print_r($contribution, true) . "</pre>");
-
 
   // determine the send method
   list($method, $email) = cdntaxreceipts_sendMethodForContact($contribution->contact_id, $printOverride);
-  watchdog("debug", "<pre>--> issueTaxReceipt.sendMethodForContact = ". print_r($method, true) . "</pre>");
-  watchdog("debug", "<pre>--> issueTaxReceipt.email = ". print_r($email, true) . "</pre>");
 
  // set method to print if user wants to download
   if($is_duplicate && isset($contribution->pdfDownloadReceipt) && $method != 'data') {
@@ -889,7 +866,6 @@ function cdntaxreceipts_issueTaxReceipt($contribution, &$collectedPdf = NULL, $m
   if ((int)$mode == CDNTAXRECEIPTS_MODE_WORKFLOW || $mode == CDNTAXRECEIPTS_MODE_API) {
     $method = 'email';
   }
-  watchdog("debug", "<pre>--> issueTaxReceipt.method = ". print_r($method, true) . "</pre>");
 
   // process In-Kind variables if this is a receipt for an in-kind contribution
 
@@ -978,7 +954,6 @@ function cdntaxreceipts_issueTaxReceipt($contribution, &$collectedPdf = NULL, $m
       $receipt['cancelled_replace_receipt_number'] = $contribution->cancelled_replace_receipt_number;
     $receipt['is_replaced'] = 1;
   }
-  watchdog("debug", "<pre>--> issueTaxReceipt.receipt = ". print_r($receipt, true) . "</pre>");
 
   return cdntaxreceipts_processTaxReceipt($receipt, $collectedPdf, $mode);
 }
@@ -1440,8 +1415,6 @@ function cdntaxreceipts_openCollectedPDF() {
     $pdf->setJPEGQuality('100');
 
     $pdf->SetAutoPageBreak(true, $margin=0);
-
-    watchdog("debug", "--> openCollectedPDF");
   }
 
   return $pdf;
@@ -1935,16 +1908,13 @@ function ch_sendTemplate($params) {
 
   //CRM-2124 load template according to user's preferred language
   $preferred_language = _cdntaxreceipts_userPreferredLanguage($params['contactId']);
-  watchdog("debug", "<pre>--> ch_sendTemplate = ". print_r($params, true) . "</pre>");
 
   $mailContent = ch_loadTemplate((string) $params['valueName'], $preferred_language);
-  watchdog("debug", "<pre>--> ch_sendTemplate.mailContent1 = ". print_r($mailContent, true) . "</pre>");
 
   // Overwrite subject from form field
   if (!empty($params['subject'])) {
     $mailContent['subject'] = $params['subject'];
   }
-  watchdog("debug", "<pre>--> ch_sendTemplate.mailContent2 = ". print_r($mailContent, true) . "</pre>");
 
   try {
     $mailContent = CRM_Core_BAO_MessageTemplate::renderTemplate([
@@ -1961,7 +1931,6 @@ function ch_sendTemplate($params) {
     watchdog("debug", "Failed to load message template (renderTemplate).", [], WATCHDOG_DEBUG);
     return [FALSE, '', '', ''];
   }
-  watchdog("debug", "<pre>--> ch_sendTemplate.mailContent3 = ". print_r($mailContent, true) . "</pre>");
 
   // send the template, honouring the target user’s preferences (if any)
   $sent = FALSE;
@@ -1972,7 +1941,6 @@ function ch_sendTemplate($params) {
   if(!$params['thankyou_email']) {
     $params['html'] = $mailContent['html'];
   }
-  watchdog("debug", "<pre>--> ch_sendTemplate.params2 = ". print_r($params, true) . "</pre>");
 
   // Check Whether openTracking token present or not
   // If not, add it in the html template
@@ -1992,7 +1960,6 @@ function ch_sendTemplate($params) {
       $params['html'] = $dom->saveHTML();
     }
   }
-  watchdog("debug", "<pre>--> ch_sendTemplate.params3 = ". print_r($params, true) . "</pre>");
 
   if ($params['toEmail']) {
     $contactParams = [['email', 'LIKE', $params['toEmail'], 0, 1]];
@@ -2042,7 +2009,6 @@ function ch_sendTemplate($params) {
       unlink($pdf_filename);
     }
   }
-  watchdog("debug", "<pre>--> ch_sendTemplate.mailContent5 = ". print_r($mailContent, true) . "</pre>");
 
   return [$sent, $mailContent['subject'], $mailContent['text'], $mailContent['html']];
 }
