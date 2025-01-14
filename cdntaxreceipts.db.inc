@@ -394,7 +394,8 @@ function cdntaxreceipts_contributions_for_annual($contactId, $year) {
       c.receipt_id,
       l.issued_on,
       l.issue_type,
-      l.receipt_status
+      l.receipt_status,
+      contrib_type.name as fund_name
     FROM civicrm_contribution contrib
     INNER JOIN civicrm_financial_type contrib_type
             ON contrib.financial_type_id = contrib_type.id
@@ -446,7 +447,7 @@ function cdntaxreceipts_contributions_for_annual($contactId, $year) {
       
 
       // In Kind?
-      $fund_name_check = preg_replace("/[^a-zA-Z0-9]+/", "", $dao->name);
+      $fund_name_check = preg_replace("/[^a-zA-Z0-9]+/", "", $dao->fund_name);
       if ( stripos($fund_name_check, "inkind") !== false ) {
         $contribution = \Civi\Api4\Contribution::get(TRUE)
           ->addSelect('custom.*')

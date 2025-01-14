@@ -81,6 +81,7 @@ function cdntaxreceipts_processTaxReceipt($receipt, &$collectedPdf = NULL, $mode
     $next_id = CRM_Canadahelps_TaxReceipts_Receipt::getNewReceiptNumber(($mode === true || $mode == CDNTAXRECEIPTS_MODE_PREVIEW) ? TRUE : FALSE);
     $receipt['receipt_no'] = Civi::settings()->get('receipt_prefix') . str_pad($next_id, 8, 0, STR_PAD_LEFT);
   }
+  
   // allow modules to alter any details
   // invoke hook_cdntaxreceipts_alter_receipt(&$receipt)
   //   modules should accept a reference to the $receipt array and alter it directly if they wish
@@ -140,13 +141,19 @@ function cdntaxreceipts_processTaxReceipt($receipt, &$collectedPdf = NULL, $mode
     if ($mode == CDNTAXRECEIPTS_MODE_PREVIEW) {
       // no email, just PDF
       $sent = TRUE;
+      if (isset($collectedPdf) && $pdf_file) {
+        $customReceipt->setAsPrint();
+        $customReceipt->addToCollectedPDF();
+      }
     }
     else {
 
       $sendToEmailArchive = true;
+      $failedToSend = false;
       // CRM-2234 Don't send to archve if mail settings are missing
       if (!CRM_Canadahelps_Config_Verify::hasSMTPEmail()) {
         $sendToEmailArchive = false;
+        $failedToSend = true;
         $receipt['issue_method'] = "print"; // force print method
         watchdog("debug", "SMTP Settings are not set.", [], WATCHDOG_DEBUG);
       
@@ -156,7 +163,6 @@ function cdntaxreceipts_processTaxReceipt($receipt, &$collectedPdf = NULL, $mode
           && $receipt['is_duplicate']) {
         $sendToEmailArchive = false;
       }
-      
 
       // generate an email to the tax archive and possibly to the donor
       $org_name = Civi::settings()->get('org_name');
@@ -222,16 +228,18 @@ function cdntaxreceipts_processTaxReceipt($receipt, &$collectedPdf = NULL, $mode
           list($sent, $subject, $message, $html) = ch_sendTemplate($sendTemplateParams);
         } catch (Exception $ex) {
           $sent = false;
+          $failedToSend = true;
         }
         
         if ($sent == false) {
           watchdog("debug", "Failed to send receipt to archive. ", [], WATCHDOG_DEBUG);
           $sent = true;
+          $failedToSend = true;
         }
       } else {
         $sent = TRUE;
       }
-
+      
       // send a copy (with open tracking) to the donor
       if ($sent && $receipt['issue_method'] == 'email' && $mode != CDNTAXRECEIPTS_MODE_WORKFLOW) {
         $sendTemplateParams['toEmail'] = $contact['email'];
@@ -242,17 +250,22 @@ function cdntaxreceipts_processTaxReceipt($receipt, &$collectedPdf = NULL, $mode
           list($sent) = ch_sendTemplate($sendTemplateParams);
         } catch (Exception $ex) {
           $sent = false;
+          $failedToSend = true;
         }
         
         if ($sent == false) {
           watchdog("debug", "Failed to send receipt to donor. ", [], WATCHDOG_DEBUG);
           $receipt['issue_method'] = "print";
           $sent = true;
-          // need to add to collected pdf as it was not included because should have been sent, but failed to send
-          if (isset($collectedPdf) && $pdf_file) {
-            $customReceipt->addToCollectedPDF(); // adds this receipt to the end
-          }
+          $failedToSend = true;
         }
+      }
+
+      // need to add to collected pdf as it was not included because should have been sent, but failed to send
+      if ( ($failedToSend || $receipt['issue_method'] == 'print' ) 
+        && isset($collectedPdf) && $pdf_file) {
+        $customReceipt->setAsPrint();
+        $customReceipt->addToCollectedPDF(); // adds this receipt to the end
       }
     }
   }
@@ -269,12 +282,12 @@ function cdntaxreceipts_processTaxReceipt($receipt, &$collectedPdf = NULL, $mode
     // CRM-1270, CRM-1057
     if ($receipt['issued_on'] && $receipt['receipt_no']) {
       foreach($receipt['contributions'] as $contribution) {
-        $results = \Civi\Api4\Contribution::update(TRUE)
-        ->addValue('receipt_date', date('Y-m-d H:i:s',$receipt['issued_on']))
-        ->addValue('Contribution_Details.Is_Receipted_', 1)
-        ->addValue('Contribution_Details.Receipt_Number', $receipt['receipt_no'])
-        ->addWhere('id', '=', $contribution['contribution_id'])
-        ->execute();
+        $results = \Civi\Api4\Contribution::update(FALSE)
+          ->addValue('receipt_date', date('Y-m-d H:i:s',$receipt['issued_on']))
+          ->addValue('Contribution_Details.Is_Receipted_', 1)
+          ->addValue('Contribution_Details.Receipt_Number', $receipt['receipt_no'])
+          ->addWhere('id', '=', $contribution['contribution_id'])
+          ->execute();
       }
     }
     // TODO: log an activity
@@ -839,6 +852,7 @@ function cdntaxreceipts_issueTaxReceipt($contribution, &$collectedPdf = NULL, $m
   else { // generate a receipt number
     $receipt_no = Civi::settings()->get('receipt_prefix') . str_pad($contribution->id, 8, 0, STR_PAD_LEFT);
   }
+
 
   // determine the send method
   list($method, $email) = cdntaxreceipts_sendMethodForContact($contribution->contact_id, $printOverride);
