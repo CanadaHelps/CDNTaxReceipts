@@ -191,6 +191,7 @@ class CRM_Cdntaxreceipts_Task_IssueSingleTaxReceipts extends CRM_Contribute_Form
     $printCount = 0;
     $dataCount = 0;
     $failCount = 0;
+    $previewCount = 0;
 
     // CH Customization: CRM-920: Thank-you Email Tool
     $sendThankYouEmail = false;
@@ -272,14 +273,15 @@ class CRM_Cdntaxreceipts_Task_IssueSingleTaxReceipts extends CRM_Contribute_Form
           }
           elseif ( $method == 'email' ) {
             $emailCount++;
+            $previewCount++;
           }
           elseif ( $method == 'print' ) {
             $printCount++;
+            $previewCount++;
           }
           elseif ( $method == 'data' ) {
             $dataCount++;
           }
-
         }
       }
     }
@@ -300,6 +302,10 @@ class CRM_Cdntaxreceipts_Task_IssueSingleTaxReceipts extends CRM_Contribute_Form
       if ($dataCount > 0) {
         $status = ts('Data for %1 tax receipt(s) is available in the Tax Receipts Issued report.', array(1=>$dataCount, 'domain' => 'org.civicrm.cdntaxreceipts'));
         CRM_Core_Session::setStatus($status, '', 'success');
+      }
+    } else {
+      if($previewCount > 0) {
+        $receiptCount['preview'] = $previewCount;
       }
     }
 
