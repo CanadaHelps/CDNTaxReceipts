@@ -295,6 +295,7 @@ class CRM_Cdntaxreceipts_Task_IssueAnnualTaxReceipts extends CRM_Contact_Form_Ta
     $printCount = 0;
     $dataCount = 0;
     $failCount = 0;
+    $previewCount = 0;
 
     // CH Customization: CRM-920: Thank-you Email Tool
     $sendThankYouEmail = false;
@@ -391,9 +392,11 @@ class CRM_Cdntaxreceipts_Task_IssueAnnualTaxReceipts extends CRM_Contact_Form_Ta
         }
         elseif ( $method == 'email' ) {
           $emailCount++;
+          $previewCount++;
         }
         elseif ( $method == 'print' ) {
           $printCount++;
+          $previewCount++;
         }
         elseif ( $method == 'data' ) {
           $dataCount++;
@@ -439,9 +442,11 @@ class CRM_Cdntaxreceipts_Task_IssueAnnualTaxReceipts extends CRM_Contact_Form_Ta
             }
             elseif ( $method == 'email' ) {
               $emailCount++;
+              $previewCount++;
             }
             elseif ( $method == 'print' ) {
               $printCount++;
+              $previewCount++;
             }
             elseif ( $method == 'data' ) {
               $dataCount++;
@@ -503,9 +508,11 @@ class CRM_Cdntaxreceipts_Task_IssueAnnualTaxReceipts extends CRM_Contact_Form_Ta
             }
             elseif ( $method == 'email' ) {
               $emailCount++;
+              $previewCount++;
             }
             elseif ( $method == 'print' ) {
               $printCount++;
+              $previewCount++;
             }
             elseif ( $method == 'data' ) {
               $dataCount++;
@@ -548,9 +555,11 @@ class CRM_Cdntaxreceipts_Task_IssueAnnualTaxReceipts extends CRM_Contact_Form_Ta
     */
 
     // 3. Set session status
+    $receiptCount = [];
     if ( $previewMode ) {
-      $status = ts('%1 tax receipt(s) have been previewed.  No receipts have been issued.', array(1=>$printCount, 'domain' => 'org.civicrm.cdntaxreceipts'));
-      CRM_Core_Session::setStatus($status, '', 'success');
+      if($previewCount > 0) {
+        $receiptCount['preview'] = $previewCount;
+      }
     }
     else {
       if ($emailCount > 0) {
@@ -577,7 +586,7 @@ class CRM_Cdntaxreceipts_Task_IssueAnnualTaxReceipts extends CRM_Contact_Form_Ta
 
     // 4. send the collected PDF for download
     // NB: This exits if a file is sent.
-    cdntaxreceipts_sendCollectedPDF($receiptsForPrintingPDF, 'Receipts-To-Print-' . (int) $_SERVER['REQUEST_TIME'] . '.pdf');  // EXITS.
+    cdntaxreceipts_sendCollectedPDF($receiptsForPrintingPDF, 'Receipts-To-Print-' . (int) $_SERVER['REQUEST_TIME'] . '.pdf', $receiptCount);  // EXITS.
   }
 
 

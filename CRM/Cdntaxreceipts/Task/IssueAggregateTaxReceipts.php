@@ -257,6 +257,7 @@ class CRM_Cdntaxreceipts_Task_IssueAggregateTaxReceipts extends CRM_Contribute_F
     $printCount = 0;
     $dataCount = 0;
     $failCount = 0;
+    $previewCount = 0;
 
     // CH Customization: CRM-920: Thank-you Email Tool
     $sendThankYouEmail = false;
@@ -352,9 +353,11 @@ class CRM_Cdntaxreceipts_Task_IssueAggregateTaxReceipts extends CRM_Contribute_F
         }
         elseif ( $method == 'email' ) {
           $emailCount++;
+          $previewCount++;
         }
         elseif ( $method == 'print' ) {
           $printCount++;
+          $previewCount++;
         }
         elseif ( $method == 'data' ) {
           $dataCount++;
@@ -400,9 +403,11 @@ class CRM_Cdntaxreceipts_Task_IssueAggregateTaxReceipts extends CRM_Contribute_F
             }
             elseif ( $method == 'email' ) {
               $emailCount++;
+              $previewCount++;
             }
             elseif ( $method == 'print' ) {
               $printCount++;
+              $previewCount++;
             }
             elseif ( $method == 'data' ) {
               $dataCount++;
@@ -460,9 +465,11 @@ class CRM_Cdntaxreceipts_Task_IssueAggregateTaxReceipts extends CRM_Contribute_F
             }
             elseif ( $method == 'email' ) {
               $emailCount++;
+              $previewCount++;
             }
             elseif ( $method == 'print' ) {
               $printCount++;
+              $previewCount++;
             }
             elseif ( $method == 'data' ) {
               $dataCount++;
@@ -475,10 +482,10 @@ class CRM_Cdntaxreceipts_Task_IssueAggregateTaxReceipts extends CRM_Contribute_F
     // 3. Set session status
     $receiptCount = [];
     if ( $previewMode ) {
-      $status = ts('%1 tax receipt(s) have been previewed.  No receipts have been issued.', array(1=>$printCount, 'domain' => 'org.civicrm.cdntaxreceipts'));
-      CRM_Core_Session::setStatus($status, '', 'success');
-    }
-    else {
+      if($previewCount > 0) {
+        $receiptCount['preview'] = $previewCount;
+      }
+    } else {
       if ($emailCount > 0) {
         $status = ts('%1 tax receipt(s) were sent by email.', array(1=>$emailCount, 'domain' => 'org.civicrm.cdntaxreceipts'));
         CRM_Core_Session::setStatus($status, '', 'success');
